@@ -2,21 +2,35 @@ const sendAPIMessage = require("../../middleware/sendAPIMessage");
 const {
   validateAction,
   validateActionObject,
-} = require("../../utils/validateAction");
-const validateQuickReply = require("../../utils/validateQuickReply");
+  validateQuickReply,
+  validateStringParam,
+  validateImageUrl,
+} = require("../../utils/validates");
 
 /**
- * リストテンプレートメッセージを送信する共通ロジック
+ * @function sendListTemplateMessage
+ * @description リストテンプレートメッセージを送信する共通ロジック
+ *
  * @param {string} botId - Bot ID
  * @param {string} token - APIトークン
  * @param {Object} params - 送信対象情報
- * @param {string} [params.userId] - ユーザーID（任意）
- * @param {string} [params.channelId] - チャンネルID（任意）
+ * @param {string} [params.userId] - ユーザーID（`channelId` の代わりに指定可能）
+ * @param {string} [params.channelId] - チャンネルID（`userId` の代わりに指定可能）
  * @param {Object} [params.coverData] - カバー画像データ（任意）
- * @param {Array} params.elements - リスト項目の配列（必須）
+ * @param {Array} params.elements - リスト項目の配列（必須、最大10個）
  * @param {Array} [params.actions] - 全体に関連付けるアクションボタン（任意）
  * @param {Object} [params.quickReply] - クイックリプライオブジェクト（任意）
- * @throws {Error} パラメータが不正または検証に失敗した場合
+ *
+ * @throws {Error} 送信先が指定されていない場合 (`userId` または `channelId` が必要)
+ * @throws {Error} `elements` が指定されていない、または 1 つ以上の項目が必要
+ * @throws {Error} `elements` の配列長が 10 を超える場合
+ * @throws {Error} `coverData` の `backgroundImageUrl` または `backgroundFileId` の指定が無効な場合
+ * @throws {Error} `elements` の `title` または `subtitle` のフォーマットが無効な場合
+ * @throws {Error} `elements` の `originalContentUrl` のフォーマットが無効な場合（HTTPSのみ）
+ * @throws {Error} `defaultAction` または `action` のフォーマットが無効な場合
+ * @throws {Error} `quickReply` のフォーマットが無効な場合
+ *
+ * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す
  */
 async function sendListTemplateMessage(botId, token, params) {
   const { userId, channelId, coverData, elements, actions, quickReply } =
@@ -26,34 +40,14 @@ async function sendListTemplateMessage(botId, token, params) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
-  if (!elements || !Array.isArray(elements) || elements.length === 0) {
+  if (!Array.isArray(elements) || elements.length === 0) {
     throw new Error(
       "パラメータ 'elements' は必須で、1つ以上の項目を指定してください。"
     );
   }
-
   if (elements.length > 10) {
     throw new Error("リストテンプレートの項目数は最大10個までです。");
   }
-
-  /**
-   * 画像URLの検証 (HTTPS チェックと最大文字数チェックのみ)
-   * @param {string} url - 検証対象のURL
-   * @param {string} paramName - パラメータ名
-   * @throws {Error} URLがHTTPS以外、または長さが1000文字を超える場合にエラーをスロー
-   */
-  const validateImageUrl = (url, paramName) => {
-    if (!/^https:\/\//.test(url)) {
-      throw new Error(
-        `パラメータ '${paramName}' は HTTPS のURLを指定してください。`
-      );
-    }
-    if (url.length > 1000) {
-      throw new Error(
-        `パラメータ '${paramName}' は1,000文字以内で指定してください。`
-      );
-    }
-  };
 
   if (coverData) {
     const { backgroundImageUrl, backgroundFileId } = coverData;
@@ -67,33 +61,26 @@ async function sendListTemplateMessage(botId, token, params) {
     }
   }
 
-  for (const [index, element] of elements.entries()) {
-    if (!element.title) {
-      throw new Error(
-        `リストテンプレート項目 ${index + 1} には 'title' が必要です。`
+  elements.forEach((element, index) => {
+    validateStringParam(element.title, `elements[${index}].title`);
+    if (element.subtitle) {
+      validateStringParam(
+        element.subtitle,
+        `elements[${index}].subtitle`,
+        1000
       );
     }
-
-    if (element.subtitle && element.subtitle.length > 1000) {
-      throw new Error(
-        `リストテンプレート項目 ${
-          index + 1
-        } の 'subtitle' は1,000文字以内で指定してください。`
-      );
-    }
-
     if (element.originalContentUrl) {
       validateImageUrl(
         element.originalContentUrl,
         `elements[${index}].originalContentUrl`
       );
     }
-
     if (element.defaultAction) {
       try {
         validateActionObject(
           element.defaultAction,
-          `リストテンプレート項目 ${index + 1} の 'defaultAction'`,
+          `elements[${index}].defaultAction`,
           true
         );
       } catch (error) {
@@ -104,7 +91,6 @@ async function sendListTemplateMessage(botId, token, params) {
         );
       }
     }
-
     if (element.action) {
       try {
         validateAction(element.action, false);
@@ -116,7 +102,7 @@ async function sendListTemplateMessage(botId, token, params) {
         );
       }
     }
-  }
+  });
 
   if (actions) {
     try {

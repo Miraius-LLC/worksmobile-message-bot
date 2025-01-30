@@ -1,17 +1,28 @@
 const sendAPIMessage = require("../../middleware/sendAPIMessage");
-const validateQuickReply = require("../../utils/validateQuickReply");
+const {
+  validateQuickReply,
+  validateStringParam,
+} = require("../../utils/validates");
 
 /**
- * フレックスメッセージを送信する共通ロジック
+ * @function sendFlexMessage
+ * @description フレックスメッセージを送信する共通ロジック
+ *
  * @param {string} botId - Bot ID
  * @param {string} token - APIトークン
  * @param {Object} params - 送信対象情報
- * @param {string} [params.userId] - ユーザーID（任意）
- * @param {string} [params.channelId] - トークルームID（任意）
- * @param {string} params.altText - トークルームリストとプッシュ通知で表示される代替テキスト。最大400文字。必須項目。
- * @param {Object} params.contents - Flexible Template コンテナ。必須項目。
+ * @param {string} [params.userId] - ユーザーID（`channelId` の代わりに指定可能）
+ * @param {string} [params.channelId] - トークルームID（`userId` の代わりに指定可能）
+ * @param {string} params.altText - トークルームリストとプッシュ通知で表示される代替テキスト（最大400文字）
+ * @param {Object} params.contents - Flexible Template コンテナ（必須項目）
  * @param {Object} [params.quickReply] - クイックリプライオブジェクト（任意）
- * @throws {Error} パラメータが不正または検証に失敗した場合
+ *
+ * @throws {Error} 送信先が指定されていない場合 (`userId` または `channelId` が必要)
+ * @throws {Error} `altText` が指定されていない、または 400 文字を超える場合
+ * @throws {Error} `contents` のフォーマットが無効な場合（オブジェクトのみ許容）
+ * @throws {Error} `quickReply` のフォーマットが無効な場合
+ *
+ * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す
  */
 async function sendFlexMessage(botId, token, params) {
   const { userId, channelId, altText, contents, quickReply } = params;
@@ -20,18 +31,16 @@ async function sendFlexMessage(botId, token, params) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
-  if (!altText || typeof altText !== "string" || altText.length > 400) {
-    throw new Error(
-      "'altText' は必須で、文字列形式で最大400文字以内で指定してください。"
-    );
-  }
+  validateStringParam(altText, "altText", 400);
 
+  // contents の検証
   if (!contents || typeof contents !== "object") {
     throw new Error(
       "'contents' は必須で、オブジェクト形式で指定してください。"
     );
   }
 
+  // クイックリプライの検証
   if (quickReply) {
     if (typeof quickReply !== "object") {
       throw new Error(

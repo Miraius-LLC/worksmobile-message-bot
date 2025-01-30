@@ -1,35 +1,39 @@
 const sendAPIMessage = require("../../middleware/sendAPIMessage");
-const validateQuickReply = require("../../utils/validateQuickReply");
+const {
+  validateQuickReply,
+  validateStringParam,
+} = require("../../utils/validates");
 
 /**
- * メッセージを送信する共通ロジック
+ * @function sendTextMessage
+ * @description テキストメッセージを送信する共通ロジック
+ *
  * @param {string} botId - Bot ID
  * @param {string} token - APIトークン
  * @param {Object} params - 送信対象情報
- * @param {string} [params.userId] - ユーザーID（任意）
- * @param {string} [params.channelId] - トークルームID（任意）
- * @param {string} params.text - 送信するテキスト
+ * @param {string} [params.userId] - ユーザーID（`channelId` の代わりに指定可能）
+ * @param {string} [params.channelId] - トークルームID（`userId` の代わりに指定可能）
+ * @param {string} params.text - 送信するテキスト（必須項目、最大2000文字）
  * @param {Object} [params.quickReply] - クイックリプライオブジェクト（任意）
- * @throws {Error} パラメータが不正または検証に失敗した場合
+ *
+ * @throws {Error} 送信先が指定されていない場合 (`userId` または `channelId` が必要)
+ * @throws {Error} `text` が指定されていない、または文字列でない場合
+ * @throws {Error} `text` の長さが 2000 文字を超える場合
+ * @throws {Error} `quickReply` のフォーマットが無効な場合
+ *
+ * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す
  */
 async function sendTextMessage(botId, token, params) {
   const { userId, channelId, text, quickReply } = params;
 
-  // 送信先の検証
   if (!userId && !channelId) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
-  // テキストの検証
-  if (!text || typeof text !== "string") {
-    throw new Error("パラメータ 'text' は必須で、文字列を指定してください。");
-  }
+  // テキストメッセージのバリデーション（最大2000文字）
+  validateStringParam(text, "text", 2000);
 
-  if (text.length > 2000) {
-    throw new Error("パラメータ 'text' は2000文字以内で指定してください。");
-  }
-
-  // クイックリプライの検証
+  // クイックリプライのバリデーション
   if (quickReply) {
     if (typeof quickReply !== "object") {
       throw new Error(
@@ -43,6 +47,7 @@ async function sendTextMessage(botId, token, params) {
     }
   }
 
+  // API 送信設定
   const target = userId
     ? `users/${userId}/messages`
     : `channels/${channelId}/messages`;

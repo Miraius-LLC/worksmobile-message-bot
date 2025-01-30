@@ -1,10 +1,13 @@
-const { validateAction, validateActionObject } = require("./validateAction");
+const { validateAction } = require("./action");
+const validateStringParam = require("./stringParam");
 
 /**
- * クイックリプライオブジェクトを検証します。
+ * @function validateQuickReply
+ * @description クイックリプライオブジェクトを検証
  *
- * @param {Object} quickReply - クイックリプライオブジェクト。
- * @throws {Error} 必須フィールドが不足している場合や不正なデータが含まれている場合にエラーをスローします。
+ * @param {Object} quickReply - クイックリプライオブジェクト
+ *
+ * @throws {Error} 必須フィールドが不足している場合や不正なデータが含まれている場合
  */
 function validateQuickReply(quickReply) {
   if (!quickReply || typeof quickReply !== "object") {
@@ -26,10 +29,12 @@ function validateQuickReply(quickReply) {
     }
 
     if (item.imageUrl) {
-      if (
-        typeof item.imageUrl !== "string" ||
-        !/^https:\/\//.test(item.imageUrl)
-      ) {
+      validateStringParam(
+        item.imageUrl,
+        `quickReply.items[${index}].imageUrl`,
+        1000
+      );
+      if (!/^https:\/\//.test(item.imageUrl)) {
         throw new Error(
           `クイックリプライ項目 ${
             index + 1

@@ -1,9 +1,14 @@
+const validateStringParam = require("./stringParam");
+const validateUrl = require("./url");
+
 /**
- * アクションオブジェクトを検証します。
+ * @function validateAction
+ * @description アクションオブジェクトを検証
  *
  * @param {Array|Object} actions - アクションオブジェクト、一次元配列、または二次元配列。
  * @param {boolean} isNested - `true` の場合、二次元配列を期待する（全体アクション用）。
- * @throws {Error} 必須フィールドが不足している場合や不正なデータが含まれている場合にエラーをスローします。
+ *
+ * @throws {Error} 必須フィールドが不足している場合や不正なデータが含まれている場合にエラーをスロー。
  */
 function validateAction(actions, isNested = false) {
   if (!actions) return; // actions が未定義ならば検証不要
@@ -13,28 +18,26 @@ function validateAction(actions, isNested = false) {
     if (!Array.isArray(actions)) {
       throw new Error("全体アクション 'actions' は配列である必要があります。");
     }
-    for (const [rowIndex, row] of actions.entries()) {
+    actions.forEach((row, rowIndex) => {
       if (!Array.isArray(row)) {
         throw new Error(
           `全体アクション actions[${rowIndex}] は配列である必要があります。`
         );
       }
-      for (const [colIndex, action] of row.entries()) {
+      row.forEach((action, colIndex) => {
         validateActionObject(
           action,
           `全体アクション actions[${rowIndex}][${colIndex}]`
         );
-      }
-    }
+      });
+    });
   } else {
     // elements[].action や column.actions の場合、配列または単一オブジェクトを許可
     if (Array.isArray(actions)) {
-      // actions が配列の場合、すべての要素を検証
       actions.forEach((action, index) => {
         validateActionObject(action, `actions[${index}]`);
       });
     } else if (typeof actions === "object" && actions !== null) {
-      // 単一のオブジェクトの場合
       validateActionObject(actions, "action");
     } else {
       throw new Error(
@@ -45,65 +48,50 @@ function validateAction(actions, isNested = false) {
 }
 
 /**
- * 単一のアクションオブジェクトを検証するヘルパー関数
+ * @function validateActionObject
+ * @description 単一のアクションオブジェクトを検証するヘルパー関数
  *
- * @param {Object} action - アクションオブジェクト。
- * @param {string} path - エラーメッセージのパス情報（デバッグ用）。
+ * @param {Object} action - アクションオブジェクト
+ * @param {string} path - エラーメッセージのパス情報（デバッグ用）
  * @param {boolean} isDefaultAction - `true` の場合、defaultAction の検証（label が不要）
- * @throws {Error} 必須フィールドが不足している場合や不正なデータが含まれている場合にエラーをスローします。
+ *
+ * @throws {Error} 必須フィールドが不足している場合や不正なデータが含まれている場合
  */
 function validateActionObject(action, path, isDefaultAction = false) {
   if (!action || typeof action !== "object" || Array.isArray(action)) {
     throw new Error(`${path} はオブジェクトである必要があります。`);
   }
 
-  if (!action.type) {
-    throw new Error(`${path} のアクションオブジェクトには 'type' が必要です。`);
-  }
+  validateStringParam(action.type, `${path}.type`);
 
   // defaultAction の場合、label は不要
-  if (!isDefaultAction && !action.label) {
-    throw new Error(
-      `${path} のアクションオブジェクトには 'label' が必要です。`
-    );
+  if (!isDefaultAction) {
+    validateStringParam(action.label, `${path}.label`);
   }
 
   switch (action.type) {
     case "postback":
-      if (!action.postback) {
-        throw new Error(
-          `${path} の 'postback' タイプのアクションには 'postback' フィールドが必要です。`
-        );
-      }
+      validateStringParam(action.postback, `${path}.postback`);
       break;
     case "message":
       // 'message' タイプは追加の必須フィールドなし
       break;
     case "uri":
-      if (!action.uri || !/^https?:\/\//.test(action.uri)) {
-        throw new Error(
-          `${path} の 'uri' タイプのアクションには 'uri' フィールドが必要です (HTTP または HTTPS のみ)。`
-        );
-      }
+      validateUrl(action.uri, `${path}.uri`);
       break;
     case "camera":
     case "cameraRoll":
     case "location":
-      // これらのタイプには追加フィールドは不要。
+      // これらのタイプには追加フィールドは不要
       break;
     case "copy":
-      if (!action.copyText) {
-        throw new Error(
-          `${path} の 'copy' タイプのアクションには 'copyText' フィールドが必要です。`
-        );
-      }
+      validateStringParam(action.copyText, `${path}.copyText`);
       break;
     default:
       throw new Error(
-        `${path} の 'type' に不正な値が含まれています: ${action.type}`
+        `${path}.type に不正な値が含まれています: ${action.type}`
       );
   }
 }
 
-// validateActionObject をエクスポート
 module.exports = { validateAction, validateActionObject };

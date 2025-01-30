@@ -1,9 +1,7 @@
-const express = require("express");
 const generateJWT = require("../../../middleware/generateJWT");
 const fetchServerAccessToken = require("../../../middleware/serverToken");
 const sendFileMessage = require("../../../services/message/file");
 
-const router = express.Router();
 const BOT_ID = process.env.BOT_ID;
 
 /**
@@ -16,26 +14,22 @@ const BOT_ID = process.env.BOT_ID;
  * @param {Object} [quickReply] - クイックリプライオブジェクト（任意）。
  *
  * @returns {200} 成功 - ファイルメッセージが正常に送信されました。
- * @returns {400} リクエストエラー - 必須パラメータが不足している場合。
+ * @returns {400} リクエストエラー - 必須パラメータが不足しています。
  * @returns {500} サーバーエラー - サーバー内部でエラーが発生しました。
  */
-router.post("/:channelId", async (req, res) => {
+module.exports = (channelId) => async (req, res) => {
   try {
     const { originalContentUrl, fileId, quickReply } = req.body;
-    const { channelId } = req.params;
-
-    if (!channelId || (!originalContentUrl && !fileId)) {
+    if (!originalContentUrl && !fileId)
       return res
         .status(400)
         .send(
-          "リクエストに必要なパラメータ 'channelId' と 'originalContentUrl' または 'fileId' のいずれかが不足しています。"
+          "リクエストに必要なパラメータ 'originalContentUrl' または 'fileId' のいずれかが不足しています。"
         );
-    }
 
     const jwtToken = await generateJWT();
     const serverToken = await fetchServerAccessToken(jwtToken);
 
-    // サービス層の共通ロジックを使用してファイルメッセージを送信
     await sendFileMessage(BOT_ID, serverToken, {
       channelId,
       originalContentUrl,
@@ -43,11 +37,8 @@ router.post("/:channelId", async (req, res) => {
       quickReply,
     });
 
-    res.sendStatus(200); // 成功時のレスポンス
+    res.sendStatus(200);
   } catch (error) {
-    console.error("エラーが発生しました:", error.message);
-    res.status(500).send(error.message); // 詳細なエラーメッセージをレスポンスに含める
+    res.status(500).send(`エラーが発生しました: ${error.message}`);
   }
-});
-
-module.exports = router;
+};

@@ -1,9 +1,7 @@
-const express = require("express");
 const generateJWT = require("../../../middleware/generateJWT");
 const fetchServerAccessToken = require("../../../middleware/serverToken");
 const sendCarouselMessage = require("../../../services/message/carousel");
 
-const router = express.Router();
 const BOT_ID = process.env.BOT_ID;
 
 /**
@@ -16,31 +14,20 @@ const BOT_ID = process.env.BOT_ID;
  * @param {Array} columns - カルーセルのカラムオブジェクトリスト (最大10個)。必須項目。
  *
  * @returns {200} 成功 - メッセージが正常に送信されました。
- * @returns {400} リクエストエラー - 必須パラメータが不足している場合。
+ * @returns {400} リクエストエラー - 必須パラメータが不足しています。
  * @returns {500} サーバーエラー - サーバー内部でエラーが発生しました。
  */
-router.post("/:channelId", async (req, res) => {
+module.exports = (channelId) => async (req, res) => {
   try {
     const { imageAspectRatio, imageSize, columns } = req.body;
-    const { channelId } = req.params;
-
-    if (
-      !channelId ||
-      !columns ||
-      !Array.isArray(columns) ||
-      columns.length === 0
-    ) {
+    if (!Array.isArray(columns) || columns.length === 0)
       return res
         .status(400)
-        .send(
-          "リクエストに必要なパラメータ 'channelId' または 'columns' が不足しています。"
-        );
-    }
+        .send("リクエストに必要なパラメータ 'columns' が不足しています。");
 
     const jwtToken = await generateJWT();
     const serverToken = await fetchServerAccessToken(jwtToken);
 
-    // サービス層の共通ロジックを使用してカルーセルメッセージを送信
     await sendCarouselMessage(BOT_ID, serverToken, {
       channelId,
       imageAspectRatio,
@@ -48,11 +35,8 @@ router.post("/:channelId", async (req, res) => {
       columns,
     });
 
-    res.sendStatus(200); // 成功時のレスポンス
+    res.sendStatus(200);
   } catch (error) {
-    console.error("エラーが発生しました:", error.message);
-    res.status(500).send(error.message); // 詳細なエラーメッセージをレスポンスに含める
+    res.status(500).send(`エラーが発生しました: ${error.message}`);
   }
-});
-
-module.exports = router;
+};

@@ -1,20 +1,29 @@
 const sendAPIMessage = require("../../middleware/sendAPIMessage");
 const {
   validateAction,
-  validateActionObject,
-} = require("../../utils/validateAction");
-const validateQuickReply = require("../../utils/validateQuickReply");
+  validateQuickReply,
+  validateImageUrl,
+} = require("../../utils/validates");
 
 /**
- * 画像カルーセルメッセージを送信する共通ロジック
+ * @function sendImageCarouselMessage
+ * @description 画像カルーセルメッセージを送信する共通ロジック
+ *
  * @param {string} botId - Bot ID
  * @param {string} token - APIトークン
  * @param {Object} params - 送信対象情報
- * @param {string} [params.userId] - ユーザーID（任意）
- * @param {string} [params.channelId] - トークルームID（任意）
+ * @param {string} [params.userId] - ユーザーID（`channelId` の代わりに指定可能）
+ * @param {string} [params.channelId] - トークルームID（`userId` の代わりに指定可能）
  * @param {Array} params.columns - 画像カルーセルのオブジェクトリスト（最大10個）
  * @param {Object} [params.quickReply] - クイックリプライオブジェクト（任意）
- * @throws {Error} パラメータが不正または検証に失敗した場合
+ *
+ * @throws {Error} 送信先が指定されていない場合 (`userId` または `channelId` が必要)
+ * @throws {Error} `columns` が指定されていない、または 1つ以上の項目が必要
+ * @throws {Error} `columns` の配列長が 10 を超える場合
+ * @throws {Error} `originalContentUrl` のフォーマットが無効な場合（HTTPSのみ）
+ * @throws {Error} `quickReply` のフォーマットが無効な場合
+ *
+ * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す
  */
 async function sendImageCarouselMessage(botId, token, params) {
   const { userId, channelId, columns, quickReply } = params;
@@ -23,7 +32,7 @@ async function sendImageCarouselMessage(botId, token, params) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
-  if (!columns || !Array.isArray(columns) || columns.length === 0) {
+  if (!Array.isArray(columns) || columns.length === 0) {
     throw new Error(
       "パラメータ 'columns' は必須で、1つ以上の項目を指定してください。"
     );
@@ -32,32 +41,12 @@ async function sendImageCarouselMessage(botId, token, params) {
     throw new Error("パラメータ 'columns' の配列長は最大10個までです。");
   }
 
-  /**
-   * 画像URLの検証 (HTTPS チェックと最大文字数チェックのみ)
-   * @param {string} url - 検証対象のURL
-   * @param {string} paramName - パラメータ名
-   * @throws {Error} URLがHTTPS以外、または長さが1000文字を超える場合にエラーをスロー
-   */
-  const validateImageUrl = (url, paramName) => {
-    if (!/^https:\/\//.test(url)) {
-      throw new Error(
-        `パラメータ '${paramName}' は HTTPS のURLを指定してください。`
-      );
-    }
-    if (url.length > 1000) {
-      throw new Error(
-        `パラメータ '${paramName}' は1,000文字以内で指定してください。`
-      );
-    }
-  };
-
-  for (const [index, column] of columns.entries()) {
+  columns.forEach((column, index) => {
     if (!column.originalContentUrl) {
       throw new Error(
         `カラム ${index + 1} には 'originalContentUrl' が必要です。`
       );
     }
-
     validateImageUrl(
       column.originalContentUrl,
       `columns[${index}].originalContentUrl`
@@ -72,7 +61,7 @@ async function sendImageCarouselMessage(botId, token, params) {
         );
       }
     }
-  }
+  });
 
   if (quickReply) {
     if (typeof quickReply !== "object") {

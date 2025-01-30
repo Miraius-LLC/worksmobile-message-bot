@@ -1,17 +1,25 @@
 const sendAPIMessage = require("../../middleware/sendAPIMessage");
-const validateQuickReply = require("../../utils/validateQuickReply");
+const { validateQuickReply, validateUrl } = require("../../utils/validates");
 
 /**
- * ファイルメッセージを送信する共通ロジック
+ * @function sendFileMessage
+ * @description ファイルメッセージを送信する共通ロジック
+ *
  * @param {string} botId - Bot ID
  * @param {string} token - APIトークン
  * @param {Object} params - 送信対象情報
- * @param {string} [params.userId] - ユーザーID（任意）
- * @param {string} [params.channelId] - トークルームID（任意）
- * @param {string} [params.originalContentUrl] - ファイルのURL (HTTPSのみ、PNG形式)。最大1,000文字。
- * @param {string} [params.fileId] - アップロードされたファイルのID。
- * @param {Object} [params.quickReply] - クイックリプライオブジェクト（任意）。
- * @throws {Error} パラメータが不正または検証に失敗した場合
+ * @param {string} [params.userId] - ユーザーID（`channelId` の代わりに指定可能）
+ * @param {string} [params.channelId] - トークルームID（`userId` の代わりに指定可能）
+ * @param {string} [params.originalContentUrl] - ファイルのURL (HTTPSのみ、最大1,000文字)
+ * @param {string} [params.fileId] - アップロードされたファイルのID
+ * @param {Object} [params.quickReply] - クイックリプライオブジェクト（任意）
+ *
+ * @throws {Error} 送信先が指定されていない場合 (`userId` または `channelId` が必要)
+ * @throws {Error} `originalContentUrl` または `fileId` のいずれかが指定されていない場合
+ * @throws {Error} `originalContentUrl` のフォーマットが無効な場合（HTTPSのみ、最大1,000文字）
+ * @throws {Error} `quickReply` のフォーマットが無効な場合
+ *
+ * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す
  */
 async function sendFileMessage(botId, token, params) {
   const { userId, channelId, originalContentUrl, fileId, quickReply } = params;
@@ -30,16 +38,7 @@ async function sendFileMessage(botId, token, params) {
 
   // originalContentUrl の検証
   if (originalContentUrl) {
-    if (!/^https:\/\//.test(originalContentUrl)) {
-      throw new Error(
-        "パラメータ 'originalContentUrl' は HTTPS のURLを指定してください。"
-      );
-    }
-    if (originalContentUrl.length > 1000) {
-      throw new Error(
-        "パラメータ 'originalContentUrl' は1,000文字以内で指定してください。"
-      );
-    }
+    validateUrl(originalContentUrl, "originalContentUrl", 1000);
   }
 
   // クイックリプライの検証

@@ -2,10 +2,28 @@ const sendAPIMessage = require("../../middleware/sendAPIMessage");
 const {
   validateAction,
   validateActionObject,
-} = require("../../utils/validateAction");
+} = require("../../utils/validates");
 
 /**
- * カルーセルメッセージを送信する共通ロジック
+ * @function sendCarouselMessage
+ * @description カルーセルメッセージを送信する共通ロジック
+ *
+ * @param {string} botId - ボットの ID。
+ * @param {string} token - API 呼び出し用のアクセストークン。
+ * @param {Object} params - メッセージのパラメータ。
+ * @param {string} [params.userId] - 送信先のユーザー ID（`channelId` の代わりに指定可能）。
+ * @param {string} [params.channelId] - 送信先のチャンネル ID（`userId` の代わりに指定可能）。
+ * @param {string} [params.imageAspectRatio="rectangle"] - 画像の比率 (`rectangle` または `square`)。
+ * @param {string} [params.imageSize="cover"] - 画像のサイズ (`cover` または `contain`)。
+ * @param {Array} params.columns - カルーセルのカラムリスト（最大10個）。
+ *
+ * @throws {Error} 送信先が指定されていない場合 (`userId` または `channelId` が必要)。
+ * @throws {Error} `columns` が指定されていない、または空の場合。
+ * @throws {Error} `columns` の数が 10 を超える場合。
+ * @throws {Error} 各カラムの必須項目 (`originalContentUrl` または `fileId`, `text`, `actions`) が不足している場合。
+ * @throws {Error} `defaultAction` または `actions` のフォーマットが無効な場合。
+ *
+ * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す。
  */
 async function sendCarouselMessage(botId, token, params) {
   const {
