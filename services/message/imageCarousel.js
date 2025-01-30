@@ -20,7 +20,7 @@ const {
  * @throws {Error} 送信先が指定されていない場合 (`userId` または `channelId` が必要)
  * @throws {Error} `columns` が指定されていない、または 1つ以上の項目が必要
  * @throws {Error} `columns` の配列長が 10 を超える場合
- * @throws {Error} `originalContentUrl` のフォーマットが無効な場合（HTTPSのみ）
+ * @throws {Error} `originalContentUrl` または `fileId` のいずれか一方が必須です。
  * @throws {Error} `quickReply` のフォーマットが無効な場合
  *
  * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す
@@ -42,15 +42,20 @@ async function sendImageCarouselMessage(botId, token, params) {
   }
 
   columns.forEach((column, index) => {
-    if (!column.originalContentUrl) {
+    // originalContentUrl または fileId のいずれかが必須
+    if (!column.originalContentUrl && !column.fileId) {
       throw new Error(
-        `カラム ${index + 1} には 'originalContentUrl' が必要です。`
+        `カラム ${
+          index + 1
+        } には 'originalContentUrl' または 'fileId' のいずれかが必要です。`
       );
     }
-    validateImageUrl(
-      column.originalContentUrl,
-      `columns[${index}].originalContentUrl`
-    );
+    if (column.originalContentUrl) {
+      validateImageUrl(
+        column.originalContentUrl,
+        `columns[${index}].originalContentUrl`
+      );
+    }
 
     if (column.action) {
       try {

@@ -21,6 +21,7 @@ const {
  * @throws {Error} `columns` が指定されていない、または空の場合。
  * @throws {Error} `columns` の数が 10 を超える場合。
  * @throws {Error} 各カラムの必須項目 (`originalContentUrl` または `fileId`, `text`, `actions`) が不足している場合。
+ * @throws {Error} `text` の文字数が制約を超えている場合。
  * @throws {Error} `defaultAction` または `actions` のフォーマットが無効な場合。
  *
  * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す。
@@ -48,6 +49,7 @@ async function sendCarouselMessage(botId, token, params) {
   }
 
   columns.forEach((column, index) => {
+    // originalContentUrl または fileId のいずれかが必須
     if (
       (!column.originalContentUrl && !column.fileId) ||
       !column.text ||
@@ -57,6 +59,14 @@ async function sendCarouselMessage(botId, token, params) {
         `カラム ${
           index + 1
         } には 'originalContentUrl' または 'fileId', 'text', 'actions' が必要です。`
+      );
+    }
+
+    // 文字数制限のチェック
+    const maxTextLength = column.originalContentUrl || column.title ? 60 : 120;
+    if (column.text.length > maxTextLength) {
+      throw new Error(
+        `カラム ${index + 1} の 'text' は最大 ${maxTextLength} 文字までです。`
       );
     }
 
