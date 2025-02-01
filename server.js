@@ -17,7 +17,7 @@ app.use(
 app.use(bodyParser.json());
 app.get("/", (req, res) => res.send("Hello World."));
 
-// 動的ルート登録
+// 動的ルート登録（メッセージ関連）
 const messageTypes = [
   "text",
   "sticker",
@@ -47,8 +47,9 @@ const messageTypes = [
   });
 });
 
-// ファイル添付
+// アップロード・ダウンロード
 app.use("/attachments", require("./routes/attachments/upload"));
+app.use("/attachments", require("./routes/attachments/download"));
 
 // 404ハンドリング
 app.use((req, res) =>
