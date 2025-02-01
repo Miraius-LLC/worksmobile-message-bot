@@ -74,7 +74,7 @@ BOT_ID=your_bot_id
 
 #### [トークルーム指定](https://developers.worksmobile.com/jp/docs/bot-channel-message-send)
 
-- BASE URL: `/channels/{channelId}`
+- BASE URL: `/channels/{:channelId}`
 
 | Endpoint                         | HTTP | 説明                                                                                                  |
 | -------------------------------- | ---- | ----------------------------------------------------------------------------------------------------- |
@@ -117,7 +117,7 @@ BOT_ID=your_bot_id
 | Endpoint             | HTTP | 説明                                                                                    |
 | -------------------- | ---- | --------------------------------------------------------------------------------------- |
 | `/`        | POST | [コンテンツアップロード](https://developers.worksmobile.com/jp/docs/file-upload)        |
-| `/{fileId}` | GET | [コンテンツダウンロード](https://developers.worksmobile.com/jp/docs/bot-attachment-get) |
+| `/{:fileId}` | GET | [コンテンツダウンロード](https://developers.worksmobile.com/jp/docs/bot-attachment-get) |
 
 ---
 
@@ -125,7 +125,7 @@ BOT_ID=your_bot_id
 
 #### テキストメッセージ を送信
 
-- Endpoint: `/channels/{channelId}/messages/type/text`
+- Endpoint: `/channels/{:channelId}/messages/type/text`
 - HTTP: `POST`
 - Body:
   ```json
@@ -138,7 +138,7 @@ BOT_ID=your_bot_id
 
 #### 画像メッセージ を送信
 
-- Endpoint: `/channels/{channelId}/messages/type/image`
+- Endpoint: `/channels/{:channelId}/messages/type/image`
 - HTTP: `POST`
 - Body:
   ```json
@@ -152,7 +152,7 @@ BOT_ID=your_bot_id
 
 #### ファイルメッセージ を送信
 
-- Endpoint: `/channels/{channelId}/messages/type/file`
+- Endpoint: `/channels/{:channelId}/messages/type/file`
 - HTTP: `POST`
 - Content-Type: `application/json`
 - Body:
@@ -166,7 +166,7 @@ BOT_ID=your_bot_id
 
 #### ボタンテンプレート を送信
 
-- Endpoint: `/channels/{channelId}/messages/type/button_template`
+- Endpoint: `/channels/{:channelId}/messages/type/button_template`
 - HTTP: `POST`
 - Content-Type: `application/json`
 - Body:
@@ -197,7 +197,7 @@ BOT_ID=your_bot_id
 
 #### カルーセルテンプレート を送信
 
-- Endpoint: `/channels/{channelId}/messages/type/carousel`
+- Endpoint: `/channels/{:channelId}/messages/type/carousel`
 - HTTP: `POST`
 - Content-Type: `application/json`
 - Body:
@@ -238,7 +238,7 @@ BOT_ID=your_bot_id
 
 #### クイックリプライ を使って テキストメッセージ 送信
 
-- Endpoint: `/channels/{channelId}/messages/type/text`
+- Endpoint: `/channels/{:channelId}/messages/type/text`
 - HTTP: `POST`
 - Content-Type: `application/json`
 - Body:
@@ -275,6 +275,9 @@ BOT_ID=your_bot_id
     }
   }
   ```
+
+---
+
 #### コンテンツアップロード を使ってファイルをアップロード
 
 - Endpoint: `/attachments`
@@ -285,12 +288,19 @@ BOT_ID=your_bot_id
     Key: file
     Value: <file>
   ```
+- Response:
+  ```json
+  {
+    "fileId": "fileId"
+  }
+  ```
 
-#### コンテンツダウンロード を使ってファイルをダウンロード 🚧
+---
+#### コンテンツダウンロード を使ってファイルをダウンロード
 
-- Endpoint: `/attachments/{fileId}`
+- Endpoint: `/attachments/{:fileId}`
 - HTTP: `GET`
-
+- Response: ファイルストリーム
 
 ***
 
