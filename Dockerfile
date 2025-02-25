@@ -1,5 +1,5 @@
 # ベースイメージ
-FROM node:22
+FROM node:23
 
 # 作業ディレクトリの設定
 WORKDIR /usr/src/app
