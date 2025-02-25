@@ -1,0 +1,44 @@
+{
+  // エディタの基本設定
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.codeActionsOnSave": {
+    "quickfix.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+
+  // 自動保存の設定
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+
+  // ファイル非表示設定
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true,
+    "**/.bruno": true
+  },
+
+  // 言語別フォーマッター設定
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+
+  // ファイルのグループ化設定
+  "explorer.fileNesting.patterns": {
+    // パッケージとビルド設定ファイル
+    "package.json": ".editorconfig, biome.json, .tool-versions, package-lock.json, yarn.lock, .npmrc, .nvmrc, .gitignore, tsconfig.json, tsconfig.*.json, biome.jsonc, tsconfig.jsonc, vite.config.ts, .swcrc, bun.lock, bun.lockb, lefthook.yml",
+    // ソースコード関連ファイル
+    "index.js": "index.d.ts, index.test.js, index.spec.js",
+    // ドキュメント関連ファイル
+    "README.md": "LICENSE, CONTRIBUTING.md",
+    // Dockerfile
+    "Dockerfile": ".dockerignore"
+  }
+}

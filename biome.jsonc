@@ -1,0 +1,73 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "ignore": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.git/**",
+      "**/.cache/**",
+      "**/coverage/**",
+      "**/.env*",
+      "**/package-lock.json",
+      "**/yarn.lock",
+      "**/pnpm-lock.yaml"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false, // エラーがある場合はフォーマットをスキップ
+    "indentStyle": "space", // インデントにスペースを使用
+    "indentWidth": 2, // インデントの幅
+    "lineWidth": 100 // 1行の最大文字数
+  },
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noForEach": "error",
+        "useSimplifiedLogicExpression": "error"
+      },
+      "correctness": {
+        "noUnusedFunctionParameters": "off",
+        "noUnusedVariables": "off"
+      },
+      "suspicious": {
+        "noConsoleLog": "off"
+      },
+      "style": {
+        "useConst": "error",
+        "useTemplate": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "asNeeded", // 必要な場合のみアロー関数の括弧を付与
+      "bracketSameLine": false, // 閉じ括弧を次の行に配置
+      "bracketSpacing": true, // オブジェクトリテラルの括弧内にスペースを入れる
+      "enabled": true,
+      "indentStyle": "space", // スペースでインデント
+      "indentWidth": 2, // インデント幅
+      "jsxQuoteStyle": "single", // JSXでもシングルクォートを使用
+      "lineWidth": 100, // 最大行長
+      "quoteProperties": "asNeeded", // 必要な場合のみプロパティをクォートで囲む
+      "quoteStyle": "single", // シングルクォートを使用
+      "semicolons": "asNeeded", // 必要な場合のみセミコロンを付与
+      "trailingCommas": "all" // 末尾のカンマを常に付与
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true // 実験的なパラメータデコレータを許可
+    }
+  }
+}
