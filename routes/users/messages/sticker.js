@@ -1,8 +1,8 @@
-const generateJWT = require("../../../middleware/generateJWT");
-const fetchServerAccessToken = require("../../../middleware/serverToken");
-const sendStickerMessage = require("../../../services/message/sticker");
+const generateJWT = require('../../../middleware/generateJWT')
+const fetchServerAccessToken = require('../../../middleware/serverToken')
+const sendStickerMessage = require('../../../services/message/sticker')
 
-const BOT_ID = process.env.BOT_ID;
+const BOT_ID = process.env.BOT_ID
 
 /**
  * @route POST /users/:userId/messages/type/sticker
@@ -17,30 +17,26 @@ const BOT_ID = process.env.BOT_ID;
  * @returns {400} リクエストエラー - 必須パラメータが不足しています。
  * @returns {500} サーバーエラー - サーバー内部でエラーが発生しました。
  */
-module.exports = (userId) => async (req, res) => {
+module.exports = userId => async (req, res) => {
   try {
-    const { packageId, stickerId, quickReply } = req.body;
+    const { packageId, stickerId, quickReply } = req.body
     if (!packageId)
-      return res
-        .status(400)
-        .send("リクエストに必要なパラメータ 'packageId' が不足しています。");
+      return res.status(400).send("リクエストに必要なパラメータ 'packageId' が不足しています。")
     if (!stickerId)
-      return res
-        .status(400)
-        .send("リクエストに必要なパラメータ 'stickerId' が不足しています。");
+      return res.status(400).send("リクエストに必要なパラメータ 'stickerId' が不足しています。")
 
-    const jwtToken = await generateJWT();
-    const serverToken = await fetchServerAccessToken(jwtToken);
+    const jwtToken = await generateJWT()
+    const serverToken = await fetchServerAccessToken(jwtToken)
 
     await sendStickerMessage(BOT_ID, serverToken, {
       userId,
       packageId,
       stickerId,
       quickReply,
-    });
+    })
 
-    res.sendStatus(200);
+    res.status(200).send()
   } catch (error) {
-    res.status(500).send(`エラーが発生しました: ${error.message}`);
+    res.status(500).send(`エラーが発生しました: ${error.message}`)
   }
-};
+}

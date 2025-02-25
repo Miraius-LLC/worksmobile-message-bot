@@ -1,8 +1,8 @@
-const generateJWT = require("../../../middleware/generateJWT");
-const fetchServerAccessToken = require("../../../middleware/serverToken");
-const sendImageMessage = require("../../../services/message/image");
+const generateJWT = require('../../../middleware/generateJWT')
+const fetchServerAccessToken = require('../../../middleware/serverToken')
+const sendImageMessage = require('../../../services/message/image')
 
-const BOT_ID = process.env.BOT_ID;
+const BOT_ID = process.env.BOT_ID
 
 /**
  * @route POST /users/:userId/messages/type/image
@@ -18,19 +18,18 @@ const BOT_ID = process.env.BOT_ID;
  * @returns {400} リクエストエラー - 必須パラメータが不足しています。
  * @returns {500} サーバーエラー - サーバー内部でエラーが発生しました。
  */
-module.exports = (userId) => async (req, res) => {
+module.exports = userId => async (req, res) => {
   try {
-    const { previewImageUrl, originalContentUrl, fileId, quickReply } =
-      req.body;
+    const { previewImageUrl, originalContentUrl, fileId, quickReply } = req.body
     if (!previewImageUrl && !originalContentUrl && !fileId)
       return res
         .status(400)
         .send(
-          "リクエストに必要なパラメータ 'previewImageUrl'、'originalContentUrl'、または 'fileId' のいずれかが不足しています。"
-        );
+          "リクエストに必要なパラメータ 'previewImageUrl'、'originalContentUrl'、または 'fileId' のいずれかが不足しています。",
+        )
 
-    const jwtToken = await generateJWT();
-    const serverToken = await fetchServerAccessToken(jwtToken);
+    const jwtToken = await generateJWT()
+    const serverToken = await fetchServerAccessToken(jwtToken)
 
     await sendImageMessage(BOT_ID, serverToken, {
       userId,
@@ -38,10 +37,10 @@ module.exports = (userId) => async (req, res) => {
       originalContentUrl,
       fileId,
       quickReply,
-    });
+    })
 
-    res.sendStatus(200);
+    res.status(200).send()
   } catch (error) {
-    res.status(500).send(`エラーが発生しました: ${error.message}`);
+    res.status(500).send(`エラーが発生しました: ${error.message}`)
   }
-};
+}

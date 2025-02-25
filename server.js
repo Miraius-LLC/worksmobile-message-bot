@@ -1,6 +1,6 @@
 const fastify = require('fastify')
-const fastifyBasicAuth = require('@fastify/basic-auth')
-
+const multipart = require('@fastify/multipart')
+const basicAuth = require('@fastify/basic-auth')
 // 環境設定
 const PORT = process.env.PORT || 8080
 const isProduction = process.env.NODE_ENV === 'production'
@@ -12,21 +12,22 @@ const app = fastify({
   logger: !isProduction, // 開発環境のみロガーを有効化
 })
 
-// BASIC 認証
-app.register(fastifyBasicAuth, {
-  validate: async (username, password) => {
-    if (username === process.env.BASIC_ID && password === process.env.BASIC_PASS) {
-      return true
-    }
-    throw new Error('Unauthorized')
+// Multipart support
+app.register(multipart, {
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
   },
-  authenticate: { realm: 'Restricted Area' },
+})
+
+// ヘルスチェックエンドポイント
+app.get('/health', async (request, reply) => {
+  return reply.code(200).send({ status: 'ok' })
 })
 
 // ルートエンドポイント
 app.get('/', (req, reply) => reply.send('Hello World.'))
 
-// 動的ルート登録（メッセージ関連）
+// 動的ルート登録
 const messageTypes = [
   'text',
   'sticker',
@@ -55,13 +56,7 @@ for (const base of ['channels', 'users']) {
 }
 
 // アップロード・ダウンロード
-// attachmentsプラグインを登録
-app.register(require('./routes/attachments/upload'), {
-  prefix: '/attachments',
-})
-app.register(require('./routes/attachments/download'), {
-  prefix: '/attachments',
-})
+app.register(require('./routes/attachments'))
 
 // 404ハンドリング
 app.setNotFoundHandler((request, reply) => {

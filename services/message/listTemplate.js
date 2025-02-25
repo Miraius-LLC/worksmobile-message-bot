@@ -1,11 +1,11 @@
-const sendAPIMessage = require("../../middleware/sendAPIMessage");
+const sendAPIMessage = require('../../middleware/sendAPIMessage')
 const {
   validateAction,
   validateActionObject,
   validateQuickReply,
   validateStringParam,
   validateImageUrl,
-} = require("../../utils/validates");
+} = require('../../utils/validates')
 
 /**
  * @function sendListTemplateMessage
@@ -33,114 +33,94 @@ const {
  * @returns {Promise<void>} API メッセージ送信を実行し、完了時に `void` を返す
  */
 async function sendListTemplateMessage(botId, token, params) {
-  const { userId, channelId, coverData, elements, actions, quickReply } =
-    params;
+  const { userId, channelId, coverData, elements, actions, quickReply } = params
 
-  if (!userId && !channelId) {
-    throw new Error("送信先が指定されていません (userId または channelId)。");
+  if (!(userId || channelId)) {
+    throw new Error('送信先が指定されていません (userId または channelId)。')
   }
 
   if (!Array.isArray(elements) || elements.length === 0) {
-    throw new Error(
-      "パラメータ 'elements' は必須で、1つ以上の項目を指定してください。"
-    );
+    throw new Error("パラメータ 'elements' は必須で、1つ以上の項目を指定してください。")
   }
   if (elements.length > 10) {
-    throw new Error("リストテンプレートの項目数は最大10個までです。");
+    throw new Error('リストテンプレートの項目数は最大10個までです。')
   }
 
   if (coverData) {
-    const { backgroundImageUrl, backgroundFileId } = coverData;
+    const { backgroundImageUrl, backgroundFileId } = coverData
     if (backgroundImageUrl && backgroundFileId) {
       throw new Error(
-        "カバー画像には 'backgroundImageUrl' と 'backgroundFileId' のいずれか一方を指定してください。"
-      );
+        "カバー画像には 'backgroundImageUrl' と 'backgroundFileId' のいずれか一方を指定してください。",
+      )
     }
     if (backgroundImageUrl) {
-      validateImageUrl(backgroundImageUrl, "coverData.backgroundImageUrl");
+      validateImageUrl(backgroundImageUrl, 'coverData.backgroundImageUrl')
     }
   }
 
   elements.forEach((element, index) => {
-    validateStringParam(element.title, `elements[${index}].title`);
+    validateStringParam(element.title, `elements[${index}].title`)
     if (element.subtitle) {
-      validateStringParam(
-        element.subtitle,
-        `elements[${index}].subtitle`,
-        1000
-      );
+      validateStringParam(element.subtitle, `elements[${index}].subtitle`, 1000)
     }
     if (element.originalContentUrl) {
-      validateImageUrl(
-        element.originalContentUrl,
-        `elements[${index}].originalContentUrl`
-      );
+      validateImageUrl(element.originalContentUrl, `elements[${index}].originalContentUrl`)
     }
     if (element.defaultAction) {
       try {
-        validateActionObject(
-          element.defaultAction,
-          `elements[${index}].defaultAction`,
-          true
-        );
+        validateActionObject(element.defaultAction, `elements[${index}].defaultAction`, true)
       } catch (error) {
         throw new Error(
           `リストテンプレート項目 ${
             index + 1
-          } の 'defaultAction' の検証に失敗しました: ${error.message}`
-        );
+          } の 'defaultAction' の検証に失敗しました: ${error.message}`,
+        )
       }
     }
     if (element.action) {
       try {
-        validateAction(element.action, false);
+        validateAction(element.action, false)
       } catch (error) {
         throw new Error(
-          `リストテンプレート項目 ${
-            index + 1
-          } の 'action' の検証に失敗しました: ${error.message}`
-        );
+          `リストテンプレート項目 ${index + 1} の 'action' の検証に失敗しました: ${error.message}`,
+        )
       }
     }
-  });
+  })
 
   if (actions) {
     try {
-      validateAction(actions, true);
+      validateAction(actions, true)
     } catch (error) {
-      throw new Error(`全体アクションの検証に失敗しました: ${error.message}`);
+      throw new Error(`全体アクションの検証に失敗しました: ${error.message}`)
     }
   }
 
   if (quickReply) {
-    if (typeof quickReply !== "object") {
-      throw new Error(
-        "パラメータ 'quickReply' はオブジェクト形式で指定してください。"
-      );
+    if (typeof quickReply !== 'object') {
+      throw new Error("パラメータ 'quickReply' はオブジェクト形式で指定してください。")
     }
     try {
-      validateQuickReply(quickReply);
+      validateQuickReply(quickReply)
     } catch (error) {
-      throw new Error(`クイックリプライの検証に失敗しました: ${error.message}`);
+      throw new Error(`クイックリプライの検証に失敗しました: ${error.message}`)
     }
   }
 
-  const target = userId
-    ? `users/${userId}/messages`
-    : `channels/${channelId}/messages`;
-  const url = `https://www.worksapis.com/v1.0/bots/${botId}/${target}`;
+  const target = userId ? `users/${userId}/messages` : `channels/${channelId}/messages`
+  const url = `https://www.worksapis.com/v1.0/bots/${botId}/${target}`
 
   const payload = {
     content: {
-      type: "list_template",
+      type: 'list_template',
       ...(coverData && { coverData }),
       elements,
       ...(actions && { actions }),
       ...(quickReply && { quickReply }),
     },
-  };
+  }
 
-  await sendAPIMessage(token, url, payload);
+  await sendAPIMessage(token, url, payload)
 }
 
-module.exports = sendListTemplateMessage;
+module.exports = sendListTemplateMessage

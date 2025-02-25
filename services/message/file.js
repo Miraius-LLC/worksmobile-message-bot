@@ -25,12 +25,12 @@ async function sendFileMessage(botId, token, params) {
   const { userId, channelId, originalContentUrl, fileId, quickReply } = params;
 
   // 送信先の検証
-  if (!userId && !channelId) {
+  if (!(userId || channelId)) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
   // ファイルデータの検証
-  if (!originalContentUrl && !fileId) {
+  if (!(originalContentUrl || fileId)) {
     throw new Error(
       "パラメータ 'originalContentUrl' または 'fileId' のいずれかを指定してください。"
     );

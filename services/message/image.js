@@ -35,11 +35,12 @@ async function sendImageMessage(botId, token, params) {
     quickReply,
   } = params;
 
-  if (!userId && !channelId) {
+  if (!(userId || channelId)) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
-  if (!previewImageUrl && !originalContentUrl && !fileId) {
+  const hasImageSource = [previewImageUrl, originalContentUrl, fileId].some(Boolean);
+  if (!hasImageSource) {
     throw new Error(
       "パラメータ 'previewImageUrl'、'originalContentUrl'、'fileId' のいずれかを指定してください。"
     );

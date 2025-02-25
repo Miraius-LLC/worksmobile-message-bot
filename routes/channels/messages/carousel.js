@@ -1,8 +1,8 @@
-const generateJWT = require("../../../middleware/generateJWT");
-const fetchServerAccessToken = require("../../../middleware/serverToken");
-const sendCarouselMessage = require("../../../services/message/carousel");
+const generateJWT = require('../../../middleware/generateJWT')
+const fetchServerAccessToken = require('../../../middleware/serverToken')
+const sendCarouselMessage = require('../../../services/message/carousel')
 
-const BOT_ID = process.env.BOT_ID;
+const BOT_ID = process.env.BOT_ID
 
 /**
  * @route POST /channels/:channelId/messages/type/carousel
@@ -17,26 +17,24 @@ const BOT_ID = process.env.BOT_ID;
  * @returns {400} リクエストエラー - 必須パラメータが不足しています。
  * @returns {500} サーバーエラー - サーバー内部でエラーが発生しました。
  */
-module.exports = (channelId) => async (req, res) => {
+module.exports = channelId => async (req, res) => {
   try {
-    const { imageAspectRatio, imageSize, columns } = req.body;
+    const { imageAspectRatio, imageSize, columns } = req.body
     if (!Array.isArray(columns) || columns.length === 0)
-      return res
-        .status(400)
-        .send("リクエストに必要なパラメータ 'columns' が不足しています。");
+      return res.status(400).send("リクエストに必要なパラメータ 'columns' が不足しています。")
 
-    const jwtToken = await generateJWT();
-    const serverToken = await fetchServerAccessToken(jwtToken);
+    const jwtToken = await generateJWT()
+    const serverToken = await fetchServerAccessToken(jwtToken)
 
     await sendCarouselMessage(BOT_ID, serverToken, {
       channelId,
       imageAspectRatio,
       imageSize,
       columns,
-    });
+    })
 
-    res.sendStatus(200);
+    res.status(200).send()
   } catch (error) {
-    res.status(500).send(`エラーが発生しました: ${error.message}`);
+    res.status(500).send(`エラーが発生しました: ${error.message}`)
   }
-};
+}

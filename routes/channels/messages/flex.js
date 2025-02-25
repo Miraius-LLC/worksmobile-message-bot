@@ -1,8 +1,8 @@
-const generateJWT = require("../../../middleware/generateJWT");
-const fetchServerAccessToken = require("../../../middleware/serverToken");
-const sendFlexMessage = require("../../../services/message/flex");
+const generateJWT = require('../../../middleware/generateJWT')
+const fetchServerAccessToken = require('../../../middleware/serverToken')
+const sendFlexMessage = require('../../../services/message/flex')
 
-const BOT_ID = process.env.BOT_ID;
+const BOT_ID = process.env.BOT_ID
 
 /**
  * @route POST /channels/:channelId/messages/type/flex
@@ -17,30 +17,26 @@ const BOT_ID = process.env.BOT_ID;
  * @returns {400} リクエストエラー - 必須パラメータが不足しています。
  * @returns {500} サーバーエラー - サーバー内部でエラーが発生しました。
  */
-module.exports = (channelId) => async (req, res) => {
+module.exports = channelId => async (req, res) => {
   try {
-    const { altText, contents, quickReply } = req.body;
+    const { altText, contents, quickReply } = req.body
     if (!altText)
-      return res
-        .status(400)
-        .send("リクエストに必要なパラメータ 'altText' が不足しています。");
+      return res.status(400).send("リクエストに必要なパラメータ 'altText' が不足しています。")
     if (!contents)
-      return res
-        .status(400)
-        .send("リクエストに必要なパラメータ 'contents' が不足しています。");
+      return res.status(400).send("リクエストに必要なパラメータ 'contents' が不足しています。")
 
-    const jwtToken = await generateJWT();
-    const serverToken = await fetchServerAccessToken(jwtToken);
+    const jwtToken = await generateJWT()
+    const serverToken = await fetchServerAccessToken(jwtToken)
 
     await sendFlexMessage(BOT_ID, serverToken, {
       channelId,
       altText,
       contents,
       quickReply,
-    });
+    })
 
-    res.sendStatus(200);
+    res.status(200).send()
   } catch (error) {
-    res.status(500).send(`エラーが発生しました: ${error.message}`);
+    res.status(500).send(`エラーが発生しました: ${error.message}`)
   }
-};
+}

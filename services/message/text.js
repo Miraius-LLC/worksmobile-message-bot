@@ -26,7 +26,7 @@ const {
 async function sendTextMessage(botId, token, params) {
   const { userId, channelId, text, quickReply } = params;
 
-  if (!userId && !channelId) {
+  if (!(userId || channelId)) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 

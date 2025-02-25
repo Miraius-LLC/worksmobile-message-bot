@@ -1,36 +1,44 @@
-const fp = require("fastify-plugin");
-const multer = require("fastify-multer");
-const upload = multer({ dest: "uploads/" });
+const fp = require('fastify-plugin')
+const multer = require('fastify-multer')
+const path = require('node:path')
+const generateJWT = require('../../middleware/generateJWT')
+const fetchServerAccessToken = require('../../middleware/serverToken')
+const { uploadAttachment } = require('../../services/attachment/upload')
 
-module.exports = fp(async (fastify, opts) => {
-	// マルチパートフォームデータ処理のセットアップ
-	fastify.register(multer.contentParser);
+// アップロード用の一時ディレクトリ設定
+const uploadDir = path.join(__dirname, '../../uploads')
+const upload = multer({ dest: uploadDir })
 
-	// ファイルアップロードルート
-	fastify.post(
-		"/upload",
-		{ preHandler: upload.single("file") },
-		async (request, reply) => {
-			try {
-				const file = request.file;
-				if (!file) {
-					return reply
-						.status(400)
-						.send({ error: "ファイルがアップロードされていません" });
-				}
+async function uploadPlugin(fastify, opts) {
+  fastify.post(
+    '/',
+    {
+      preHandler: upload.single('file'),
+    },
+    async (request, reply) => {
+      try {
+        if (!request.file) {
+          return reply.code(400).send({
+            error: 'ファイルがアップロードされていません。',
+          })
+        }
 
-				// ファイル情報を返す
-				return reply.send({
-					filename: file.originalname,
-					mimetype: file.mimetype,
-					size: file.size,
-					path: file.path,
-				});
-			} catch (error) {
-				return reply
-					.status(500)
-					.send({ error: `アップロード処理エラー: ${error.message}` });
-			}
-		},
-	);
-});
+        const { path: filePath, originalname: fileName, mimetype: fileType } = request.file
+
+        // LINE WORKS認証処理
+        const jwtToken = await generateJWT()
+        const serverToken = await fetchServerAccessToken(jwtToken)
+
+        // LINE WORKSへのアップロード
+        const result = await uploadAttachment(serverToken, filePath, fileName, fileType)
+
+        return result
+      } catch (error) {
+        request.log.error('ファイルアップロードエラー:', error)
+        return reply.code(500).send({ error: error.message })
+      }
+    },
+  )
+}
+
+module.exports = fp(uploadPlugin)

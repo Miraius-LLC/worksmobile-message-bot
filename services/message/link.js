@@ -29,7 +29,7 @@ const {
 async function sendLinkMessage(botId, token, params) {
   const { userId, channelId, contentText, linkText, link, quickReply } = params;
 
-  if (!userId && !channelId) {
+  if (!(userId || channelId)) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 

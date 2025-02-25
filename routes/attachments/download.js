@@ -1,25 +1,55 @@
-const fp = require("fastify-plugin");
-const fs = require("node:fs");
-const path = require("node:path");
+const fp = require('fastify-plugin')
+const axios = require('axios')
+const generateJWT = require('../../middleware/generateJWT')
+const fetchServerAccessToken = require('../../middleware/serverToken')
+const { downloadAttachment } = require('../../services/attachment/download')
 
-module.exports = fp(async (fastify, opts) => {
-	// ファイルダウンロードルート
-	fastify.get("/:filename", async (request, reply) => {
-		try {
-			const { filename } = request.params;
-			const filePath = path.join(__dirname, "../../uploads", filename);
+/**
+ * @route GET /attachments/:fileId
+ * @description 指定された fileId のファイル・画像をダウンロードする
+ */
+async function downloadPlugin(fastify, opts) {
+  fastify.get('/:fileId', async (request, reply) => {
+    try {
+      const { fileId } = request.params
+      if (!fileId) {
+        return reply.code(400).send({ error: 'fileId が指定されていません。' })
+      }
 
-			// ファイルの存在確認
-			if (!fs.existsSync(filePath)) {
-				return reply.status(404).send({ error: "ファイルが見つかりません" });
-			}
+      // JWT生成およびサーバートークンの取得
+      const jwtToken = await generateJWT()
+      const serverToken = await fetchServerAccessToken(jwtToken)
 
-			// ファイルを送信
-			return reply.sendFile(filename, path.join(__dirname, "../../uploads"));
-		} catch (error) {
-			return reply
-				.status(500)
-				.send({ error: `ダウンロード処理エラー: ${error.message}` });
-		}
-	});
-});
+      // fileIdからダウンロードURL（リダイレクト先URL）を取得
+      const result = await downloadAttachment(serverToken, fileId)
+      const downloadUrl = result.downloadUrl
+      if (!downloadUrl) {
+        return reply.code(500).send({ error: 'ダウンロードURLが取得できませんでした。' })
+      }
+
+      // 取得したダウンロードURLに対して、アクセストークン付きでファイルをダウンロード
+      const fileResponse = await axios.get(downloadUrl, {
+        responseType: 'stream',
+        headers: {
+          authorization: `Bearer ${serverToken}`,
+        },
+      })
+
+      // レスポンスヘッダーの設定
+      reply
+        .headers(fileResponse.headers)
+        .header(
+          'Content-Disposition',
+          fileResponse.headers['content-disposition'] || `attachment; filename="${fileId}"`,
+        )
+
+      // ストリームをレスポンスに流す
+      return reply.send(fileResponse.data)
+    } catch (error) {
+      request.log.error('ファイルダウンロードエラー:', error)
+      return reply.code(500).send({ error: error.message })
+    }
+  })
+}
+
+module.exports = fp(downloadPlugin)

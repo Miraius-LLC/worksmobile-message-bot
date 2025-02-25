@@ -28,7 +28,7 @@ const {
 async function sendImageCarouselMessage(botId, token, params) {
   const { userId, channelId, columns, quickReply } = params;
 
-  if (!userId && !channelId) {
+  if (!(userId || channelId)) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
@@ -43,7 +43,7 @@ async function sendImageCarouselMessage(botId, token, params) {
 
   columns.forEach((column, index) => {
     // originalContentUrl または fileId のいずれかが必須
-    if (!column.originalContentUrl && !column.fileId) {
+    if (!(column.originalContentUrl || column.fileId)) {
       throw new Error(
         `カラム ${
           index + 1

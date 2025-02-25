@@ -28,7 +28,7 @@ const {
 async function sendButtonTemplateMessage(botId, token, params) {
   const { userId, channelId, contentText, actions, quickReply } = params;
 
-  if (!userId && !channelId) {
+  if (!(userId || channelId)) {
     throw new Error("送信先が指定されていません (userId または channelId)。");
   }
 
