@@ -25,7 +25,7 @@ app.get('/health', async (request, reply) => {
 })
 
 // ルートエンドポイント
-app.get('/', (req, reply) => reply.send('Hello World.'))
+app.get('/', (req, reply) => reply.send({ statusCode: 200, message: 'Server is running' }))
 
 // 動的ルート登録
 const messageTypes = [
