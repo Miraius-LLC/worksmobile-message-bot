@@ -14,8 +14,7 @@ COPY . .
 
 # 環境変数設定
 ENV NODE_ENV=production \
-  PORT=8080 \
-  NODE_OPTIONS="--enable-source-maps"
+  PORT=8080
 
 # ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
