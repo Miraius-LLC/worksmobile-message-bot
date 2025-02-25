@@ -1,6 +1,6 @@
 const axios = require("axios");
 const FormData = require("form-data");
-const fs = require("fs");
+const fs = require("node:fs");
 const multer = require("multer");
 
 // `uploads/` ディレクトリが存在しない場合は作成
@@ -12,7 +12,7 @@ if (!fs.existsSync("uploads")) {
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 const upload = multer({ storage });
