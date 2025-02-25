@@ -1,59 +1,89 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const basicAuth = require("express-basic-auth");
+const fastify = require('fastify')
+const fastifyBasicAuth = require('@fastify/basic-auth')
 
-const app = express();
-const PORT = process.env.PORT || 8080;
+// 環境設定
+const PORT = process.env.PORT || 8080
+const isProduction = process.env.NODE_ENV === 'production'
+const useHttp2 = isProduction // 本番環境のみ HTTP/2 を有効化
+
+// Fastifyインスタンス生成（本番環境のみHTTP/2有効）
+const app = fastify({
+  http2: useHttp2,
+  logger: !isProduction, // 開発環境のみロガーを有効化
+})
 
 // BASIC 認証
-app.use(
-  basicAuth({
-    users: { [process.env.BASIC_ID]: process.env.BASIC_PASS },
-    challenge: true,
-    unauthorizedResponse: "Unauthorized",
-  })
-);
+app.register(fastifyBasicAuth, {
+  validate: async (username, password) => {
+    if (username === process.env.BASIC_ID && password === process.env.BASIC_PASS) {
+      return true
+    }
+    throw new Error('Unauthorized')
+  },
+  authenticate: { realm: 'Restricted Area' },
+})
 
-app.use(bodyParser.json());
-app.get("/", (req, res) => res.send("Hello World."));
+// ルートエンドポイント
+app.get('/', (req, reply) => reply.send('Hello World.'))
 
 // 動的ルート登録（メッセージ関連）
 const messageTypes = [
-  "text",
-  "sticker",
-  "image",
-  "file",
-  "link",
-  "button_template",
-  "list_template",
-  "carousel",
-  "image_carousel",
-  "flex",
-];
+  'text',
+  'sticker',
+  'image',
+  'file',
+  'link',
+  'button_template',
+  'list_template',
+  'carousel',
+  'image_carousel',
+  'flex',
+]
 
-["channels", "users"].forEach((base) => {
-  messageTypes.forEach((type) => {
-    app.post(`/${base}/:id/messages/type/${type}`, async (req, res, next) => {
+// メッセージルート登録
+for (const base of ['channels', 'users']) {
+  for (const type of messageTypes) {
+    app.post(`/${base}/:id/messages/type/${type}`, async (request, reply) => {
       try {
-        await require(`./routes/${base}/messages/${type}`)(req.params.id)(
-          req,
-          res,
-          next
-        );
+        const handler = require(`./routes/${base}/messages/${type}`)
+        await handler(request.params.id)(request, reply)
       } catch (error) {
-        res.status(500).json({ error: `ルート処理エラー: ${error.message}` });
+        reply.status(500).send({ error: `ルート処理エラー: ${error.message}` })
       }
-    });
-  });
-});
+    })
+  }
+}
 
 // アップロード・ダウンロード
-app.use("/attachments", require("./routes/attachments/upload"));
-app.use("/attachments", require("./routes/attachments/download"));
+// attachmentsプラグインを登録
+app.register(require('./routes/attachments/upload'), {
+  prefix: '/attachments',
+})
+app.register(require('./routes/attachments/download'), {
+  prefix: '/attachments',
+})
 
 // 404ハンドリング
-app.use((req, res) =>
-  res.status(404).json({ error: "Not Found", path: req.originalUrl })
-);
+app.setNotFoundHandler((request, reply) => {
+  reply.status(404).send({ error: 'Not Found', path: request.url })
+})
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}...`));
+// エラーハンドラー
+app.setErrorHandler((error, request, reply) => {
+  reply.status(500).send({ error: error.message })
+})
+
+// サーバー起動
+const start = async () => {
+  try {
+    await app.ready() // プラグインのロードを待機
+    app.log.info(`Starting server... (HTTP/${useHttp2 ? '2' : '1.1'})`)
+    await app.listen({ port: PORT, host: '0.0.0.0' })
+    app.log.info(`Server running on port ${PORT} (NODE_ENV=${process.env.NODE_ENV})`)
+  } catch (err) {
+    app.log.error(err)
+    process.exit(1)
+  }
+}
+
+start()
