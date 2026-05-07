@@ -14,9 +14,12 @@
 - **ランタイム**: [Bun](https://bun.sh/) 1.3.x
 - **言語**: TypeScript (ESM, strict)
 - **HTTP フレームワーク**: [Hono](https://hono.dev/) + [@hono/node-server](https://github.com/honojs/node-server)
+- **検証**: [Zod](https://zod.dev/) + [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
 - **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
-- **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev)
+- **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Cloud Logging severity / trace 連携付き
 - **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
+- **CI**: GitHub Actions (PR で `tsc --noEmit` + `biome check`)
+- **CD**: Cloud Build (`cloudbuild.yaml`) → Cloud Run (asia-northeast1)
 
 ### 参考にさせていただいた記事
 
@@ -50,7 +53,9 @@ LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 | `PRIVATE_KEY` | Base64 エンコードされたプライベートキー (`base64 -i ./private_XXXXXX.key \| pbcopy`) |
 | `BOT_ID` | Bot ID |
 | `PORT` | listen ポート (省略時 `8080`) |
+| `NODE_ENV` | `production` でログレベルを `error` 以上に絞る |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
+| `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`cloudbuild.yaml` のデプロイ step で自動注入される) |
 
 ---
 
@@ -88,16 +93,38 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 
 ---
 
-## デプロイ (Cloud Run など)
+## デプロイ (Cloud Run)
 
-```sh
-# 通常 (HTTP/1.1 コンテナ、Cloud Run フロントエンドが HTTP/2 を終端)
-gcloud run deploy worksmobile-message-bot \
-  --source=. \
-  --set-env-vars CLIENT_ID=...,CLIENT_SECRET=...,SERVICE_ACCOUNT=...,PRIVATE_KEY=...,BOT_ID=...
+GitHub `main` への push を Cloud Build trigger が拾い、`cloudbuild.yaml` のパイプライン (build → push → deploy) を実行する設計です。
+
+```yaml
+# cloudbuild.yaml の概要
+# 1. Docker build → Artifact Registry へ push (タグ: $SHORT_SHA)
+# 2. gcloud run services update --no-use-http2 + GOOGLE_CLOUD_PROJECT 注入
 ```
 
-> 公開側の HTTP/2 は Cloud Run フロントエンドが終端し、コンテナへは HTTP/1.1 で渡す構成です。`--use-http2` フラグは**つけません** (コンテナの h2c サーバを Bun / Node の `node:http2` 単独で立てると Envoy の素の HTTP/1.1 を受けられないため)。クライアントから見ると HTTP/2 で接続できます。
+初回設定 / トリガー再構成時:
+
+```sh
+# trigger を cloudbuild.yaml ベースへ切替 (inline build 設定があれば外す)
+gcloud builds triggers describe <TRIGGER_NAME> --format=yaml > trigger.yaml
+# trigger.yaml の `build:` を削除し `filename: cloudbuild.yaml` を追加
+gcloud builds triggers import --source=trigger.yaml
+```
+
+env vars (CLIENT_ID, CLIENT_SECRET, SERVICE_ACCOUNT, PRIVATE_KEY, BOT_ID) は事前に Cloud Run service へ設定:
+
+```sh
+gcloud run services update worksmobile-message-bot --region=asia-northeast1 \
+  --set-env-vars=CLIENT_ID=...,CLIENT_SECRET=...,SERVICE_ACCOUNT=...,PRIVATE_KEY=...,BOT_ID=...
+```
+
+> 公開側の HTTP/2 は Cloud Run フロントエンドが終端し、コンテナへは HTTP/1.1 で渡す構成です (`--no-use-http2` を `cloudbuild.yaml` で明示)。クライアントから見ると HTTP/2 で接続できます。
+
+### 観測 (Cloud Logging)
+
+- 各 log エントリには `severity` (`INFO`/`ERROR` 等) が付与され、Console の severity フィルタで絞れる
+- `x-cloud-trace-context` ヘッダがあれば `logging.googleapis.com/trace` フィールドが自動で乗り、Trace タブで 1 リクエストの全ログがグループ化される
 
 ---
 

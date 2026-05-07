@@ -31,18 +31,20 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 ## アーキテクチャ (要点のみ)
 
-- `src/index.ts` — エントリ。`Hono` インスタンス生成 → サブルータを `app.route(...)` で mount → `@hono/node-server` の `serve()` で起動
-- `src/routes/messages.ts` — `messagesApp` (Hono) を export。`(channels|users)/:id/messages/type/<type>` を 20 エンドポイント分まとめて `app.post(...)` で登録
-- `src/routes/attachments/` — `attachmentsApp` (Hono) を export。`/attachments` prefix 配下に `POST /` (upload) と `GET /:fileId` (download) をマウント
+- `src/index.ts` — エントリ。`Hono` インスタンス生成 → trace / secure-headers ミドルウェア → サブルータを `app.route(...)` で mount → `@hono/node-server` の `serve()` で起動 + SIGTERM の graceful shutdown
+- `src/routes/_middleware.ts` — `tokenMiddleware` で `c.var.token` に LINE WORKS のアクセストークンを注入
+- `src/routes/messages.ts` — `messagesApp` (Hono) を export。`(channels|users)/:id/messages/type/<type>` を 20 エンドポイント分まとめて `app.post(...)` で登録 (zValidator + `sendMessageByType`)
+- `src/routes/attachments/` — `attachmentsApp` (Hono) を export。`/attachments` prefix 配下に `POST /` (upload + 10MB bodyLimit) と `GET /:fileId` (download) をマウント
 - `src/services/lineworks/` — LINE WORKS API ラッパ
-  - `auth.ts` — JWT 生成 + アクセストークン取得 (`getServerToken`)
+  - `auth.ts` — JWT 生成 (`node:crypto` で RS256 自前実装) + アクセストークン取得 + キャッシュ + single-flight (`getServerToken`)
   - `api.ts` — Bot API への JSON POST 共通処理 (`postJson`, `sendBotMessage`)
   - `messages/index.ts` — 10 type 分の Zod schema + `sendMessageByType` 汎用 dispatcher (`{ type, ...body }` で組み立てて送信)
   - `attachment.ts` — アップロード / ダウンロード URL 解決
-- `src/utils/config.ts` — 必須 env を起動時に検証 (fail-fast) して `config()` でアクセス
-- `src/utils/logger.ts` — pino ベース logger
+- `src/utils/config.ts` — Zod schema で env を起動時に検証 + `.transform()` で camelCase Config に整形 (fail-fast)
+- `src/utils/logger.ts` — pino ベース logger。Cloud Logging の `severity` フィールド + `logging.googleapis.com/trace` を自動付与
+- `src/utils/trace.ts` — `x-cloud-trace-context` ヘッダを AsyncLocalStorage で保持して logger に流す Hono ミドルウェア
 - `src/utils/zod-locale.ts` — Zod のエラーメッセージ日本語化マップ
-- `src/types/lineworks.ts` — `MessageTarget` と `MessageSender<TBody>` の共有型 (それ以外は z.infer で導出)
+- `src/types/lineworks.ts` — `MessageTarget` の共有型 (それ以外は z.infer で導出)
 
 ## 環境変数
 
@@ -56,21 +58,26 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 | `PORT` | リッスンポート (デフォルト 8080) |
 | `NODE_ENV` | `production` で JSON ログを抑制せずそのまま出す (Hono 自体は logger を内蔵しないので env による分岐は最小限) |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
+| `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging の trace 連携が fully-qualified resource name (`projects/<id>/traces/<traceId>`) で出る。未設定なら trace ID 単独 |
 
 ## 注意点 (コードから読めない / 読みづらいもの)
 
 ### MUST (これを破ると壊れる)
 
 - **JWT の `aud` は固定**: `https://auth.worksmobile.com/oauth2/v2.0/token`。LINE WORKS の OAuth エンドポイント自体を `aud` にする仕様で、`auth.ts` 内の `AUTH_URL` 定数と一致させる
-- **`PRIVATE_KEY` は Base64 エンコード**を前提に PEM へデコードしている (`Buffer.from(raw, 'base64').toString('utf-8')`)。生 PEM をそのまま入れると JWT 署名で失敗
+- **JWT は `node:crypto` で自前生成** (`createSign('RSA-SHA256')`)。`jsonwebtoken` パッケージは撤去済。仕様変更時は base64url エンコードと改行に注意
+- **`PRIVATE_KEY` は Base64 エンコード**を前提に PEM へデコードしている。生 PEM をそのまま入れると JWT 署名で失敗。`config.ts` の Zod schema が起動時に PEM 含有チェックする
 - **添付ファイル取得は 3xx の Location 抽出**。LINE WORKS のダウンロード API は 3xx を返してくるため `redirect: 'manual'` で受け、`Location` ヘッダから実 URL を取り出す。`fetch` のデフォルト (follow) ではリダイレクト先に Authorization ヘッダが付与されない問題と二重に絡むので変えない
 - **アクセストークンの scope は `bot` 固定**。他スコープが必要になる場合は `auth.ts` を分岐させる前に LINE WORKS 側の権限設定を確認
+- **`getServerToken` はキャッシュ + single-flight 済み**。直接 `fetch` を叩き直す変更は避け、`auth.ts` の `cached` / `inFlight` の状態管理を尊重する
 
 ### よくあるハマり
 
 - **コンテナは HTTP/1.1 のみで listen**: end-to-end h2c は **採用しない**。理由は Bun / Node の `node:http2` 単独サーバが HTTP/1.1 を併行受信できず (`allowHTTP1` は ALPN/Upgrade 経由のみ機能)、Cloud Run の Envoy は素の HTTP/1.1 を投げてくるため protocol error になる
 - **公開側の HTTP/2 は Cloud Run フロントエンドが終端する**: クライアント↔Cloud Run は HTTP/2、Cloud Run↔コンテナは HTTP/1.1。`gcloud run deploy` に `--use-http2` フラグは**つけない**。webhook サーバなので multiplexing の効果は限定的
-- **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。サイズ制限は Hono 側に未設定なので大きすぎるファイルが来た時の対策が必要なら別途
+- **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。アップロードサイズは `attachments/index.ts` の `bodyLimit({ maxSize: 10 * 1024 * 1024 })` で 10MB 上限
+- **route handler は try/catch しない**: throw されたエラーは `index.ts` の `app.onError` が拾って `{ error: message }` を 500 で返す。各ハンドラから 500 を直接返す書き方はしない (validation 400 など期待エラーを除く)
+- **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
 - **README に "BASIC AUTH" の記載があるが現状未実装**。Hono なら `hono/basic-auth` ミドルウェアを `app.use('*', basicAuth({...}))` で乗せる
 
 ### Docker / デプロイ
@@ -83,8 +90,10 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **CMD は `["bun", "build/index.js"]`** で直接バンドルを起動 (`bun run start` → package.json 参照を避ける)
 - **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
 - **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入
+- **build / deploy パイプラインは `cloudbuild.yaml` に記述**: trigger に inline build を残さず、ファイル経由で動かす (filename 設定が必要)。`--no-use-http2`, `GOOGLE_CLOUD_PROJECT` 注入等の Cloud Run 固有設定はすべてここで管理
 
 ### 命名・配置の慣習
 
-- **送信先は `channelId` か `userId` の片方のみ**: `_send.ts` の `buildMessageUrl` がどちらか一方を要求する
+- **送信先は `channelId` か `userId` の片方のみ**: `messages/index.ts` の `buildMessageUrl` がどちらか一方を要求する
 - **メッセージタイプは `services/lineworks/messages/index.ts` の `messageSchemas` マップに集約**。新タイプを足す時はそこに schema を 1 件追加するだけで、`routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<type>` を登録 + 汎用 `sendMessageByType` が `{ type, ...body }` を組み立てて送信する。**個別 sender 関数は書かない**
+- **`_` で始まるファイルは内部ヘルパ**: `routes/_middleware.ts` のように、サブルータに直接マウントしない補助モジュールであることを示す慣習 (501 ルール継承)
