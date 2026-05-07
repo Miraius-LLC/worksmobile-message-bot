@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # Bun / npm エコシステムの依存を月 1 でまとめて PR
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    groups:
+      # 関連 dep をまとめる (個別 PR を増やさない)
+      hono:
+        patterns:
+          - 'hono'
+          - '@hono/*'
+      typing:
+        patterns:
+          - '@types/*'
+          - typescript
+      lint:
+        patterns:
+          - '@biomejs/*'
+          - lefthook
+
+  # GitHub Actions の workflow が使う actions も月 1 で更新
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 3
