@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import { createSign } from 'node:crypto'
 import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
 
@@ -19,17 +19,31 @@ let cached: CachedToken | null = null
 /** 同時並列リクエスト時に複数本立つ fetch を 1 本にまとめる single-flight 用 */
 let inFlight: Promise<CachedToken> | null = null
 
+function base64url(input: string | Buffer): string {
+  return Buffer.from(input).toString('base64url')
+}
+
+/**
+ * RS256 で JWT を自前生成する。LINE WORKS は OAuth2 JWT-Bearer に準拠するため
+ * `iss` / `sub` / `aud` / `iat` / `exp` の最小 5 claim で足りる。
+ */
 function generateJWT(): string {
   const cfg = config()
   const issuedAt = Math.floor(Date.now() / 1000)
-  const payload = {
-    iss: cfg.clientId,
-    sub: cfg.serviceAccount,
-    aud: AUTH_URL,
-    iat: issuedAt,
-    exp: issuedAt + 60 * 60,
-  }
-  return jwt.sign(payload, cfg.privateKey, { algorithm: 'RS256' })
+  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
+  const payload = base64url(
+    JSON.stringify({
+      iss: cfg.clientId,
+      sub: cfg.serviceAccount,
+      aud: AUTH_URL,
+      iat: issuedAt,
+      exp: issuedAt + 60 * 60,
+    }),
+  )
+  const signature = createSign('RSA-SHA256')
+    .update(`${header}.${payload}`)
+    .sign(cfg.privateKey, 'base64url')
+  return `${header}.${payload}.${signature}`
 }
 
 async function fetchAccessToken(jwtToken: string): Promise<CachedToken> {
