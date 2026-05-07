@@ -10,16 +10,12 @@
  * @throws {Error} `maxLength` が指定されている場合、パラメータがその長さを超えているとエラーをスロー
  */
 const validateStringParam = (param, paramName, maxLength) => {
-  if (!param || typeof param !== "string") {
-    throw new Error(
-      `パラメータ '${paramName}' は必須で、文字列を指定してください。`
-    );
+  if (!param || typeof param !== 'string') {
+    throw new Error(`パラメータ '${paramName}' は必須で、文字列を指定してください。`)
   }
   if (maxLength && param.length > maxLength) {
-    throw new Error(
-      `パラメータ '${paramName}' は${maxLength}文字以内で指定してください。`
-    );
+    throw new Error(`パラメータ '${paramName}' は${maxLength}文字以内で指定してください。`)
   }
-};
+}
 
-module.exports = validateStringParam;
+module.exports = validateStringParam

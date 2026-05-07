@@ -1,8 +1,7 @@
 const fp = require('fastify-plugin')
 const multer = require('fastify-multer')
 const path = require('node:path')
-const generateJWT = require('../../middleware/generateJWT')
-const fetchServerAccessToken = require('../../middleware/serverToken')
+const getServerToken = require('../../middleware/auth')
 const { uploadAttachment } = require('../../services/attachment/upload')
 
 // アップロード用の一時ディレクトリ設定
@@ -24,12 +23,7 @@ async function uploadPlugin(fastify, opts) {
         }
 
         const { path: filePath, originalname: fileName, mimetype: fileType } = request.file
-
-        // LINE WORKS認証処理
-        const jwtToken = await generateJWT()
-        const serverToken = await fetchServerAccessToken(jwtToken)
-
-        // LINE WORKSへのアップロード
+        const serverToken = await getServerToken()
         const result = await uploadAttachment(serverToken, filePath, fileName, fileType)
 
         return result

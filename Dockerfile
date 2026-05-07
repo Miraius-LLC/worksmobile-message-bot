@@ -1,5 +1,5 @@
 # ベースイメージ
-FROM node:23.7.0-alpine
+FROM node:24.15.0-alpine
 
 # 作業ディレクトリの設定
 WORKDIR /usr/src/app

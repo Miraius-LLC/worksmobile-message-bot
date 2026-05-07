@@ -1,11 +1,11 @@
 // OAuth認証用のエンドポイントURL
-const AUTH_URL = "https://auth.worksmobile.com/oauth2/v2.0/token";
+const AUTH_URL = 'https://auth.worksmobile.com/oauth2/v2.0/token'
 
 // 環境変数
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const CLIENT_ID = process.env.CLIENT_ID
+const CLIENT_SECRET = process.env.CLIENT_SECRET
 
-const axios = require("axios");
+const axios = require('axios')
 
 /**
  * サーバーアクセストークンを取得する関数。
@@ -18,36 +18,34 @@ const axios = require("axios");
  */
 async function fetchServerAccessToken(jwtToken) {
   if (!jwtToken) {
-    throw new Error("JWTトークンが指定されていません。");
+    throw new Error('JWTトークンが指定されていません。')
   }
 
   // リクエストパラメータを設定
   const params = new URLSearchParams({
     assertion: jwtToken,
-    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
-    scope: "bot",
-  });
+    scope: 'bot',
+  })
 
   try {
     // 認証リクエストを送信
     const response = await axios.post(AUTH_URL, params, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
 
     // レスポンスからアクセストークンを取得
     if (!response.data?.access_token) {
-      throw new Error("アクセストークンがレスポンスに含まれていません。");
+      throw new Error('アクセストークンがレスポンスに含まれていません。')
     }
 
-    return response.data.access_token;
+    return response.data.access_token
   } catch (error) {
     // エラー発生時に詳細な情報をスロー
-    throw new Error(
-      `サーバーアクセストークンの取得に失敗しました: ${error.message}`
-    );
+    throw new Error(`サーバーアクセストークンの取得に失敗しました: ${error.message}`)
   }
 }
 
-module.exports = fetchServerAccessToken;
+module.exports = fetchServerAccessToken

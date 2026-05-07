@@ -1,5 +1,6 @@
 const fastify = require('fastify')
 const multipart = require('@fastify/multipart')
+const createMessageHandler = require('./routes/messages')
 
 // 環境設定
 const PORT = process.env.PORT || 8080
@@ -27,7 +28,7 @@ app.get('/health', async (request, reply) => {
 // ルートエンドポイント
 app.get('/', (req, reply) => reply.send({ statusCode: 200, message: 'Server is running' }))
 
-// 動的ルート登録
+// メッセージルート登録
 const messageTypes = [
   'text',
   'sticker',
@@ -41,17 +42,9 @@ const messageTypes = [
   'flex',
 ]
 
-// メッセージルート登録
 for (const base of ['channels', 'users']) {
   for (const type of messageTypes) {
-    app.post(`/${base}/:id/messages/type/${type}`, async (request, reply) => {
-      try {
-        const handler = require(`./routes/${base}/messages/${type}`)
-        await handler(request.params.id)(request, reply)
-      } catch (error) {
-        reply.status(500).send({ error: `ルート処理エラー: ${error.message}` })
-      }
-    })
+    app.post(`/${base}/:id/messages/type/${type}`, createMessageHandler(base, type))
   }
 }
 

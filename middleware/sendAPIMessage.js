@@ -1,4 +1,4 @@
-const axios = require("axios");
+const axios = require('axios')
 
 /**
  * 指定されたURLにAPIメッセージを送信する関数。
@@ -12,27 +12,27 @@ const axios = require("axios");
 async function sendAPIMessage(token, url, data) {
   // ヘッダーの設定
   const headers = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
-  };
+  }
 
   try {
     // POSTリクエストを送信
-    const response = await axios.post(url, data, { headers });
-    console.log(`メッセージが正常に送信されました: ${response.data}`);
+    const response = await axios.post(url, data, { headers })
+    console.log(`メッセージが正常に送信されました: ${response.data}`)
   } catch (error) {
     // エラー処理
     if (error.response) {
       console.error(
         `メッセージ送信中にエラーが発生しました (ステータスコード: ${error.response.status}):`,
-        error.response.data
-      );
+        error.response.data,
+      )
     } else {
-      console.error(`メッセージ送信中にエラーが発生しました: ${error.message}`);
+      console.error(`メッセージ送信中にエラーが発生しました: ${error.message}`)
     }
     // エラーを再スロー
-    throw error;
+    throw error
   }
 }
 
-module.exports = sendAPIMessage;
+module.exports = sendAPIMessage

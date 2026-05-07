@@ -1,8 +1,8 @@
-const { validateAction, validateActionObject } = require("./action");
-const validateQuickReply = require("./quickReply");
-const validateUrl = require("./url");
-const validateImageUrl = require("./imageUrl");
-const validateStringParam = require("./stringParam");
+const { validateAction, validateActionObject } = require('./action')
+const validateQuickReply = require('./quickReply')
+const validateUrl = require('./url')
+const validateImageUrl = require('./imageUrl')
+const validateStringParam = require('./stringParam')
 
 module.exports = {
   validateAction,
@@ -11,4 +11,4 @@ module.exports = {
   validateUrl,
   validateImageUrl,
   validateStringParam,
-};
+}

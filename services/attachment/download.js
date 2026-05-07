@@ -1,4 +1,4 @@
-const axios = require("axios");
+const axios = require('axios')
 
 /**
  * fileIdからダウンロードURLを取得する
@@ -15,37 +15,30 @@ const axios = require("axios");
  */
 async function downloadAttachment(token, fileId) {
   try {
-    const botId = process.env.BOT_ID;
-    const downloadEndpoint = `https://www.worksapis.com/v1.0/bots/${botId}/attachments/${fileId}`;
+    const botId = process.env.BOT_ID
+    const downloadEndpoint = `https://www.worksapis.com/v1.0/bots/${botId}/attachments/${fileId}`
 
     const response = await axios.get(downloadEndpoint, {
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         authorization: `Bearer ${token}`,
       },
       // 自動リダイレクトを無効化（リダイレクト先へはヘッダーが付与されないため）
       maxRedirects: 0,
       // 3xx のレスポンスも正常として扱う
-      validateStatus: (status) => status >= 200 && status < 400,
-    });
+      validateStatus: status => status >= 200 && status < 400,
+    })
 
     // 3xx の場合、Location ヘッダーに実際のダウンロード URL が設定される
-    if (
-      response.status >= 300 &&
-      response.status < 400 &&
-      response.headers.location
-    ) {
-      return { downloadUrl: response.headers.location };
+    if (response.status >= 300 && response.status < 400 && response.headers.location) {
+      return { downloadUrl: response.headers.location }
     }
 
-    return response.data;
+    return response.data
   } catch (error) {
-    console.error(
-      "ファイルダウンロードURL取得エラー:",
-      error.response?.data || error.message
-    );
-    throw new Error(`ダウンロードURLの取得に失敗しました: ${error.message}`);
+    console.error('ファイルダウンロードURL取得エラー:', error.response?.data || error.message)
+    throw new Error(`ダウンロードURLの取得に失敗しました: ${error.message}`)
   }
 }
 
-module.exports = { downloadAttachment };
+module.exports = { downloadAttachment }

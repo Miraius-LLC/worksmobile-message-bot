@@ -1,4 +1,4 @@
-const validateStringParam = require("./stringParam");
+const validateStringParam = require('./stringParam')
 
 /**
  * @function validateUrl
@@ -13,14 +13,14 @@ const validateStringParam = require("./stringParam");
  * @throws {Error} URL が `HTTP` または `HTTPS` 形式でない場合にエラーをスロー
  */
 const validateUrl = (url, paramName, maxLength) => {
-  validateStringParam(url, paramName, maxLength);
+  validateStringParam(url, paramName, maxLength)
 
-  const httpRegex = /^(https?:\/\/)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/\S*)?$/;
+  const httpRegex = /^(https?:\/\/)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/\S*)?$/
   if (!httpRegex.test(url)) {
     throw new Error(
-      `パラメータ '${paramName}' は HTTP または HTTPS の正しい URL を指定してください。`
-    );
+      `パラメータ '${paramName}' は HTTP または HTTPS の正しい URL を指定してください。`,
+    )
   }
-};
+}
 
-module.exports = validateUrl;
+module.exports = validateUrl

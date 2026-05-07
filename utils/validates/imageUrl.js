@@ -1,4 +1,4 @@
-const validateUrl = require("./url");
+const validateUrl = require('./url')
 
 /**
  * @function validateImageUrl
@@ -11,45 +11,41 @@ const validateUrl = require("./url");
  * @throws {Error} 許可された拡張子以外の場合にエラーをスロー
  */
 const validateImageUrl = (url, paramName) => {
-  validateUrl(url, paramName, 1000); // 最大1000文字でHTTP/HTTPS許可
+  validateUrl(url, paramName, 1000) // 最大1000文字でHTTP/HTTPS許可
 
   if (!/^https:\/\//i.test(url)) {
-    throw new Error(
-      `パラメータ '${paramName}' は HTTPS のURLを指定してください。`
-    );
+    throw new Error(`パラメータ '${paramName}' は HTTPS のURLを指定してください。`)
   }
 
   // 許可される画像拡張子
   const allowedExtensions = [
-    "jpg",
-    "jpeg",
-    "png",
-    "gif",
-    "svg",
-    "bmp",
-    "webp",
-    "tif",
-    "tiff",
-    "ico",
-    "icns",
-    "psd",
-    "ai",
-    "clip",
-    "heic",
-    "rw2",
-  ];
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'svg',
+    'bmp',
+    'webp',
+    'tif',
+    'tiff',
+    'ico',
+    'icns',
+    'psd',
+    'ai',
+    'clip',
+    'heic',
+    'rw2',
+  ]
 
   // URLから拡張子を取得（拡張子がない場合は許可）
-  const urlPath = new URL(url).pathname;
-  const extMatch = urlPath.match(/\.([a-zA-Z0-9]+)$/);
+  const urlPath = new URL(url).pathname
+  const extMatch = urlPath.match(/\.([a-zA-Z0-9]+)$/)
   if (extMatch) {
-    const ext = extMatch[1].toLowerCase();
+    const ext = extMatch[1].toLowerCase()
     if (!allowedExtensions.includes(ext)) {
-      throw new Error(
-        `パラメータ '${paramName}' の拡張子 '${ext}' は許可されていません。`
-      );
+      throw new Error(`パラメータ '${paramName}' の拡張子 '${ext}' は許可されていません。`)
     }
   }
-};
+}
 
-module.exports = validateImageUrl;
+module.exports = validateImageUrl
