@@ -69,7 +69,9 @@ steps:
       - --no-use-http2  # コンテナは HTTP/1.1、Cloud Run frontend が HTTP/2 終端
       - --port=8080
       - --ingress=all
-      - --allow-unauthenticated  # IAM `allUsers` invoker (アプリ層の認証は別途検討)
+      # 公開設定 (allUsers の roles/run.invoker) は service の IAM ポリシーとして
+      # 別途管理する。`gcloud run services update` は --allow-unauthenticated を
+      # 受け付けないため、このパイプラインでは触らない
 
       # --- スケーリング / 並行性 ---
       - --min-instances=1
