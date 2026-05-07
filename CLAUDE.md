@@ -37,7 +37,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - `src/services/lineworks/` — LINE WORKS API ラッパ
   - `auth.ts` — JWT 生成 + アクセストークン取得 (`getServerToken`)
   - `api.ts` — Bot API への JSON POST 共通処理 (`postJson`, `sendBotMessage`)
-  - `messages/` — 10 種類のメッセージ送信関数 + 共通 `_send.ts`
+  - `messages/index.ts` — 10 type 分の Zod schema + `sendMessageByType` 汎用 dispatcher (`{ type, ...body }` で組み立てて送信)
   - `attachment.ts` — アップロード / ダウンロード URL 解決
 - `src/utils/config.ts` — 必須 env を起動時に検証 (fail-fast) して `config()` でアクセス
 - `src/utils/logger.ts` — pino ベース logger
@@ -87,5 +87,4 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 ### 命名・配置の慣習
 
 - **送信先は `channelId` か `userId` の片方のみ**: `_send.ts` の `buildMessageUrl` がどちらか一方を要求する
-- **メッセージタイプは `services/lineworks/messages/index.ts` の `messageSenders` マップに集約**。新タイプを足す時はここに追加すれば `routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<type>` に登録する
-- **`_` で始まるファイルは内部ヘルパ**: `messages/_send.ts` のように、ジョブ/エンドポイント登録の対象外であることを示す慣習 (501 ルール継承)
+- **メッセージタイプは `services/lineworks/messages/index.ts` の `messageSchemas` マップに集約**。新タイプを足す時はそこに schema を 1 件追加するだけで、`routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<type>` を登録 + 汎用 `sendMessageByType` が `{ type, ...body }` を組み立てて送信する。**個別 sender 関数は書かない**

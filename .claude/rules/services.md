@@ -40,16 +40,17 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 - `sendBotMessage(token, url, content)` は `{ content }` 形式で wrap して送る (LINE WORKS のメッセージ API 仕様)
 - `getBotId()` で env var を引く。route 層 / service 層のどちらでも env を直読みせずこの関数経由で取得する
 
-## messages (`services/lineworks/messages/`)
+## messages (`services/lineworks/messages/index.ts`)
 
-- 1 ファイル = 1 メッセージタイプ。各ファイルは Zod schema (`<type>BodySchema`) と sender (`send<Type>Message: MessageSender<Body>`) を export
-- 送信先は route 層が `MessageTarget = { channelId } | { userId }` を組み立てて sender に渡す。sender は body だけ気にすればよい
+- 全 10 メッセージ type の Zod schema + 汎用 dispatcher `sendMessageByType` を **単一ファイルに集約**。type ごとの sender 関数は書かない
+- 送信先は route 層が `MessageTarget = { channelId } | { userId }` を組み立てて `sendMessageByType` に渡す
 - 新メッセージタイプを足す時:
-  1. `messages/<newType>.ts` を作成。Zod schema + `MessageSender<Body>` を export
-  2. `messages/index.ts` の `messageSchemas` と `messageSenders` 両マップに同じキーで登録
-  3. `routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<newType>` を登録 (zValidator も同時に attach される)
-- 検証は **Zod schema 1 箇所で完結**。sender 内で `if (!body.text) throw ...` のような検証を書かない (route の zValidator が事前に弾いているため到達しない)
-- 共通の sub-schema (`urlSchema` / `imageUrlSchema` / `defaultActionSchema` / `labeledActionSchema` / `quickReplySchema`) は `messages/_schemas.ts` に集約。新規の sub-schema もここへ
+  1. `messages/index.ts` 内に Zod schema (`<type>BodySchema`) を定義
+  2. 同ファイルの `messageSchemas` マップにキーを追加 (キーは LINE WORKS の URL の type 部分そのまま、スネークケース)
+  3. `routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<newType>` + zValidator を attach
+  4. sender 関数は書かない。Zod の検証済 body を `{ type, ...body }` の形で `sendMessageByType` がそのまま POST する。LINE WORKS の wire format に揃わない場合は schema 側で `.transform()` するか、特殊処理が要る場合のみ別関数化
+- 検証は **Zod schema 1 箇所で完結**。`if (!body.text) throw ...` のような検証は書かない
+- 共通 sub-schema (`urlSchema` / `imageUrlSchema` / `defaultActionSchema` / `labeledActionSchema` / `quickReplySchema`) は同ファイル冒頭セクションにまとめてある
 - エラーメッセージは日本語化される (`utils/zod-locale.ts` の `installJapaneseErrorMap` が `index.ts` で 1 度だけ呼ばれる)
 
 ## attachment (`services/lineworks/attachment.ts`)
