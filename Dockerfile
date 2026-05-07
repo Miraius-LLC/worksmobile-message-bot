@@ -1,10 +1,10 @@
-# syntax=docker/dockerfile:1.9
 # =============================================================================
 # worksmobile-message-bot - Cloud Run 等向け Docker イメージ
 #
 # - 2 ステージ (builder + runtime) で最終イメージは bun build 済の単一ファイルだけ
 #   - node_modules や tsconfig.json は runtime に残らない
-# - BuildKit cache mount で `bun install` のダウンロードをキャッシュ
+# - BuildKit を要求しない (Cloud Build のデフォルト `gcr.io/cloud-builders/docker`
+#   が BuildKit 非対応のため。`--mount=type=cache` 等の BuildKit 限定構文は使わない)
 # - 非 root (`bun` user, uid 1000) で起動
 # - HEALTHCHECK は curl を入れず Bun の fetch で済ませる
 # =============================================================================
@@ -14,10 +14,9 @@ FROM oven/bun:1.3.13-debian AS builder
 
 WORKDIR /app
 
-# 依存解決 (lockfile 不変ならレイヤキャッシュヒット、初回でも DL は cache mount で永続化)
+# 依存解決 (package.json と bun.lock 不変ならレイヤキャッシュがそのまま使える)
 COPY package.json bun.lock ./
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # ソース + tsconfig を取り込み build/index.js を出力
 COPY src ./src

@@ -79,7 +79,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **マルチステージビルド**: builder で `bun install` + `bun run build` → runtime には `build/index.js` だけ COPY する。`node_modules` / `tsconfig.json` / `package.json` は runtime に**残さない**
 - **runtime ベースは `oven/bun:<ver>-slim`** (debian-slim)。builder は `oven/bun:<ver>-debian` (フル) を使い分ける
 - **非 root で起動**: `USER bun` (uid 1000)。COPY は `--chown=bun:bun` を付ける
-- **`bun install` は cache mount 必須**: `RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile`。CI 含めキャッシュが効く
+- **BuildKit 限定構文は使わない**: Cloud Build のデフォルト `gcr.io/cloud-builders/docker` が BuildKit 非対応。`--mount=type=cache` / `--mount=type=secret` 等は禁止。普通のレイヤキャッシュ (`COPY package.json bun.lock` を独立ステップにする等) で代替する
 - **HEALTHCHECK は `curl` を入れず `bun -e "fetch(...)"`** で `/health` を叩く。curl パッケージを入れない方針
 - **CMD は `["bun", "build/index.js"]`** で直接バンドルを起動 (`bun run start` → package.json 参照を避ける)
 - **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
