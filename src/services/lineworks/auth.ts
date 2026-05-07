@@ -6,6 +6,19 @@ const CALLER = 'services/lineworks/auth'
 
 const AUTH_URL = 'https://auth.worksmobile.com/oauth2/v2.0/token'
 
+/** 期限切れ判定の安全マージン (秒)。トークンを使い切る前にこの時間を残して再取得する */
+const REFRESH_MARGIN_SEC = 60
+
+type CachedToken = {
+  accessToken: string
+  /** UNIX 秒 (絶対時刻) */
+  expiresAt: number
+}
+
+let cached: CachedToken | null = null
+/** 同時並列リクエスト時に複数本立つ fetch を 1 本にまとめる single-flight 用 */
+let inFlight: Promise<CachedToken> | null = null
+
 function generateJWT(): string {
   const cfg = config()
   const issuedAt = Math.floor(Date.now() / 1000)
@@ -19,7 +32,7 @@ function generateJWT(): string {
   return jwt.sign(payload, cfg.privateKey, { algorithm: 'RS256' })
 }
 
-async function fetchAccessToken(jwtToken: string): Promise<string> {
+async function fetchAccessToken(jwtToken: string): Promise<CachedToken> {
   const cfg = config()
   const params = new URLSearchParams({
     assertion: jwtToken,
@@ -45,14 +58,53 @@ async function fetchAccessToken(jwtToken: string): Promise<string> {
     throw new Error(`サーバーアクセストークンの取得に失敗しました (status=${response.status})`)
   }
 
-  const data = (await response.json()) as { access_token?: string }
+  const data = (await response.json()) as { access_token?: string; expires_in?: number }
   if (!data.access_token) {
     throw new Error('アクセストークンがレスポンスに含まれていません。')
   }
-  return data.access_token
+
+  // expires_in は秒。LINE WORKS は通常 86400 (24h) を返す。フィールドが無い場合は 1 時間として扱う
+  const ttlSec = typeof data.expires_in === 'number' && data.expires_in > 0 ? data.expires_in : 3600
+  return {
+    accessToken: data.access_token,
+    expiresAt: Math.floor(Date.now() / 1000) + ttlSec,
+  }
 }
 
+function isFresh(token: CachedToken): boolean {
+  return Math.floor(Date.now() / 1000) < token.expiresAt - REFRESH_MARGIN_SEC
+}
+
+/**
+ * アクセストークンを取得する。キャッシュが有効ならそれを返す。
+ * 期限切れ時の再取得は同時並列でも 1 本だけ走り、他は同じ Promise を待つ (single-flight)。
+ */
 export async function getServerToken(): Promise<string> {
-  const jwtToken = generateJWT()
-  return fetchAccessToken(jwtToken)
+  if (cached && isFresh(cached)) {
+    return cached.accessToken
+  }
+  if (inFlight) {
+    return (await inFlight).accessToken
+  }
+
+  inFlight = (async () => {
+    try {
+      const fresh = await fetchAccessToken(generateJWT())
+      cached = fresh
+      logger.success('アクセストークンを取得 (キャッシュ更新)', {
+        caller: `${CALLER}.getServerToken`,
+      })
+      return fresh
+    } finally {
+      inFlight = null
+    }
+  })()
+
+  return (await inFlight).accessToken
+}
+
+/** テスト用にキャッシュをリセットするフック (production からは呼ばない) */
+export function _resetTokenCacheForTest(): void {
+  cached = null
+  inFlight = null
 }
