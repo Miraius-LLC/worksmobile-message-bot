@@ -1,19 +1,21 @@
+import { z } from 'zod'
 import type { MessageSender } from '@/types/lineworks'
-import { validateStringParam } from '@/utils/validates'
+import { quickReplySchema } from './_schemas'
 import { sendMessage } from './_send'
 
-export const sendFlexMessage: MessageSender = async (botId, token, params) => {
-  const { altText, contents } = params
+export const flexBodySchema = z.object({
+  altText: z.string().min(1).max(400),
+  contents: z.record(z.string(), z.unknown()),
+  quickReply: quickReplySchema.optional(),
+})
 
-  validateStringParam(altText, 'altText', 400)
+export type FlexBody = z.infer<typeof flexBodySchema>
 
-  if (!contents || typeof contents !== 'object') {
-    throw new Error("'contents' は必須で、オブジェクト形式で指定してください。")
-  }
-
-  await sendMessage(botId, token, params, {
+export const sendFlexMessage: MessageSender<FlexBody> = async (botId, token, target, body) => {
+  await sendMessage(botId, token, target, {
     type: 'flex',
-    altText,
-    contents,
+    altText: body.altText,
+    contents: body.contents,
+    ...(body.quickReply ? { quickReply: body.quickReply } : {}),
   })
 }

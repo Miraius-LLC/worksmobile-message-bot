@@ -1,43 +1,34 @@
+import { z } from 'zod'
 import type { MessageSender } from '@/types/lineworks'
-import { validateAction, validateImageUrl } from '@/utils/validates'
+import { imageUrlSchema, labeledActionSchema, quickReplySchema } from './_schemas'
 import { sendMessage } from './_send'
 
-type ImageCarouselColumn = {
-  originalContentUrl?: string
-  fileId?: string
-  action?: unknown
-}
+const columnSchema = z
+  .object({
+    originalContentUrl: imageUrlSchema.optional(),
+    fileId: z.string().min(1).optional(),
+    action: labeledActionSchema.optional(),
+  })
+  .refine(c => Boolean(c.originalContentUrl || c.fileId), {
+    message: "カラムには 'originalContentUrl' または 'fileId' のいずれかが必要",
+  })
 
-export const sendImageCarouselMessage: MessageSender = async (botId, token, params) => {
-  const { columns } = params as { columns?: ImageCarouselColumn[] }
+export const imageCarouselBodySchema = z.object({
+  columns: z.array(columnSchema).min(1).max(10),
+  quickReply: quickReplySchema.optional(),
+})
 
-  if (!Array.isArray(columns) || columns.length === 0) {
-    throw new Error("パラメータ 'columns' は必須で、1つ以上の項目を指定してください。")
-  }
-  if (columns.length > 10) {
-    throw new Error("パラメータ 'columns' の配列長は最大10個までです。")
-  }
+export type ImageCarouselBody = z.infer<typeof imageCarouselBodySchema>
 
-  for (const [index, column] of columns.entries()) {
-    if (!(column.originalContentUrl || column.fileId)) {
-      throw new Error(
-        `カラム ${index + 1} には 'originalContentUrl' または 'fileId' のいずれかが必要です。`,
-      )
-    }
-    if (column.originalContentUrl) {
-      validateImageUrl(column.originalContentUrl, `columns[${index}].originalContentUrl`)
-    }
-    if (column.action) {
-      try {
-        validateAction(column.action, false)
-      } catch (error) {
-        throw new Error(`カラム ${index + 1} のアクションが無効です: ${(error as Error).message}`)
-      }
-    }
-  }
-
-  await sendMessage(botId, token, params, {
+export const sendImageCarouselMessage: MessageSender<ImageCarouselBody> = async (
+  botId,
+  token,
+  target,
+  body,
+) => {
+  await sendMessage(botId, token, target, {
     type: 'image_carousel',
-    columns,
+    columns: body.columns,
+    ...(body.quickReply ? { quickReply: body.quickReply } : {}),
   })
 }

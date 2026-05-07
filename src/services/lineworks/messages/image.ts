@@ -1,23 +1,27 @@
+import { z } from 'zod'
 import type { MessageSender } from '@/types/lineworks'
-import { validateImageUrl } from '@/utils/validates'
+import { imageUrlSchema, quickReplySchema } from './_schemas'
 import { sendMessage } from './_send'
 
-export const sendImageMessage: MessageSender = async (botId, token, params) => {
-  const { previewImageUrl, originalContentUrl, fileId } = params
+export const imageBodySchema = z
+  .object({
+    previewImageUrl: imageUrlSchema.optional(),
+    originalContentUrl: imageUrlSchema.optional(),
+    fileId: z.string().min(1).optional(),
+    quickReply: quickReplySchema.optional(),
+  })
+  .refine(b => Boolean(b.previewImageUrl || b.originalContentUrl || b.fileId), {
+    message: "'previewImageUrl' / 'originalContentUrl' / 'fileId' のいずれかを指定してください",
+  })
 
-  if (![previewImageUrl, originalContentUrl, fileId].some(Boolean)) {
-    throw new Error(
-      "パラメータ 'previewImageUrl'、'originalContentUrl'、'fileId' のいずれかを指定してください。",
-    )
-  }
+export type ImageBody = z.infer<typeof imageBodySchema>
 
-  if (previewImageUrl) validateImageUrl(previewImageUrl, 'previewImageUrl')
-  if (originalContentUrl) validateImageUrl(originalContentUrl, 'originalContentUrl')
-
-  await sendMessage(botId, token, params, {
+export const sendImageMessage: MessageSender<ImageBody> = async (botId, token, target, body) => {
+  await sendMessage(botId, token, target, {
     type: 'image',
-    ...(previewImageUrl ? { previewImageUrl } : {}),
-    ...(originalContentUrl ? { originalContentUrl } : {}),
-    ...(fileId ? { fileId } : {}),
+    ...(body.previewImageUrl ? { previewImageUrl: body.previewImageUrl } : {}),
+    ...(body.originalContentUrl ? { originalContentUrl: body.originalContentUrl } : {}),
+    ...(body.fileId ? { fileId: body.fileId } : {}),
+    ...(body.quickReply ? { quickReply: body.quickReply } : {}),
   })
 }

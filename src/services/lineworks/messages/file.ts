@@ -1,23 +1,25 @@
+import { z } from 'zod'
 import type { MessageSender } from '@/types/lineworks'
-import { validateUrl } from '@/utils/validates'
+import { quickReplySchema, urlSchema } from './_schemas'
 import { sendMessage } from './_send'
 
-export const sendFileMessage: MessageSender = async (botId, token, params) => {
-  const { originalContentUrl, fileId } = params
+export const fileBodySchema = z
+  .object({
+    originalContentUrl: urlSchema.optional(),
+    fileId: z.string().min(1).optional(),
+    quickReply: quickReplySchema.optional(),
+  })
+  .refine(b => Boolean(b.originalContentUrl || b.fileId), {
+    message: "'originalContentUrl' / 'fileId' のいずれかを指定してください",
+  })
 
-  if (!(originalContentUrl || fileId)) {
-    throw new Error(
-      "パラメータ 'originalContentUrl' または 'fileId' のいずれかを指定してください。",
-    )
-  }
+export type FileBody = z.infer<typeof fileBodySchema>
 
-  if (originalContentUrl) {
-    validateUrl(originalContentUrl, 'originalContentUrl', 1000)
-  }
-
-  await sendMessage(botId, token, params, {
+export const sendFileMessage: MessageSender<FileBody> = async (botId, token, target, body) => {
+  await sendMessage(botId, token, target, {
     type: 'file',
-    ...(originalContentUrl ? { originalContentUrl } : {}),
-    ...(fileId ? { fileId } : {}),
+    ...(body.originalContentUrl ? { originalContentUrl: body.originalContentUrl } : {}),
+    ...(body.fileId ? { fileId: body.fileId } : {}),
+    ...(body.quickReply ? { quickReply: body.quickReply } : {}),
   })
 }

@@ -1,38 +1,19 @@
 import { API_BASE, sendBotMessage } from '@/services/lineworks/api'
-import type { MessageRequestParams, MessageTarget } from '@/types/lineworks'
-import { validateQuickReply } from '@/utils/validates'
+import type { MessageTarget } from '@/types/lineworks'
 
 function buildMessageUrl(botId: string, target: MessageTarget): string {
-  if (!(target.userId || target.channelId)) {
-    throw new Error('送信先が指定されていません (userId または channelId)。')
-  }
-  const path = target.userId
-    ? `users/${target.userId}/messages`
-    : `channels/${target.channelId}/messages`
+  const path =
+    'userId' in target ? `users/${target.userId}/messages` : `channels/${target.channelId}/messages`
   return `${API_BASE}/bots/${botId}/${path}`
 }
 
-function ensureValidQuickReply(quickReply: unknown): void {
-  if (!quickReply) return
-  if (typeof quickReply !== 'object') {
-    throw new Error("パラメータ 'quickReply' はオブジェクト形式で指定してください。")
-  }
-  try {
-    validateQuickReply(quickReply)
-  } catch (error) {
-    throw new Error(`クイックリプライの検証に失敗しました: ${(error as Error).message}`)
-  }
-}
-
-/** 各 message/* から呼ぶ共通エントリ */
+/** メッセージ API への共通 POST。Zod が完了済の content をそのまま流す */
 export async function sendMessage(
   botId: string,
   token: string,
-  params: MessageRequestParams,
+  target: MessageTarget,
   content: Record<string, unknown>,
 ): Promise<void> {
-  const url = buildMessageUrl(botId, params)
-  ensureValidQuickReply(params.quickReply)
-  const payload = params.quickReply ? { ...content, quickReply: params.quickReply } : content
-  await sendBotMessage(token, url, payload)
+  const url = buildMessageUrl(botId, target)
+  await sendBotMessage(token, url, content)
 }

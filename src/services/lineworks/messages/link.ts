@@ -1,18 +1,23 @@
+import { z } from 'zod'
 import type { MessageSender } from '@/types/lineworks'
-import { validateStringParam, validateUrl } from '@/utils/validates'
+import { quickReplySchema, urlSchema } from './_schemas'
 import { sendMessage } from './_send'
 
-export const sendLinkMessage: MessageSender = async (botId, token, params) => {
-  const { contentText, linkText, link } = params
+export const linkBodySchema = z.object({
+  contentText: z.string().min(1).max(1000),
+  linkText: z.string().min(1).max(1000),
+  link: urlSchema,
+  quickReply: quickReplySchema.optional(),
+})
 
-  validateStringParam(contentText, 'contentText', 1000)
-  validateStringParam(linkText, 'linkText', 1000)
-  validateUrl(link, 'link', 1000)
+export type LinkBody = z.infer<typeof linkBodySchema>
 
-  await sendMessage(botId, token, params, {
+export const sendLinkMessage: MessageSender<LinkBody> = async (botId, token, target, body) => {
+  await sendMessage(botId, token, target, {
     type: 'link',
-    contentText,
-    linkText,
-    link,
+    contentText: body.contentText,
+    linkText: body.linkText,
+    link: body.link,
+    ...(body.quickReply ? { quickReply: body.quickReply } : {}),
   })
 }

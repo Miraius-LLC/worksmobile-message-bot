@@ -1,17 +1,39 @@
+import type { z } from 'zod'
 import type { MessageSender } from '@/types/lineworks'
-import { sendButtonTemplateMessage } from './buttonTemplate'
-import { sendCarouselMessage } from './carousel'
-import { sendFileMessage } from './file'
-import { sendFlexMessage } from './flex'
-import { sendImageMessage } from './image'
-import { sendImageCarouselMessage } from './imageCarousel'
-import { sendLinkMessage } from './link'
-import { sendListTemplateMessage } from './listTemplate'
-import { sendStickerMessage } from './sticker'
-import { sendTextMessage } from './text'
+import { buttonTemplateBodySchema, sendButtonTemplateMessage } from './buttonTemplate'
+import { carouselBodySchema, sendCarouselMessage } from './carousel'
+import { fileBodySchema, sendFileMessage } from './file'
+import { flexBodySchema, sendFlexMessage } from './flex'
+import { imageBodySchema, sendImageMessage } from './image'
+import { imageCarouselBodySchema, sendImageCarouselMessage } from './imageCarousel'
+import { linkBodySchema, sendLinkMessage } from './link'
+import { listTemplateBodySchema, sendListTemplateMessage } from './listTemplate'
+import { sendStickerMessage, stickerBodySchema } from './sticker'
+import { sendTextMessage, textBodySchema } from './text'
 
-/** README に列挙された URL の `type` 部分 → 送信関数 のマップ */
-export const messageSenders = {
+/** README に列挙された URL の `type` 部分 → Zod schema のマップ */
+export const messageSchemas = {
+  text: textBodySchema,
+  sticker: stickerBodySchema,
+  image: imageBodySchema,
+  file: fileBodySchema,
+  link: linkBodySchema,
+  button_template: buttonTemplateBodySchema,
+  list_template: listTemplateBodySchema,
+  carousel: carouselBodySchema,
+  image_carousel: imageCarouselBodySchema,
+  flex: flexBodySchema,
+} as const
+
+export type MessageType = keyof typeof messageSchemas
+
+/** type → schema から導出される body 型 */
+export type MessageBody<T extends MessageType> = z.infer<(typeof messageSchemas)[T]>
+
+/** type → 送信関数のマップ。各 sender の body 型は schema 由来 */
+type SendersMap = { [K in MessageType]: MessageSender<MessageBody<K>> }
+
+export const messageSenders: SendersMap = {
   text: sendTextMessage,
   sticker: sendStickerMessage,
   image: sendImageMessage,
@@ -22,8 +44,6 @@ export const messageSenders = {
   carousel: sendCarouselMessage,
   image_carousel: sendImageCarouselMessage,
   flex: sendFlexMessage,
-} as const satisfies Record<string, MessageSender>
+}
 
-export type MessageType = keyof typeof messageSenders
-
-export const messageTypes = Object.keys(messageSenders) as MessageType[]
+export const messageTypes = Object.keys(messageSchemas) as MessageType[]

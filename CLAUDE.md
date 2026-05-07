@@ -39,9 +39,10 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
   - `api.ts` — Bot API への JSON POST 共通処理 (`postJson`, `sendBotMessage`)
   - `messages/` — 10 種類のメッセージ送信関数 + 共通 `_send.ts`
   - `attachment.ts` — アップロード / ダウンロード URL 解決
+- `src/utils/config.ts` — 必須 env を起動時に検証 (fail-fast) して `config()` でアクセス
 - `src/utils/logger.ts` — pino ベース logger
-- `src/utils/validates/` — リクエストパラメータの検証ヘルパ
-- `src/types/lineworks.ts` — LINE WORKS API 用の共有型
+- `src/utils/zod-locale.ts` — Zod のエラーメッセージ日本語化マップ
+- `src/types/lineworks.ts` — `MessageTarget` と `MessageSender<TBody>` の共有型 (それ以外は z.infer で導出)
 
 ## 環境変数
 

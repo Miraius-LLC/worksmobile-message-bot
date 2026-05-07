@@ -42,13 +42,15 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 
 ## messages (`services/lineworks/messages/`)
 
-- 1 ファイル = 1 メッセージタイプ。型は `MessageSender = (botId, token, params) => Promise<void>` に揃える
-- 送信先 (`channelId` / `userId`) は params に乗せる。`_send.ts` の `buildMessageUrl` がどちらか一方の存在を要求する
+- 1 ファイル = 1 メッセージタイプ。各ファイルは Zod schema (`<type>BodySchema`) と sender (`send<Type>Message: MessageSender<Body>`) を export
+- 送信先は route 層が `MessageTarget = { channelId } | { userId }` を組み立てて sender に渡す。sender は body だけ気にすればよい
 - 新メッセージタイプを足す時:
-  1. `messages/<newType>.ts` で `MessageSender` を実装
-  2. `messages/index.ts` の `messageSenders` マップに登録
-  3. `routes/messages.ts` のループが自動で `/channels/:id/messages/type/<newType>` と `/users/:id/messages/type/<newType>` を登録する
-- パラメータ検証は `src/utils/validates/` のヘルパで行う。各サービス内でアドホックに `typeof === 'string'` 判定しない
+  1. `messages/<newType>.ts` を作成。Zod schema + `MessageSender<Body>` を export
+  2. `messages/index.ts` の `messageSchemas` と `messageSenders` 両マップに同じキーで登録
+  3. `routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<newType>` を登録 (zValidator も同時に attach される)
+- 検証は **Zod schema 1 箇所で完結**。sender 内で `if (!body.text) throw ...` のような検証を書かない (route の zValidator が事前に弾いているため到達しない)
+- 共通の sub-schema (`urlSchema` / `imageUrlSchema` / `defaultActionSchema` / `labeledActionSchema` / `quickReplySchema`) は `messages/_schemas.ts` に集約。新規の sub-schema もここへ
+- エラーメッセージは日本語化される (`utils/zod-locale.ts` の `installJapaneseErrorMap` が `index.ts` で 1 度だけ呼ばれる)
 
 ## attachment (`services/lineworks/attachment.ts`)
 

@@ -5,8 +5,12 @@ import { attachmentsApp } from '@/routes/attachments'
 import { messagesApp } from '@/routes/messages'
 import * as config from '@/utils/config'
 import { logger } from '@/utils/logger'
+import { installJapaneseErrorMap } from '@/utils/zod-locale'
 
 const CALLER = 'index'
+
+// Zod のエラーメッセージを日本語化 (起動時に 1 度だけ)
+installJapaneseErrorMap()
 
 // 必須 env を起動時に検証 (失敗すれば即 exit)。以降は config() で同期取得できる
 const cfg = config.load()

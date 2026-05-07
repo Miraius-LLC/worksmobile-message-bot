@@ -1,77 +1,53 @@
+import { z } from 'zod'
 import type { MessageSender } from '@/types/lineworks'
-import { validateAction, validateActionObject } from '@/utils/validates'
+import {
+  defaultActionSchema,
+  imageUrlSchema,
+  labeledActionSchema,
+  quickReplySchema,
+} from './_schemas'
 import { sendMessage } from './_send'
 
-type CarouselColumn = {
-  originalContentUrl?: string
-  fileId?: string
-  title?: string
-  text?: string
-  defaultAction?: unknown
-  actions?: unknown[]
-}
+const columnSchema = z
+  .object({
+    originalContentUrl: imageUrlSchema.optional(),
+    fileId: z.string().min(1).optional(),
+    title: z.string().optional(),
+    text: z.string().min(1),
+    defaultAction: defaultActionSchema.optional(),
+    actions: z.array(labeledActionSchema).min(1),
+  })
+  .refine(c => Boolean(c.originalContentUrl || c.fileId), {
+    message: "カラムには 'originalContentUrl' または 'fileId' のいずれかが必要",
+  })
+  .refine(
+    c => {
+      const max = c.originalContentUrl || c.title ? 60 : 120
+      return c.text.length <= max
+    },
+    { message: "カラムの 'text' が許容文字数を超えています (画像 / title あり: 60、なし: 120)" },
+  )
 
-export const sendCarouselMessage: MessageSender = async (botId, token, params) => {
-  const {
-    imageAspectRatio = 'rectangle',
-    imageSize = 'cover',
-    columns,
-  } = params as {
-    imageAspectRatio?: string
-    imageSize?: string
-    columns?: CarouselColumn[]
-  }
+export const carouselBodySchema = z.object({
+  imageAspectRatio: z.string().optional(),
+  imageSize: z.string().optional(),
+  columns: z.array(columnSchema).min(1).max(10),
+  quickReply: quickReplySchema.optional(),
+})
 
-  if (!Array.isArray(columns) || columns.length === 0) {
-    throw new Error("パラメータ 'columns' は必須で、1つ以上の項目を指定してください。")
-  }
-  if (columns.length > 10) {
-    throw new Error('カルーセルのカラム数は最大10個までです。')
-  }
+export type CarouselBody = z.infer<typeof carouselBodySchema>
 
-  for (const [index, column] of columns.entries()) {
-    if (
-      !(
-        (column.originalContentUrl || column.fileId) &&
-        column.text &&
-        Array.isArray(column.actions)
-      )
-    ) {
-      throw new Error(
-        `カラム ${index + 1} には 'originalContentUrl' または 'fileId', 'text', 'actions' が必要です。`,
-      )
-    }
-
-    const maxTextLength = column.originalContentUrl || column.title ? 60 : 120
-    if (column.text.length > maxTextLength) {
-      throw new Error(`カラム ${index + 1} の 'text' は最大 ${maxTextLength} 文字までです。`)
-    }
-
-    if (column.defaultAction) {
-      try {
-        validateActionObject(column.defaultAction, `カラム ${index + 1} の 'defaultAction'`, true)
-      } catch (error) {
-        throw new Error(
-          `カラム ${index + 1} の 'defaultAction' が無効です: ${(error as Error).message}`,
-        )
-      }
-    }
-
-    for (const [actionIndex, action] of column.actions.entries()) {
-      try {
-        validateAction(action, false)
-      } catch (error) {
-        throw new Error(
-          `カラム ${index + 1} の 'actions' のアクション ${actionIndex + 1} が無効です: ${(error as Error).message}`,
-        )
-      }
-    }
-  }
-
-  await sendMessage(botId, token, params, {
+export const sendCarouselMessage: MessageSender<CarouselBody> = async (
+  botId,
+  token,
+  target,
+  body,
+) => {
+  await sendMessage(botId, token, target, {
     type: 'carousel',
-    imageAspectRatio,
-    imageSize,
-    columns,
+    imageAspectRatio: body.imageAspectRatio ?? 'rectangle',
+    imageSize: body.imageSize ?? 'cover',
+    columns: body.columns,
+    ...(body.quickReply ? { quickReply: body.quickReply } : {}),
   })
 }
