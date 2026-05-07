@@ -34,9 +34,35 @@ app.onError((error, c) => {
 // HTTP/1.1 で渡してくる構成 (`--use-http2` フラグ無し) を前提とする。
 // h2c (end-to-end HTTP/2) は Bun / Node の `node:http2` 単独で HTTP/1.1 fallback
 // が効かないため不採用。public 側の HTTP/2 は Cloud Run が提供する
-serve({ fetch: app.fetch, port: cfg.port }, info => {
+const server = serve({ fetch: app.fetch, port: cfg.port }, info => {
   logger.success(
     `Server running on port ${info.port} (HTTP/1.1, NODE_ENV=${cfg.isProduction ? 'production' : 'development'})`,
     { caller: CALLER },
   )
 })
+
+// Cloud Run はスケールダウン / 再デプロイ時に SIGTERM を送ってきた後、
+// 10 秒程度で SIGKILL を出すため、9 秒で強制終了する保険を入れて
+// in-flight リクエストが完了するのを待つ
+const SHUTDOWN_FORCE_TIMEOUT_MS = 9_000
+
+function shutdown(signal: NodeJS.Signals): void {
+  logger.info(`${signal} 受信、graceful shutdown 開始`, { caller: `${CALLER}.shutdown` })
+  const forceExit = setTimeout(() => {
+    logger.warn('shutdown タイムアウト、強制終了します', { caller: `${CALLER}.shutdown` })
+    process.exit(1)
+  }, SHUTDOWN_FORCE_TIMEOUT_MS)
+  forceExit.unref()
+
+  server.close(error => {
+    if (error) {
+      logger.error('shutdown 中にエラー', { caller: `${CALLER}.shutdown`, error })
+      process.exit(1)
+    }
+    logger.success('shutdown 完了', { caller: `${CALLER}.shutdown` })
+    process.exit(0)
+  })
+}
+
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
