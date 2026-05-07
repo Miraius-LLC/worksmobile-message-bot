@@ -1,0 +1,19 @@
+post-merge:
+  commands:
+    install:
+      run: bun i
+
+post-rebase:
+  commands:
+    install:
+      run: bun i
+
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      run: bunx biome check --write ./src
+      stage_fixed: true
+    typescript:
+      glob: "*.{ts,tsx}"
+      run: bunx tsc --noEmit

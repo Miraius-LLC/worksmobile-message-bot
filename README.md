@@ -1,8 +1,22 @@
-# Webhook Bot Messenger for LINE Works
+# Webhook Bot Messenger for LINE WORKS
 
-![](https://img.shields.io/badge/-Node.js-339933.svg?logo=node.js&style=flat-square)![](https://img.shields.io/badge/-Line-00C300.svg?logo=line&style=flat-square)
+![Bun](https://img.shields.io/badge/-Bun-000000.svg?logo=bun&logoColor=white&style=flat-square)
+![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6.svg?logo=typescript&logoColor=white&style=flat-square)
+![Hono](https://img.shields.io/badge/-Hono-E36002.svg?logo=hono&logoColor=white&style=flat-square)
+![Biome](https://img.shields.io/badge/-Biome-60A5FA.svg?logo=biome&logoColor=white&style=flat-square)
+![LINE WORKS](https://img.shields.io/badge/-LINE_WORKS-00C300.svg?logo=line&logoColor=white&style=flat-square)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 
-社内で [LINE Works API](https://developers.worksmobile.com/jp/docs/api) を利用して各種メッセージ（テキスト、画像、ファイル、カルーセルなど）を Bot から送信するための Webhook サーバーです。 [IFTTT](https://ifttt.com/) や [Make](https://www.make.com/) などのノーコードツールから Webhook 経由で手軽に利用したいので作りました。
+社内で [LINE WORKS API](https://developers.worksmobile.com/jp/docs/api) を利用して各種メッセージ (テキスト、画像、ファイル、カルーセルなど) を Bot から送信するための Webhook サーバー。[IFTTT](https://ifttt.com/) や [Make](https://www.make.com/) などのノーコードツールから Webhook 経由で手軽に LINE WORKS Bot を叩くために作成。
+
+### 技術スタック
+
+- **ランタイム**: [Bun](https://bun.sh/) 1.3.x
+- **言語**: TypeScript (ESM, strict)
+- **HTTP フレームワーク**: [Hono](https://hono.dev/) + [@hono/node-server](https://github.com/honojs/node-server)
+- **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
+- **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev)
+- **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
 
 ### 参考にさせていただいた記事
 
@@ -14,7 +28,7 @@
 
 ## 環境変数の設定
 
-環境変数を `.env` ファイルに設定。
+`.env` を作成して以下を設定。
 
 ```env
 CLIENT_ID=your_client_id
@@ -22,45 +36,76 @@ CLIENT_SECRET=your_client_secret
 SERVICE_ACCOUNT=your_service_account
 PRIVATE_KEY=your_private_key_base64_encoded
 BOT_ID=your_bot_id
+
+# 任意
+PORT=8080         # listen ポート (default 8080)
+USE_HTTP2=1       # h2c (HTTP/2 cleartext) で listen。Cloud Run の `--use-http2` end-to-end と組み合わせる
+LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 ```
 
-- **CLIENT_ID**: `LINE Works API のクライアント ID`
-- **CLIENT_SECRET**: `クライアントシークレット`
-- **SERVICE_ACCOUNT**: `サービスアカウント`
-- **PRIVATE_KEY**: `Base64 エンコードされたプライベートキー`
-
-  - `base64 -i ./private_XXXXXX.key | pbcopy` して貼り付ける。
-
-- **BOT_ID**: `Bot ID`
+| 変数 | 内容 |
+|---|---|
+| `CLIENT_ID` | LINE WORKS API のクライアント ID |
+| `CLIENT_SECRET` | クライアントシークレット |
+| `SERVICE_ACCOUNT` | サービスアカウント |
+| `PRIVATE_KEY` | Base64 エンコードされたプライベートキー (`base64 -i ./private_XXXXXX.key \| pbcopy`) |
+| `BOT_ID` | Bot ID |
+| `PORT` | listen ポート (省略時 `8080`) |
+| `USE_HTTP2` | `1` で h2c。Cloud Run へは `--use-http2` フラグと併用 |
+| `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
 
 ---
 
 ## セットアップ手順
 
-1. リポジトリをクローン
+事前に [Bun](https://bun.sh/) をインストール (`.tool-versions` に対応した [asdf](https://asdf-vm.com/) / [mise](https://mise.jdx.dev/) 等を推奨)。
 
-   ```zsh
-   $ git clone <repository-url> && cd <repository-directory>
-   ```
+```zsh
+# 1. クローン
+$ git clone <repository-url> && cd worksmobile-message-bot
 
-2. 依存パッケージをインストール
+# 2. 依存インストール
+$ bun install
 
-   ```zsh
-   $ npm install
-   ```
+# 3. .env 作成 (上記参照)
 
-3. 環境変数の設定
+# 4. 起動
+$ bun run dev      # 開発: ホットリロード + pretty log。localhost:8080
+$ bun run build && bun run start  # 本番ビルド + 起動
+```
 
-   - `<repository-directory>/` `.env` ファイルを作成し、必要な環境変数を設定。
+### 主要コマンド
 
-4. 起動
-   ```zsh
-   $ npm start
-   ```
-   開発モード
-   ```zsh
-    $ npm run dev # localhost:8080
-   ```
+| 用途 | コマンド |
+|---|---|
+| 開発サーバ起動 (ホットリロード) | `bun run dev` |
+| 型チェック | `bunx tsc --noEmit` |
+| Lint / format (auto-fix) | `bunx biome check --write ./src` |
+| 本番ビルド (`build/index.js` を出力) | `bun run build` |
+| 本番ビルドを起動 | `bun run start` |
+| Docker イメージビルド | `bun run docker:build` |
+| pre-commit hook 有効化 | `bun run lefthook:install` |
+
+`pre-commit` で biome auto-fix と `tsc --noEmit` が走るため、手動で先回り実行する必要は無い。
+
+---
+
+## デプロイ (Cloud Run など)
+
+```sh
+# 通常 (HTTP/1.1 コンテナ、Cloud Run フロントエンドが HTTP/2 を終端)
+gcloud run deploy worksmobile-message-bot \
+  --source=. \
+  --set-env-vars CLIENT_ID=...,CLIENT_SECRET=...,SERVICE_ACCOUNT=...,PRIVATE_KEY=...,BOT_ID=...
+
+# end-to-end HTTP/2 (h2c でコンテナまで)
+gcloud run deploy worksmobile-message-bot \
+  --source=. \
+  --use-http2 \
+  --set-env-vars USE_HTTP2=1,CLIENT_ID=...,CLIENT_SECRET=...,SERVICE_ACCOUNT=...,PRIVATE_KEY=...,BOT_ID=...
+```
+
+> ⚠️ end-to-end HTTP/2 にする場合、`--use-http2` フラグと `USE_HTTP2=1` 環境変数は **両方必須**。片方だけだと Cloud Run フロントエンド↔コンテナ間でプロトコルがズレて全リクエストが失敗する。
 
 ---
 
@@ -68,9 +113,7 @@ BOT_ID=your_bot_id
 
 ### 1. エンドポイント一覧
 
-#### 共通設定
-
-- 認証: BASIC AUTH
+> 認証: 現状は未実装。Cloud Run の認証や前段プロキシで保護する想定。アプリ内で BASIC 認証等を必要とする場合は `hono/basic-auth` ミドルウェアを `src/index.ts` に追加する。
 
 #### [トークルーム指定](https://developers.worksmobile.com/jp/docs/bot-channel-message-send)
 

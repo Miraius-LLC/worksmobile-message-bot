@@ -1,25 +1,24 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+  // ファイル設定
   "files": {
-    "ignoreUnknown": true,
-    "ignore": [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/.git/**",
-      "**/.cache/**",
-      "**/coverage/**",
-      "**/.env*",
-      "**/package-lock.json",
-      "**/yarn.lock",
-      "**/pnpm-lock.yaml"
-    ]
+    "includes": [
+      "**",
+      "!**/build/**/*",
+      "!**/dist/**/*",
+      "!**/node_modules/**/*",
+      "!**/bun.lockb",
+      "!**/bun.lock",
+      "!**/package-lock.json",
+      "!**/uploads/**/*",
+      "!**/downloads/**/*",
+      "!**/.tmp/**/*",
+      "!**/.claude/**/*"
+    ],
+    "ignoreUnknown": false
   },
+
+  // フォーマッター設定
   "formatter": {
     "enabled": true,
     "formatWithErrors": false, // エラーがある場合はフォーマットをスキップ
@@ -27,30 +26,7 @@
     "indentWidth": 2, // インデントの幅
     "lineWidth": 100 // 1行の最大文字数
   },
-  "organizeImports": {
-    "enabled": true
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "complexity": {
-        "noForEach": "error",
-        "useSimplifiedLogicExpression": "error"
-      },
-      "correctness": {
-        "noUnusedFunctionParameters": "off",
-        "noUnusedVariables": "off"
-      },
-      "suspicious": {
-        "noConsoleLog": "off"
-      },
-      "style": {
-        "useConst": "error",
-        "useTemplate": "error"
-      }
-    }
-  },
+  // JavaScript/TypeScript固有の設定
   "javascript": {
     "formatter": {
       "arrowParentheses": "asNeeded", // 必要な場合のみアロー関数の括弧を付与
@@ -67,7 +43,39 @@
       "trailingCommas": "all" // 末尾のカンマを常に付与
     },
     "parser": {
-      "unsafeParameterDecoratorsEnabled": true // 実験的なパラメータデコレータを許可
+      "unsafeParameterDecoratorsEnabled": true
     }
+  },
+  // リンター設定
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "complexity": {
+        "useLiteralKeys": "off"
+      },
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnusedVariables": "error"
+      },
+      "performance": {
+        "noDelete": "error"
+      },
+      "recommended": true,
+      "style": {
+        "noNonNullAssertion": "error",
+        "useTemplate": "error",
+        "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } }
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsole": { "level": "warn", "options": { "allow": ["log"] } }
+      }
+    }
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "vcs": {
+    "clientKind": "git",
+    "enabled": false,
+    "useIgnoreFile": false
   }
 }

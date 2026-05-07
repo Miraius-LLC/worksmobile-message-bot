@@ -1,6 +1,17 @@
 # File
 uploads/
+downloads/
 download/
+
+# Bun
+bun.lockb
+.tmp/
+
+# Build (Docker ビルド時に bun build で生成)
+build/
+
+# Claude Code local settings
+.claude/settings.local.json
 
 # VSCode
 *.code-workspace
