@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
+import { type AuthenticatedEnv, tokenMiddleware } from '../_middleware'
 import { downloadHandler } from './download'
 import { uploadHandler } from './upload'
 
@@ -7,7 +8,9 @@ import { uploadHandler } from './upload'
 const MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 
 /** `/attachments` 配下の upload/download をまとめた Hono ルータ */
-export const attachmentsApp = new Hono()
+export const attachmentsApp = new Hono<AuthenticatedEnv>()
+
+attachmentsApp.use('*', tokenMiddleware)
 
 attachmentsApp.post(
   '/',

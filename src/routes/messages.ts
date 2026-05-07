@@ -1,6 +1,5 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { getServerToken } from '@/services/lineworks/auth'
 import {
   type MessageBody,
   type MessageType,
@@ -10,12 +9,12 @@ import {
 } from '@/services/lineworks/messages'
 import type { MessageTarget } from '@/types/lineworks'
 import { config } from '@/utils/config'
-import { logger } from '@/utils/logger'
-
-const CALLER = 'routes/messages'
+import { type AuthenticatedEnv, tokenMiddleware } from './_middleware'
 
 /** README に記載の `(channels|users)/:id/messages/type/<type>` を全部登録した Hono ルータ */
-export const messagesApp = new Hono()
+export const messagesApp = new Hono<AuthenticatedEnv>()
+
+messagesApp.use('*', tokenMiddleware)
 
 for (const base of ['channels', 'users'] as const) {
   for (const type of messageTypes) {
@@ -35,18 +34,9 @@ for (const base of ['channels', 'users'] as const) {
         const body = c.req.valid('json') as MessageBody<MessageType>
         const target: MessageTarget = base === 'channels' ? { channelId: id } : { userId: id }
 
-        try {
-          const token = await getServerToken()
-          await sendMessageByType(config().botId, token, target, type, body)
-          return c.body(null, 200)
-        } catch (error) {
-          logger.error('メッセージ送信に失敗', {
-            caller: `${CALLER}.${base}.${type}`,
-            id,
-            error,
-          })
-          return c.json({ error: (error as Error).message }, 500)
-        }
+        // throw されたエラーは index.ts の app.onError が拾って 500 を返す
+        await sendMessageByType(config().botId, c.var.token, target, type, body)
+        return c.body(null, 200)
       },
     )
   }
