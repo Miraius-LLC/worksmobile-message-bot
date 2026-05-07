@@ -1,0 +1,57 @@
+# =============================================================================
+# Cloud Build パイプライン: GitHub push → build → push → Cloud Run へ deploy
+#
+# トリガー側で `filename: cloudbuild.yaml` を指定すること。inline build を
+# 残したままだとこのファイルは読まれない。
+# =============================================================================
+
+substitutions:
+  _AR_HOSTNAME: asia-northeast1-docker.pkg.dev
+  _AR_REPOSITORY: cloud-run-source-deploy
+  _SERVICE_NAME: worksmobile-message-bot
+  _DEPLOY_REGION: asia-northeast1
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+
+images:
+  - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
+
+steps:
+  # 1) Docker イメージビルド (BuildKit 限定構文は Dockerfile 側で使用しない)
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
+      - -f
+      - Dockerfile
+      - .
+
+  # 2) Artifact Registry へ push
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
+
+  # 3) Cloud Run へ deploy (既存サービスを update)
+  #    - --no-use-http2: コンテナは HTTP/1.1 で受ける (frontend が HTTP/2 を終端)
+  #    - --update-env-vars: GOOGLE_CLOUD_PROJECT を注入して logger の trace 連携を有効化
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - services
+      - update
+      - ${_SERVICE_NAME}
+      - --platform=managed
+      - --region=${_DEPLOY_REGION}
+      - --image=${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
+      - --no-use-http2
+      - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID}
+      - --labels=managed-by=cloud-build,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}
+      - --quiet
