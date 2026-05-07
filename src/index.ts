@@ -5,6 +5,7 @@ import { attachmentsApp } from '@/routes/attachments'
 import { messagesApp } from '@/routes/messages'
 import * as config from '@/utils/config'
 import { logger } from '@/utils/logger'
+import { traceContextMiddleware } from '@/utils/trace'
 import { installJapaneseErrorMap } from '@/utils/zod-locale'
 
 const CALLER = 'index'
@@ -16,6 +17,9 @@ installJapaneseErrorMap()
 const cfg = config.load()
 
 const app = new Hono()
+
+// `x-cloud-trace-context` を AsyncLocalStorage に保存して以降の logger 呼び出しに自動付与
+app.use('*', traceContextMiddleware)
 
 // X-Frame-Options / X-Content-Type-Options / Strict-Transport-Security 等を一括付与
 app.use('*', secureHeaders())

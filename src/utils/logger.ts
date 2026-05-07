@@ -1,4 +1,5 @@
 import pino from 'pino'
+import { buildTraceFields } from './trace'
 
 type LogLevel = 'failure' | 'error' | 'warn' | 'info' | 'success' | 'request' | 'debug'
 
@@ -81,6 +82,9 @@ function createLogger(opts: { pretty?: boolean } = {}) {
   const log = (level: LogLevel, message: unknown, option?: LogOption): void => {
     pinoLogger[level === 'failure' ? 'fatal' : 'info']({
       ...option,
+      // Cloud Trace のリクエストコンテキストがあれば trace / spanId を付与し、
+      // Cloud Logging Console の Trace タブで関連ログが紐付くようにする
+      ...buildTraceFields(),
       msg: message,
       level,
       // Cloud Logging が認識する標準フィールド (Console の severity フィルタを有効化)
