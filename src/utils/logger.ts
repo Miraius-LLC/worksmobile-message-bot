@@ -47,6 +47,21 @@ const prettyTransport = {
   },
 }
 
+/**
+ * pino のレベル → Cloud Logging severity への mapping。
+ * Console の severity フィルタが正しく機能するようにする。
+ * @see https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#LogSeverity
+ */
+const SEVERITY_MAP: Record<LogLevel, string> = {
+  failure: 'CRITICAL',
+  error: 'ERROR',
+  warn: 'WARNING',
+  info: 'INFO',
+  success: 'INFO',
+  request: 'INFO',
+  debug: 'DEBUG',
+}
+
 function createLogger(opts: { pretty?: boolean } = {}) {
   const pinoLogger = pino({
     formatters: {
@@ -68,6 +83,8 @@ function createLogger(opts: { pretty?: boolean } = {}) {
       ...option,
       msg: message,
       level,
+      // Cloud Logging が認識する標準フィールド (Console の severity フィルタを有効化)
+      severity: SEVERITY_MAP[level],
     })
   }
 
