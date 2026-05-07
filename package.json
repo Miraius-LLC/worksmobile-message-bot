@@ -18,7 +18,7 @@
   "scripts": {
     "dev": "bun run --hot ./src/index.ts",
     "start": "bun run ./build/index.js",
-    "build": "bun build ./src/index.ts --outdir=./build --target=bun --splitting --sourcemap --minify",
+    "build": "bun build ./src/index.ts --outdir=./build --target=bun --minify",
     "docker:build": "docker build -t worksmobile-message-bot .",
     "docker:run": "docker run -p 8080:8080 --env-file=.env worksmobile-message-bot",
     "lefthook:install": "lefthook install"
