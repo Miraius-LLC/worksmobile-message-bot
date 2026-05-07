@@ -4,7 +4,7 @@ const CALLER = 'utils/config'
 
 type RequiredEnv = 'CLIENT_ID' | 'CLIENT_SECRET' | 'SERVICE_ACCOUNT' | 'PRIVATE_KEY' | 'BOT_ID'
 
-type OptionalEnv = 'PORT' | 'NODE_ENV' | 'USE_HTTP2' | 'LOG_PRETTY'
+type OptionalEnv = 'PORT' | 'NODE_ENV' | 'LOG_PRETTY'
 
 type Config = {
   clientId: string
@@ -15,7 +15,6 @@ type Config = {
   botId: string
   port: number
   isProduction: boolean
-  useHttp2: boolean
   logPretty: boolean
 }
 
@@ -81,7 +80,6 @@ export function load(): Config {
     botId,
     port: Number(optional('PORT') ?? 8080),
     isProduction: optional('NODE_ENV') === 'production',
-    useHttp2: optional('USE_HTTP2') === '1',
     logPretty: optional('LOG_PRETTY') === '1',
   }
   return cached

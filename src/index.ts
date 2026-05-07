@@ -1,4 +1,3 @@
-import { createServer as createHttp2Server } from 'node:http2'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { attachmentsApp } from '@/routes/attachments'
@@ -30,16 +29,14 @@ app.onError((error, c) => {
   return c.json({ error: error.message }, 500)
 })
 
-// HTTP/2 (h2c) は Cloud Run の `--use-http2` end-to-end 用。フラグ未設定の Cloud Run へ
-// h2c で起動するとフロントエンド (HTTP/1.1) からのリクエストを全拒否するので
-// `USE_HTTP2=1` を明示した時だけ ON にする。
-const serveOptions = cfg.useHttp2
-  ? { fetch: app.fetch, port: cfg.port, createServer: createHttp2Server }
-  : { fetch: app.fetch, port: cfg.port }
-
-serve(serveOptions, info => {
+// HTTP/1.1 で listen する。
+// Cloud Run のフロントエンド (Envoy) が公開側の HTTP/2 を終端し、コンテナへは
+// HTTP/1.1 で渡してくる構成 (`--use-http2` フラグ無し) を前提とする。
+// h2c (end-to-end HTTP/2) は Bun / Node の `node:http2` 単独で HTTP/1.1 fallback
+// が効かないため不採用。public 側の HTTP/2 は Cloud Run が提供する
+serve({ fetch: app.fetch, port: cfg.port }, info => {
   logger.success(
-    `Server running on port ${info.port} (HTTP/${cfg.useHttp2 ? '2 h2c' : '1.1'}, NODE_ENV=${cfg.isProduction ? 'production' : 'development'})`,
+    `Server running on port ${info.port} (HTTP/1.1, NODE_ENV=${cfg.isProduction ? 'production' : 'development'})`,
     { caller: CALLER },
   )
 })

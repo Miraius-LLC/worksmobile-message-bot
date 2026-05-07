@@ -39,7 +39,6 @@ BOT_ID=your_bot_id
 
 # 任意
 PORT=8080         # listen ポート (default 8080)
-USE_HTTP2=1       # h2c (HTTP/2 cleartext) で listen。Cloud Run の `--use-http2` end-to-end と組み合わせる
 LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 ```
 
@@ -51,7 +50,6 @@ LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 | `PRIVATE_KEY` | Base64 エンコードされたプライベートキー (`base64 -i ./private_XXXXXX.key \| pbcopy`) |
 | `BOT_ID` | Bot ID |
 | `PORT` | listen ポート (省略時 `8080`) |
-| `USE_HTTP2` | `1` で h2c。Cloud Run へは `--use-http2` フラグと併用 |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
 
 ---
@@ -97,15 +95,9 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 gcloud run deploy worksmobile-message-bot \
   --source=. \
   --set-env-vars CLIENT_ID=...,CLIENT_SECRET=...,SERVICE_ACCOUNT=...,PRIVATE_KEY=...,BOT_ID=...
-
-# end-to-end HTTP/2 (h2c でコンテナまで)
-gcloud run deploy worksmobile-message-bot \
-  --source=. \
-  --use-http2 \
-  --set-env-vars USE_HTTP2=1,CLIENT_ID=...,CLIENT_SECRET=...,SERVICE_ACCOUNT=...,PRIVATE_KEY=...,BOT_ID=...
 ```
 
-> ⚠️ end-to-end HTTP/2 にする場合、`--use-http2` フラグと `USE_HTTP2=1` 環境変数は **両方必須**。片方だけだと Cloud Run フロントエンド↔コンテナ間でプロトコルがズレて全リクエストが失敗する。
+> 公開側の HTTP/2 は Cloud Run フロントエンドが終端し、コンテナへは HTTP/1.1 で渡す構成です。`--use-http2` フラグは**つけません** (コンテナの h2c サーバを Bun / Node の `node:http2` 単独で立てると Envoy の素の HTTP/1.1 を受けられないため)。クライアントから見ると HTTP/2 で接続できます。
 
 ---
 

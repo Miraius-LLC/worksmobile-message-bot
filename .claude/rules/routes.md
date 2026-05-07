@@ -48,6 +48,6 @@ app.route('/foo', fooApp)
 
 ## HTTP/2
 
-- `USE_HTTP2=1` env で `@hono/node-server` の `serve()` に `createServer: createHttp2Server` (from `node:http2`) を渡して h2c で listen
-- **Cloud Run は `--use-http2` フラグ + `USE_HTTP2=1` env の両方必須**。片方だけだと全リクエスト失敗する
-- HTTP/2 専用 API (server push 等) は使わない。HTTP/1.1 でも動く前提でハンドラを書く (Web 標準 Request/Response の範囲で書けば OK)
+- コンテナは **HTTP/1.1 のみで listen** する。end-to-end h2c は採用しない (`node:http2` 単独サーバは Cloud Run Envoy が投げる素の HTTP/1.1 を受けられず protocol error になるため)
+- 公開側の HTTP/2 は Cloud Run フロントエンドが終端する。`gcloud run deploy` に `--use-http2` は**つけない**
+- HTTP/2 専用 API (server push 等) は使わない。Web 標準 Request/Response の範囲で書けば OK

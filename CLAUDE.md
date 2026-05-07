@@ -55,7 +55,6 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 | `BOT_ID` | Bot ID |
 | `PORT` | リッスンポート (デフォルト 8080) |
 | `NODE_ENV` | `production` で JSON ログを抑制せずそのまま出す (Hono 自体は logger を内蔵しないので env による分岐は最小限) |
-| `USE_HTTP2` | `1` で h2c (HTTP/2 cleartext) で listen。Cloud Run の `--use-http2` end-to-end 用 |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
 
 ## 注意点 (コードから読めない / 読みづらいもの)
@@ -69,8 +68,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 ### よくあるハマり
 
-- **HTTP/2 は `USE_HTTP2=1` で明示**: NODE_ENV と切り離してある。**Cloud Run へは `--use-http2` 付きでデプロイ + 環境変数 `USE_HTTP2=1`** が両方必須 (`gcloud run deploy --use-http2 --set-env-vars USE_HTTP2=1`)。フラグだけ立てて env 忘れるとコンテナが HTTP/1.1 で listen して全リクエスト 1.1 にダウングレードされる。env だけ立ててフラグ忘れると h2c しか受けないコンテナにフロントエンドが HTTP/1.1 を投げて全拒否される
-- **`USE_HTTP2=1` だと `@hono/node-server` が `node:http2.createServer` を使う**: Bun の `node:http2` 互換性に依存。HTTP/2 関連の挙動がおかしいと感じたら `node:http2` のサーバ側互換性を疑う
+- **コンテナは HTTP/1.1 のみで listen**: end-to-end h2c は **採用しない**。理由は Bun / Node の `node:http2` 単独サーバが HTTP/1.1 を併行受信できず (`allowHTTP1` は ALPN/Upgrade 経由のみ機能)、Cloud Run の Envoy は素の HTTP/1.1 を投げてくるため protocol error になる
+- **公開側の HTTP/2 は Cloud Run フロントエンドが終端する**: クライアント↔Cloud Run は HTTP/2、Cloud Run↔コンテナは HTTP/1.1。`gcloud run deploy` に `--use-http2` フラグは**つけない**。webhook サーバなので multiplexing の効果は限定的
 - **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。サイズ制限は Hono 側に未設定なので大きすぎるファイルが来た時の対策が必要なら別途
 - **README に "BASIC AUTH" の記載があるが現状未実装**。Hono なら `hono/basic-auth` ミドルウェアを `app.use('*', basicAuth({...}))` で乗せる
 
