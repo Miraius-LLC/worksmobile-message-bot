@@ -55,6 +55,11 @@ function createLogger(opts: { pretty?: boolean } = {}) {
     timestamp: pino.stdTimeFunctions.isoTime,
     customLevels: LOG_LEVELS,
     level: process.env['NODE_ENV'] === 'production' ? 'error' : 'debug',
+    // Error はプロパティが non-enumerable のため、デフォルトでは `error: {}` で潰れる。
+    // stdSerializers.err で name / message / stack を抽出する
+    serializers: {
+      error: pino.stdSerializers.err,
+    },
     ...(opts.pretty ? { transport: prettyTransport } : {}),
   })
 
