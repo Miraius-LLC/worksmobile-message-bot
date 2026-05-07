@@ -1,4 +1,4 @@
-import { API_BASE, getBotId, postJson } from '@/services/lineworks/api'
+import { API_BASE, getBotId, LineWorksApiError, postJson } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'services/lineworks/attachment'
@@ -47,7 +47,7 @@ export async function uploadAttachment(
       status: response.status,
       debug: body,
     })
-    throw new Error(`ファイルのアップロードに失敗しました (status=${response.status})`)
+    throw new LineWorksApiError(response.status, body)
   }
 
   logger.success('ファイルをアップロード', {
@@ -98,5 +98,5 @@ export async function resolveDownloadUrl(token: string, fileId: string): Promise
     status: response.status,
     debug: body,
   })
-  throw new Error(`ダウンロード URL の取得に失敗しました (status=${response.status})`)
+  throw new LineWorksApiError(response.status, body)
 }

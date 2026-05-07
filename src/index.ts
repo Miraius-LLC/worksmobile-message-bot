@@ -1,8 +1,10 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
+import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { attachmentsApp } from '@/routes/attachments'
 import { messagesApp } from '@/routes/messages'
+import { LineWorksApiError } from '@/services/lineworks/api'
 import * as config from '@/utils/config'
 import { logger } from '@/utils/logger'
 import { traceContextMiddleware } from '@/utils/trace'
@@ -33,6 +35,10 @@ app.route('/attachments', attachmentsApp)
 app.notFound(c => c.json({ error: 'Not Found', path: c.req.url }, 404))
 
 app.onError((error, c) => {
+  // LINE WORKS upstream が返したステータスは bridge 側のリトライ判定に必要なのでそのまま透過する
+  if (error instanceof LineWorksApiError) {
+    return c.json({ error: error.message }, error.status as ContentfulStatusCode)
+  }
   logger.error('未捕捉エラー', { caller: `${CALLER}.onError`, error })
   return c.json({ error: error.message }, 500)
 })

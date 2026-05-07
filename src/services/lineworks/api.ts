@@ -5,6 +5,23 @@ const CALLER = 'services/lineworks/api'
 
 export const API_BASE = 'https://www.worksapis.com/v1.0'
 
+/**
+ * LINE WORKS Bot API がエラーステータスを返したことを示す例外。
+ * `app.onError` がこの型を見て upstream の HTTP ステータスをそのまま返すので、
+ * 呼び出し側 (IFTTT / Make 等の bridge) のリトライ判定 (4xx は retry しない / 5xx は retry) が正しく効く
+ */
+export class LineWorksApiError extends Error {
+  readonly status: number
+  readonly upstreamBody: string
+
+  constructor(status: number, upstreamBody: string) {
+    super(`LINE WORKS API の呼び出しに失敗しました (status=${status})`)
+    this.name = 'LineWorksApiError'
+    this.status = status
+    this.upstreamBody = upstreamBody
+  }
+}
+
 export function getBotId(): string {
   return config().botId
 }
@@ -28,7 +45,7 @@ export async function postJson(token: string, url: string, data: unknown): Promi
       status: response.status,
       debug: body,
     })
-    throw new Error(`LINE WORKS API の呼び出しに失敗しました (status=${response.status})`)
+    throw new LineWorksApiError(response.status, body)
   }
 
   // body が空の場合があるので JSON 解析失敗は無視
