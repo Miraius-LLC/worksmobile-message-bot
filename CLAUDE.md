@@ -48,13 +48,13 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 ## 環境変数
 
-| 変数 | 用途 |
+| 変数 | 取り扱い |
 |---|---|
-| `CLIENT_ID` | LINE WORKS API のクライアント ID |
-| `CLIENT_SECRET` | クライアントシークレット |
-| `SERVICE_ACCOUNT` | サービスアカウント |
-| `PRIVATE_KEY` | Base64 エンコード済みプライベートキー (`base64 -i private_*.key`) |
-| `BOT_ID` | Bot ID |
+| `CLIENT_ID` | env (機密度低) |
+| `CLIENT_SECRET` | **Secret Manager `lineworks-client-secret:latest`** にマウント (本番) / `.env` (開発) |
+| `SERVICE_ACCOUNT` | env (機密度低) |
+| `PRIVATE_KEY` | **Secret Manager `lineworks-private-key:latest`** にマウント (本番) / `.env` (開発)。Base64 エンコード済 PEM (`base64 -i private_*.key`) |
+| `BOT_ID` | env (機密度低) |
 | `PORT` | リッスンポート (デフォルト 8080) |
 | `NODE_ENV` | `production` で JSON ログを抑制せずそのまま出す (Hono 自体は logger を内蔵しないので env による分岐は最小限) |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
@@ -90,7 +90,10 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **CMD は `["bun", "build/index.js"]`** で直接バンドルを起動 (`bun run start` → package.json 参照を避ける)
 - **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
 - **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入
-- **build / deploy パイプラインは `cloudbuild.yaml` に記述**: trigger に inline build を残さず、ファイル経由で動かす (filename 設定が必要)。`--no-use-http2`, `GOOGLE_CLOUD_PROJECT` 注入等の Cloud Run 固有設定はすべてここで管理
+- **build / deploy パイプラインは `cloudbuild.yaml` に記述**: trigger に inline build を残さず、ファイル経由で動かす (filename 設定が必要)。Cloud Run 固有設定 (SA / secrets / scaling / resources / `--no-use-http2` / labels) はすべてここで管理し、手動 `gcloud run services update` での drift を防ぐ
+- **Cloud Run の runtime SA は専用**: `worksmobile-message-bot-sa@office-381404.iam.gserviceaccount.com`。デフォルトの compute SA は使わない (権限分離)。SA は `lineworks-client-secret` / `lineworks-private-key` の `secretAccessor` ロールのみ持つ
+- **機密 env は Secret Manager 経由**: `CLIENT_SECRET` / `PRIVATE_KEY` を Cloud Run の env に**直書きしない**。`gcloud secrets versions add` で値を更新し、Cloud Run は `:latest` を参照する設定 (`--update-secrets=...`) のため、再 deploy 不要で値だけ差し替え可能
+- **Artifact Registry の cleanup policy 設定済**: タグ無しイメージは 7 日後削除、タグ付きは最新 10 件保持 (`cloud-run-source-deploy` リポジトリ)
 
 ### 命名・配置の慣習
 

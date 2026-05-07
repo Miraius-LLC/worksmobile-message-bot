@@ -10,6 +10,9 @@ substitutions:
   _AR_REPOSITORY: cloud-run-source-deploy
   _SERVICE_NAME: worksmobile-message-bot
   _DEPLOY_REGION: asia-northeast1
+  _SERVICE_ACCOUNT: worksmobile-message-bot-sa@office-381404.iam.gserviceaccount.com
+  _SECRET_CLIENT_SECRET: lineworks-client-secret
+  _SECRET_PRIVATE_KEY: lineworks-private-key
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -37,9 +40,10 @@ steps:
       - push
       - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
 
-  # 3) Cloud Run へ deploy (既存サービスを update)
-  #    - --no-use-http2: コンテナは HTTP/1.1 で受ける (frontend が HTTP/2 を終端)
-  #    - --update-env-vars: GOOGLE_CLOUD_PROJECT を注入して logger の trace 連携を有効化
+  # 3) Cloud Run へ deploy
+  #    - 構成を可能な限り cloudbuild.yaml に明示し、手動 `gcloud run services update` での
+  #      drift を防ぐ。CLIENT_ID / SERVICE_ACCOUNT / BOT_ID は機密度が低いため env を維持
+  #      (--update-env-vars で値は変更しないため、既存値が引き継がれる)
   - id: deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
@@ -51,7 +55,35 @@ steps:
       - --platform=managed
       - --region=${_DEPLOY_REGION}
       - --image=${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
-      - --no-use-http2
+
+      # --- 認証 / Identity ---
+      - --service-account=${_SERVICE_ACCOUNT}
+
+      # --- Secret Manager マウント (機密 env) ---
+      - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest
+
+      # --- 通常 env (機密度の低い設定値) ---
       - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID}
+
+      # --- ネットワーク ---
+      - --no-use-http2  # コンテナは HTTP/1.1、Cloud Run frontend が HTTP/2 終端
+      - --port=8080
+      - --ingress=all
+      - --allow-unauthenticated  # IAM `allUsers` invoker (アプリ層の認証は別途検討)
+
+      # --- スケーリング / 並行性 ---
+      - --min-instances=1
+      - --max-instances=5
+      - --concurrency=80
+      - --timeout=300s
+
+      # --- リソース ---
+      - --cpu=1
+      - --memory=512Mi
+      - --execution-environment=gen2
+      - --cpu-boost  # cold start 高速化
+
+      # --- ラベル (リビジョンの追跡用) ---
       - --labels=managed-by=cloud-build,commit-sha=${COMMIT_SHA},gcb-build-id=${BUILD_ID}
+
       - --quiet

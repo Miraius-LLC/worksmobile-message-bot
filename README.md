@@ -97,29 +97,59 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 
 GitHub `main` への push を Cloud Build trigger が拾い、`cloudbuild.yaml` のパイプライン (build → push → deploy) を実行する設計です。
 
-```yaml
-# cloudbuild.yaml の概要
-# 1. Docker build → Artifact Registry へ push (タグ: $SHORT_SHA)
-# 2. gcloud run services update --no-use-http2 + GOOGLE_CLOUD_PROJECT 注入
-```
+`cloudbuild.yaml` には **runtime SA / Secret Manager マウント / scaling / resources / ingress** 等を全て明示してあり、Cloud Run の構成 drift を防止します。
 
-初回設定 / トリガー再構成時:
+### 初回設定
 
 ```sh
-# trigger を cloudbuild.yaml ベースへ切替 (inline build 設定があれば外す)
+# 1. 専用 runtime SA を作成
+gcloud iam service-accounts create worksmobile-message-bot-sa \
+  --display-name="worksmobile-message-bot runtime"
+
+# 2. 機密 env を Secret Manager に投入
+echo -n "$CLIENT_SECRET_VALUE" | gcloud secrets create lineworks-client-secret --data-file=-
+echo -n "$PRIVATE_KEY_VALUE_BASE64" | gcloud secrets create lineworks-private-key --data-file=-
+
+# 3. SA に accessor 権限を付与 (per-secret)
+for s in lineworks-client-secret lineworks-private-key; do
+  gcloud secrets add-iam-policy-binding $s \
+    --member="serviceAccount:worksmobile-message-bot-sa@<PROJECT_ID>.iam.gserviceaccount.com" \
+    --role=roles/secretmanager.secretAccessor
+done
+
+# 4. 機密度の低い env を Cloud Run service に直接設定
+gcloud run services update worksmobile-message-bot --region=asia-northeast1 \
+  --set-env-vars=CLIENT_ID=...,SERVICE_ACCOUNT=...,BOT_ID=...
+
+# 5. Cloud Build trigger を cloudbuild.yaml ベースへ切替
 gcloud builds triggers describe <TRIGGER_NAME> --format=yaml > trigger.yaml
 # trigger.yaml の `build:` を削除し `filename: cloudbuild.yaml` を追加
 gcloud builds triggers import --source=trigger.yaml
 ```
 
-env vars (CLIENT_ID, CLIENT_SECRET, SERVICE_ACCOUNT, PRIVATE_KEY, BOT_ID) は事前に Cloud Run service へ設定:
+### 通常のデプロイ
 
+`main` に push するだけ。Cloud Build が `cloudbuild.yaml` の通り走ります:
+1. Docker build → Artifact Registry へ push (タグ: `$SHORT_SHA`)
+2. `gcloud run services update` で SA / secrets / scaling / resources を一括適用
+
+### Secret のローテーション
+
+Cloud Run は `:latest` を参照しているので、**再デプロイ無し**で値だけ更新可能:
 ```sh
-gcloud run services update worksmobile-message-bot --region=asia-northeast1 \
-  --set-env-vars=CLIENT_ID=...,CLIENT_SECRET=...,SERVICE_ACCOUNT=...,PRIVATE_KEY=...,BOT_ID=...
+echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --data-file=-
+# Cloud Run は次の cold start で新しい version を読む。即時反映したい場合は revision update
 ```
 
-> 公開側の HTTP/2 は Cloud Run フロントエンドが終端し、コンテナへは HTTP/1.1 で渡す構成です (`--no-use-http2` を `cloudbuild.yaml` で明示)。クライアントから見ると HTTP/2 で接続できます。
+### HTTP プロトコル
+
+公開側の HTTP/2 は Cloud Run フロントエンドが終端し、コンテナへは HTTP/1.1 で渡す構成です (`cloudbuild.yaml` の `--no-use-http2`)。クライアントから見ると HTTP/2 で接続できます。
+
+### Artifact Registry のクリーンアップ
+
+`cloud-run-source-deploy` リポジトリには cleanup policy 設定済:
+- タグ無しイメージは 7 日後に自動削除
+- タグ付きイメージは最新 10 件を保持
 
 ### 観測 (Cloud Logging)
 
