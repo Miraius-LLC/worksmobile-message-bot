@@ -58,7 +58,12 @@ const ACTION_TYPES = [
   'copy',
 ] as const
 
-/** type に応じた必須フィールドが揃っているか */
+/**
+ * type に応じた必須フィールドが揃っているか。
+ * `.loose()` で未知フィールド (LINE WORKS 固有の `text` / `data` / `displayText` 等)
+ * を保持する。Zod 4 の z.object() はデフォルトで strip するため、これを付けないと
+ * `type: 'message'` のリクエストから `text` が消えて API 側で 400 になる
+ */
 const baseAction = z
   .object({
     type: z.enum(ACTION_TYPES),
@@ -67,6 +72,7 @@ const baseAction = z
     uri: z.string().optional(),
     copyText: z.string().min(1).optional(),
   })
+  .loose()
   .refine(
     a => {
       switch (a.type) {
@@ -96,14 +102,16 @@ const labeledActionSchema = baseAction.refine(
 const quickReplySchema = z.object({
   items: z
     .array(
-      z.object({
-        imageUrl: z
-          .string()
-          .max(1000)
-          .regex(HTTPS_REGEX, { message: 'imageUrl は HTTPS の URL を指定してください' })
-          .optional(),
-        action: labeledActionSchema,
-      }),
+      z
+        .object({
+          imageUrl: z
+            .string()
+            .max(1000)
+            .regex(HTTPS_REGEX, { message: 'imageUrl は HTTPS の URL を指定してください' })
+            .optional(),
+          action: labeledActionSchema,
+        })
+        .loose(),
     )
     .min(1, { message: 'quickReply.items は 1 件以上必要です' }),
 })
@@ -163,19 +171,22 @@ const listTemplateBodySchema = z.object({
       backgroundImageUrl: imageUrlSchema.optional(),
       backgroundFileId: z.string().min(1).optional(),
     })
+    .loose()
     .refine(c => !(c.backgroundImageUrl && c.backgroundFileId), {
       message: "'backgroundImageUrl' と 'backgroundFileId' はどちらか一方のみ指定可能",
     })
     .optional(),
   elements: z
     .array(
-      z.object({
-        title: z.string().min(1),
-        subtitle: z.string().max(1000).optional(),
-        originalContentUrl: imageUrlSchema.optional(),
-        defaultAction: defaultActionSchema.optional(),
-        action: labeledActionSchema.optional(),
-      }),
+      z
+        .object({
+          title: z.string().min(1),
+          subtitle: z.string().max(1000).optional(),
+          originalContentUrl: imageUrlSchema.optional(),
+          defaultAction: defaultActionSchema.optional(),
+          action: labeledActionSchema.optional(),
+        })
+        .loose(),
     )
     .min(1)
     .max(10),
@@ -198,6 +209,7 @@ const carouselBodySchema = z.object({
           defaultAction: defaultActionSchema.optional(),
           actions: z.array(labeledActionSchema).min(1),
         })
+        .loose()
         .refine(c => Boolean(c.originalContentUrl || c.fileId), {
           message: "カラムには 'originalContentUrl' または 'fileId' のいずれかが必要",
         })
@@ -226,6 +238,7 @@ const imageCarouselBodySchema = z.object({
           fileId: z.string().min(1).optional(),
           action: labeledActionSchema.optional(),
         })
+        .loose()
         .refine(c => Boolean(c.originalContentUrl || c.fileId), {
           message: "カラムには 'originalContentUrl' または 'fileId' のいずれかが必要",
         }),
