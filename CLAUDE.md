@@ -73,6 +73,17 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。サイズ制限は Hono 側に未設定なので大きすぎるファイルが来た時の対策が必要なら別途
 - **README に "BASIC AUTH" の記載があるが現状未実装**。Hono なら `hono/basic-auth` ミドルウェアを `app.use('*', basicAuth({...}))` で乗せる
 
+### Docker / デプロイ
+
+- **マルチステージビルド**: builder で `bun install` + `bun run build` → runtime には `build/index.js` だけ COPY する。`node_modules` / `tsconfig.json` / `package.json` は runtime に**残さない**
+- **runtime ベースは `oven/bun:<ver>-slim`** (debian-slim)。builder は `oven/bun:<ver>-debian` (フル) を使い分ける
+- **非 root で起動**: `USER bun` (uid 1000)。COPY は `--chown=bun:bun` を付ける
+- **`bun install` は cache mount 必須**: `RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile`。CI 含めキャッシュが効く
+- **HEALTHCHECK は `curl` を入れず `bun -e "fetch(...)"`** で `/health` を叩く。curl パッケージを入れない方針
+- **CMD は `["bun", "build/index.js"]`** で直接バンドルを起動 (`bun run start` → package.json 参照を避ける)
+- **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
+- **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入
+
 ### 命名・配置の慣習
 
 - **送信先は `channelId` か `userId` の片方のみ**: `_send.ts` の `buildMessageUrl` がどちらか一方を要求する

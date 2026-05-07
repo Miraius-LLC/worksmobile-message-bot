@@ -1,32 +1,47 @@
+# Docker artifacts (build context に入れない)
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Bun / Node 成果物
 node_modules
 build
 dist
 .next
 out
 
+# Env / Secrets
 .env
 .env.*
 !.env.example
 
+# VCS / CI
 .git
 .gitignore
 .github
+
+# IDE / OS
 .vscode
 .idea
-.claude
-*.md
-
-coverage
 .DS_Store
-*.log
 *.swp
-.tmp
-.cache
 
-uploads/*
-!uploads/.gitkeep
-downloads/*
-!downloads/.gitkeep
+# Claude / project meta (runtime に不要)
+.claude
+CLAUDE.md
+README.md
+LICENSE
 
+# Lint / format / hooks (build 時にも不要)
 biome.jsonc
 lefthook.yml
+.editorconfig
+.tool-versions
+
+# 一時 / ログ / アップロード
+*.log
+.tmp
+.cache
+coverage
+uploads
+downloads
