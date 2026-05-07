@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
+import { secureHeaders } from 'hono/secure-headers'
 import { attachmentsApp } from '@/routes/attachments'
 import { messagesApp } from '@/routes/messages'
 import * as config from '@/utils/config'
@@ -15,6 +16,9 @@ installJapaneseErrorMap()
 const cfg = config.load()
 
 const app = new Hono()
+
+// X-Frame-Options / X-Content-Type-Options / Strict-Transport-Security 等を一括付与
+app.use('*', secureHeaders())
 
 app.get('/', c => c.json({ statusCode: 200, message: 'Server is running' }))
 app.get('/health', c => c.json({ status: 'ok' }))
