@@ -1,3 +1,4 @@
+import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'services/lineworks/api'
@@ -5,11 +6,7 @@ const CALLER = 'services/lineworks/api'
 export const API_BASE = 'https://www.worksapis.com/v1.0'
 
 export function getBotId(): string {
-  const botId = process.env['BOT_ID']
-  if (!botId) {
-    throw new Error("環境変数 'BOT_ID' が設定されていません。")
-  }
-  return botId
+  return config().botId
 }
 
 /** Bot API への JSON POST。失敗時はステータスとボディをログに出して throw する */

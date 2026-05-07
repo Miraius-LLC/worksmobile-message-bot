@@ -2,6 +2,7 @@ import { type Context, Hono } from 'hono'
 import { getServerToken } from '@/services/lineworks/auth'
 import { type MessageType, messageSenders, messageTypes } from '@/services/lineworks/messages'
 import type { MessageRequestParams } from '@/types/lineworks'
+import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'routes/messages'
@@ -18,11 +19,7 @@ for (const base of ['channels', 'users'] as const) {
 }
 
 async function handle(c: Context, base: Base, type: MessageType): Promise<Response> {
-  const botId = process.env['BOT_ID']
-  if (!botId) {
-    return c.json({ error: "環境変数 'BOT_ID' が設定されていません。" }, 500)
-  }
-
+  const botId = config().botId
   const id = c.req.param('id')
   const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>
 
