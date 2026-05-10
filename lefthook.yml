@@ -17,3 +17,15 @@ pre-commit:
     typescript:
       glob: "*.{ts,tsx}"
       run: bunx tsc --noEmit
+    test:
+      glob: "src/**/*.{ts,tsx}"
+      run: bun run scripts/run-related-tests.ts {staged_files}
+
+# pre-push では `bun test` を全件実行する (co-located unit + tests/ feature)。
+# pre-commit は staged された本体に対応する関連テストしか拾わないため、
+# テストヘルパや preload (src/test-helpers/setup.ts) 経路で壊れる失敗を逃しがち。
+# push 前に全件走らせて main を緑に保つ。全件でも数秒なのでコストは無視できる。
+pre-push:
+  commands:
+    full-test:
+      run: bun test

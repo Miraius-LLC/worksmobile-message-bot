@@ -5,11 +5,13 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 ## ルール (常時適用)
 
 @./.claude/rules/commit.md
+@./.claude/rules/worktree.md
 
 ## トピック別ルール (作業に応じて読む)
 
 - ルート (HTTP エンドポイント) を追加・修正する → `.claude/rules/routes.md`
 - service 層 (LINE WORKS API ラッパ) を触る → `.claude/rules/services.md`
+- テストを書く・直す → `.claude/rules/tests.md`
 
 ## コードスタイル (デフォルト差分)
 
