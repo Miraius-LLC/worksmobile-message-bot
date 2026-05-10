@@ -26,7 +26,7 @@
 ### feature (`tests/`) を選ぶ条件
 
 - **複数モジュールに跨る性質**。例: 「`messageSchemas` の全 type が `sendMessageByType` で正しく `{ type, ...body }` 形式に組み立たる」「全 type の URL が `(channels|users)/:id/messages/type/<type>` に登録される」
-- **system boundary をまたぐ**。例: Hono の `app.request(new Request(...))` 経由で `/health` や `/channels/:id/messages/type/text` を叩く / multipart upload の `parseBody` を含む経路
+- **system boundary をまたぐ**。例: Hono の `app.request(new Request(...))` 経由で `/healthz` や `/channels/:id/messages/type/text` を叩く / multipart upload の `parseBody` を含む経路
 - staged との対応関係が無い (どの src ファイルを編集しても全件走らせたい)
 
 ## pre-commit / pre-push 連携

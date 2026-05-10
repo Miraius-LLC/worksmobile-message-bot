@@ -82,7 +82,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。アップロードサイズは `attachments/index.ts` の `bodyLimit({ maxSize: 10 * 1024 * 1024 })` で 10MB 上限
 - **route handler は try/catch しない**: throw されたエラーは `index.ts` の `app.onError` が拾って `{ error: message }` を 500 で返す。各ハンドラから 500 を直接返す書き方はしない (validation 400 など期待エラーを除く)
 - **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
-- **BASIC 認証は `app.ts` で `/` と `/health` 以外に強制**: `hono/basic-auth` を lazy 初期化 (config().load() タイミングを跨ぐため) + `PUBLIC_PATHS` set で除外パスを管理。Cloud Run health probe / Docker HEALTHCHECK が落ちないよう `/` `/health` だけ素通しにしている
+- **BASIC 認証は `app.ts` で `/` と health probe 系 (`/healthz` / `/health` / `/readyz` / `/livez`) 以外に強制**: `hono/basic-auth` を lazy 初期化 (config().load() タイミングを跨ぐため) + `PUBLIC_PATHS` set で除外パスを管理。Cloud Run / k8s probe / Docker HEALTHCHECK が落ちないよう `/` と health probe 系だけ素通しにしている。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換用エイリアスで同じハンドラを共有 (`HEALTH_PATHS` 配列で集中管理)
 - **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
 
 ### Docker / デプロイ
@@ -91,7 +91,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **runtime ベースは `oven/bun:<ver>-slim`** (debian-slim)。builder は `oven/bun:<ver>-debian` (フル) を使い分ける
 - **非 root で起動**: `USER bun` (uid 1000)。COPY は `--chown=bun:bun` を付ける
 - **BuildKit 限定構文は使わない**: Cloud Build のデフォルト `gcr.io/cloud-builders/docker` が BuildKit 非対応。`--mount=type=cache` / `--mount=type=secret` 等は禁止。普通のレイヤキャッシュ (`COPY package.json bun.lock` を独立ステップにする等) で代替する
-- **HEALTHCHECK は `curl` を入れず `bun -e "fetch(...)"`** で `/health` を叩く。curl パッケージを入れない方針
+- **HEALTHCHECK は `curl` を入れず `bun -e "fetch(...)"`** で `/healthz` を叩く。curl パッケージを入れない方針
 - **CMD は `["bun", "build/index.js"]`** で直接バンドルを起動 (`bun run start` → package.json 参照を避ける)
 - **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
 - **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入

@@ -4,7 +4,7 @@ import { _resetTokenCacheForTest } from '@/services/lineworks/auth'
 
 // root Hono アプリを `app.request(new Request(...))` で叩く feature テスト。
 // `messagesApp` を経由した LineWorksApiError 透過 / 共通の onError / notFound /
-// /health / / smoke / secureHeaders を担保する。
+// /healthz (+ 互換の /health / /readyz / /livez) / / smoke / secureHeaders を担保する。
 
 const AUTH_HOST = 'auth.worksmobile.com'
 const API_HOST = 'www.worksapis.com'
@@ -53,14 +53,19 @@ describe('app: smoke', () => {
     expect(await res.json()).toEqual({ statusCode: 200, message: 'Server is running' })
   })
 
-  test('GET /health → 200 + { status: "ok" }', async () => {
-    const res = await app.request('/health')
+  test.each([
+    '/healthz',
+    '/health',
+    '/readyz',
+    '/livez',
+  ])('GET %s → 200 + { status: "ok" }', async path => {
+    const res = await app.request(path)
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ status: 'ok' })
   })
 
   test('secureHeaders ミドルウェアが X-Frame-Options を付ける', async () => {
-    const res = await app.request('/health')
+    const res = await app.request('/healthz')
     expect(res.headers.get('x-frame-options')).toBeTruthy()
     expect(res.headers.get('x-content-type-options')).toBe('nosniff')
   })
@@ -82,8 +87,13 @@ describe('app: BASIC 認証', () => {
     expect(res.status).toBe(200)
   })
 
-  test('/health は認証なしで 200 (Docker HEALTHCHECK / liveness 用)', async () => {
-    const res = await app.request('/health')
+  test.each([
+    '/healthz',
+    '/health',
+    '/readyz',
+    '/livez',
+  ])('%s は認証なしで 200 (Docker HEALTHCHECK / liveness / readiness 用)', async path => {
+    const res = await app.request(path)
     expect(res.status).toBe(200)
   })
 

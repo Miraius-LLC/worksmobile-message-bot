@@ -12,8 +12,9 @@ import { traceContextMiddleware } from '@/utils/trace'
 
 const CALLER = 'app'
 
-/** BASIC 認証を適用しないパス (Cloud Run の health probe / liveness 用) */
-const PUBLIC_PATHS = new Set(['/', '/health'])
+/** BASIC 認証を適用しないパス (Cloud Run の health probe / Docker HEALTHCHECK / k8s probe 用) */
+const HEALTH_PATHS = ['/healthz', '/health', '/readyz', '/livez'] as const
+const PUBLIC_PATHS = new Set<string>(['/', ...HEALTH_PATHS])
 
 /**
  * BASIC 認証ミドルウェアを遅延初期化する。
@@ -43,7 +44,8 @@ app.use('*', traceContextMiddleware)
 // X-Frame-Options / X-Content-Type-Options / Strict-Transport-Security 等を一括付与
 app.use('*', secureHeaders())
 
-// `/` と `/health` 以外の全リクエストに BASIC 認証を要求する。
+// `/` と health probe 系パス (`/healthz` / `/health` / `/readyz` / `/livez`)
+// 以外の全リクエストに BASIC 認証を要求する。
 // webhook 公開エンドポイントを保護するための最低限の認証で、credentials は
 // Secret Manager から `BASIC_AUTH_USERNAME` / `BASIC_AUTH_PASSWORD` で注入する。
 app.use('*', async (c, next) => {
@@ -52,7 +54,11 @@ app.use('*', async (c, next) => {
 })
 
 app.get('/', c => c.json({ statusCode: 200, message: 'Server is running' }))
-app.get('/health', c => c.json({ status: 'ok' }))
+// health probe は `/healthz` を正としつつ、互換のため `/health` / `/readyz` / `/livez`
+// も同じハンドラで 200 OK を返す。複数オーケストレータ (Cloud Run / k8s 風) を跨げるよう揃えている
+for (const path of HEALTH_PATHS) {
+  app.get(path, c => c.json({ status: 'ok' }))
+}
 
 app.route('/', messagesApp)
 app.route('/attachments', attachmentsApp)

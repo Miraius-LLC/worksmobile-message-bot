@@ -49,9 +49,9 @@ USER bun
 
 EXPOSE 8080
 
-# HEALTHCHECK は Bun の fetch で /health を叩く (curl パッケージは入れない)
+# HEALTHCHECK は Bun の fetch で /healthz を叩く (curl パッケージは入れない)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD bun -e "const r=await fetch('http://localhost:'+(process.env.PORT||8080)+'/health');process.exit(r.ok?0:1)" \
+    CMD bun -e "const r=await fetch('http://localhost:'+(process.env.PORT||8080)+'/healthz');process.exit(r.ok?0:1)" \
         || exit 1
 
 CMD ["bun", "build/index.js"]
