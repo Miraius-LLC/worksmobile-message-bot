@@ -20,8 +20,10 @@ function setupFixtureEnv() {
   process.env['CLIENT_SECRET'] ??= 'test-client-secret'
   process.env['SERVICE_ACCOUNT'] ??= 'test-sa@example.com'
   process.env['BOT_ID'] ??= 'test-bot-id'
-  process.env['BASIC_ID'] ??= 'test-user'
-  process.env['BASIC_PASS'] ??= 'test-pass'
+  // BASIC_ID / BASIC_PASS は `.env` の実値 (本番 credentials) が混ざるとテストの
+  // 固定 Authorization ヘッダと食い違って 401 になるため、NODE_ENV と同じく強制上書きする
+  process.env['BASIC_ID'] = 'test-user'
+  process.env['BASIC_PASS'] = 'test-pass'
 }
 setupFixtureEnv()
 
