@@ -39,6 +39,8 @@ CLIENT_SECRET=your_client_secret
 SERVICE_ACCOUNT=your_service_account
 PRIVATE_KEY=your_private_key_base64_encoded
 BOT_ID=your_bot_id
+BASIC_ID=your_basic_auth_username
+BASIC_PASS=your_basic_auth_password
 
 # 任意
 PORT=8080         # listen ポート (default 8080)
@@ -52,6 +54,8 @@ LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 | `SERVICE_ACCOUNT` | サービスアカウント |
 | `PRIVATE_KEY` | Base64 エンコードされたプライベートキー (`base64 -i ./private_XXXXXX.key \| pbcopy`) |
 | `BOT_ID` | Bot ID |
+| `BASIC_ID` | webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
+| `BASIC_PASS` | BASIC 認証パスワード |
 | `PORT` | listen ポート (省略時 `8080`) |
 | `NODE_ENV` | `production` でログレベルを `error` 以上に絞る |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
@@ -109,17 +113,22 @@ gcloud iam service-accounts create worksmobile-message-bot-sa \
 # 2. 機密 env を Secret Manager に投入
 echo -n "$CLIENT_SECRET_VALUE" | gcloud secrets create lineworks-client-secret --data-file=-
 echo -n "$PRIVATE_KEY_VALUE_BASE64" | gcloud secrets create lineworks-private-key --data-file=-
+echo -n "$BASIC_AUTH_USERNAME" | gcloud secrets create lineworks-basic-id --data-file=-
+echo -n "$BASIC_AUTH_PASSWORD" | gcloud secrets create lineworks-basic-pass --data-file=-
 
 # 3. SA に accessor 権限を付与 (per-secret)
-for s in lineworks-client-secret lineworks-private-key; do
+for s in lineworks-client-secret lineworks-private-key lineworks-basic-id lineworks-basic-pass; do
   gcloud secrets add-iam-policy-binding $s \
     --member="serviceAccount:worksmobile-message-bot-sa@<PROJECT_ID>.iam.gserviceaccount.com" \
     --role=roles/secretmanager.secretAccessor
 done
 
-# 4. 機密度の低い env を Cloud Run service に直接設定
-gcloud run services update worksmobile-message-bot --region=asia-northeast1 \
-  --set-env-vars=CLIENT_ID=...,SERVICE_ACCOUNT=...,BOT_ID=...
+# 4. 機密度の低い env は Cloud Build trigger の substitution variable に設定
+#    (公開リポに値を残さないため。GCP Console: Cloud Build → Triggers → 該当 trigger 編集 →
+#    "Substitution variables" セクションに以下を追加)
+#      _CLIENT_ID            = LINE WORKS の client ID
+#      _SERVICE_ACCOUNT_LW   = LINE WORKS の service account (例: lrpkq.serviceaccount@xxx)
+#      _BOT_ID               = LINE WORKS の bot ID
 
 # 5. Cloud Build trigger を cloudbuild.yaml ベースへ切替
 gcloud builds triggers describe <TRIGGER_NAME> --format=yaml > trigger.yaml
@@ -213,6 +222,32 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 
 ---
 
+### 主要な制約サマリ (LINE WORKS spec 準拠)
+
+各 type のリクエスト本文は Zod schema で起動時にバリデーションされる。仕様より緩いと
+LINE WORKS 側で 400 になるため、この表に揃えている:
+
+| 対象 | 制約 |
+|---|---|
+| `text.text` | 1〜2000 文字 |
+| `image` | `previewImageUrl` + `originalContentUrl` を**両方**指定するか、`fileId` 単独。HTTPS 必須 |
+| `file.originalContentUrl` | **HTTPS のみ** (http は spec 違反) |
+| `link.contentText` / `linkText` / `link` | 各最大 1000 文字 |
+| `button_template.actions` | 1〜10 件、各 `label` は最大 20 文字 |
+| `list_template.elements` | 1〜**4** 件 |
+| `carousel.columns` | 1〜10 件、各 `actions` は 1〜3 件、**全 column で actions 件数を揃える** |
+| `carousel.imageAspectRatio` | `"rectangle"` / `"square"` のみ (default `rectangle`) |
+| `carousel.imageSize` | `"cover"` / `"contain"` のみ (default `cover`) |
+| `image_carousel.columns[].action.label` | 最大 **12** 文字 |
+| `flex.altText` | 最大 400 文字 |
+| `quickReply.items` | 1〜13 件 |
+| `postback` action | `data` (1〜300 文字) **必須** |
+| `uri` action | `uri` は HTTP / HTTPS、最大 1000 文字 |
+| `copy` action | `copyText` は 1〜1000 文字 |
+| 添付ファイル upload | 最大 10 MB |
+
+---
+
 ### 2. リクエスト例
 
 #### テキストメッセージ を送信
@@ -264,24 +299,19 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 - Body:
   ```json
   {
-    "altText": "ボタンテンプレートのサンプル",
-    "template": {
-      "type": "buttons",
-      "title": "タイトル",
-      "text": "ボタンを選択してください",
-      "actions": [
-        {
-          "type": "uri",
-          "label": "リンク1",
-          "uri": "https://example.com"
-        },
-        {
-          "type": "postback",
-          "label": "アクション",
-          "data": "action=buy&itemid=123"
-        }
-      ]
-    }
+    "contentText": "ボタンを選択してください",
+    "actions": [
+      {
+        "type": "uri",
+        "label": "リンク1",
+        "uri": "https://example.com"
+      },
+      {
+        "type": "postback",
+        "label": "アクション",
+        "data": "action=buy&itemid=123"
+      }
+    ]
   }
   ```
 
@@ -295,36 +325,35 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 - Body:
   ```json
   {
-    "altText": "カルーセルメッセージのサンプル",
-    "template": {
-      "type": "carousel",
-      "columns": [
-        {
-          "title": "タイトル1",
-          "text": "詳細1",
-          "actions": [
-            {
-              "type": "uri",
-              "label": "リンク1",
-              "uri": "https://example.com/1"
-            }
-          ]
-        },
-        {
-          "title": "タイトル2",
-          "text": "詳細2",
-          "actions": [
-            {
-              "type": "uri",
-              "label": "リンク2",
-              "uri": "https://example.com/2"
-            }
-          ]
-        }
-      ]
-    }
+    "columns": [
+      {
+        "originalContentUrl": "https://example.com/img1.png",
+        "title": "タイトル1",
+        "text": "詳細1",
+        "actions": [
+          {
+            "type": "uri",
+            "label": "リンク1",
+            "uri": "https://example.com/1"
+          }
+        ]
+      },
+      {
+        "originalContentUrl": "https://example.com/img2.png",
+        "title": "タイトル2",
+        "text": "詳細2",
+        "actions": [
+          {
+            "type": "uri",
+            "label": "リンク2",
+            "uri": "https://example.com/2"
+          }
+        ]
+      }
+    ]
   }
   ```
+  > 全カラムで `actions` の件数を揃える必要がある (LINE WORKS spec)。
 
 ---
 
@@ -340,7 +369,6 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
     "quickReply": {
       "items": [
         {
-          "type": "action",
           "action": {
             "type": "message",
             "label": "オプション1",
@@ -348,15 +376,14 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
           }
         },
         {
-          "type": "action",
           "action": {
-            "type": "message",
-            "label": "オプション2",
-            "text": "選択肢2が選ばれました"
+            "type": "postback",
+            "label": "購入",
+            "data": "action=buy&itemid=123",
+            "displayText": "購入を選びました"
           }
         },
         {
-          "type": "action",
           "action": {
             "type": "uri",
             "label": "詳細を見る",
@@ -367,6 +394,7 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
     }
   }
   ```
+  > postback action は **`data`** が必須 (旧 `postback` フィールドは spec 外)。
 
 ---
 
