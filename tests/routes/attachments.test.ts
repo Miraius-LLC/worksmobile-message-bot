@@ -11,10 +11,14 @@ let originalFetch: typeof globalThis.fetch
 type FetchCall = { url: string; init?: RequestInit }
 let calls: FetchCall[]
 
-function installFetch(
-  downloadBody: string = 'file-bytes',
-  downloadHeaders: Record<string, string> = {},
-) {
+type DownloadOpts = {
+  body?: string | null
+  headers?: Record<string, string>
+  status?: number
+}
+
+function installFetch(downloadOpts: DownloadOpts = {}) {
+  const { body = 'file-bytes', headers = {}, status = 200 } = downloadOpts
   calls = []
   const spy = mock(async (url: string | URL, init?: RequestInit) => {
     const u = String(url)
@@ -51,9 +55,9 @@ function installFetch(
     }
     // 実ファイル本体
     if (u.includes(DL_HOST)) {
-      return new Response(downloadBody, {
-        status: 200,
-        headers: { 'content-type': 'application/octet-stream', ...downloadHeaders },
+      return new Response(body, {
+        status,
+        headers: { 'content-type': 'application/octet-stream', ...headers },
       })
     }
     return new Response('unmocked', { status: 500 })
@@ -112,9 +116,46 @@ describe('routes/attachments: download', () => {
   })
 
   test('上流の Content-Disposition は引き継がれる', async () => {
-    installFetch('x', { 'content-disposition': 'attachment; filename="orig.bin"' })
+    installFetch({
+      body: 'x',
+      headers: { 'content-disposition': 'attachment; filename="orig.bin"' },
+    })
     const res = await attachmentsApp.request('/F-abc', { method: 'GET' })
     expect(res.headers.get('content-disposition')).toBe('attachment; filename="orig.bin"')
+  })
+
+  test('HOP_BY_HOP ヘッダ (transfer-encoding 等) は転送されない', async () => {
+    installFetch({
+      body: 'x',
+      headers: {
+        'transfer-encoding': 'chunked',
+        connection: 'keep-alive',
+        'keep-alive': 'timeout=5',
+        'content-encoding': 'gzip',
+        'x-custom-keep': 'yes', // 関係ないヘッダはそのまま通す
+      },
+    })
+    const res = await attachmentsApp.request('/F-abc', { method: 'GET' })
+    expect(res.headers.get('transfer-encoding')).toBeNull()
+    expect(res.headers.get('connection')).toBeNull()
+    expect(res.headers.get('keep-alive')).toBeNull()
+    expect(res.headers.get('content-encoding')).toBeNull()
+    expect(res.headers.get('x-custom-keep')).toBe('yes')
+  })
+
+  test('上流が非 ok の時は 500 + { error } を返す', async () => {
+    installFetch({ status: 502, body: 'upstream bad gateway' })
+    const res = await attachmentsApp.request('/F-abc', { method: 'GET' })
+    expect(res.status).toBe(500)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toContain('ダウンロード')
+  })
+
+  test('上流 body が null の時も 500 を返す', async () => {
+    // HEAD 相当: 200 だが body=null。Response の body プロパティが null になるケース
+    installFetch({ status: 200, body: null })
+    const res = await attachmentsApp.request('/F-abc', { method: 'GET' })
+    expect(res.status).toBe(500)
   })
 
   test('実ファイル取得時に Authorization ヘッダが付いている', async () => {

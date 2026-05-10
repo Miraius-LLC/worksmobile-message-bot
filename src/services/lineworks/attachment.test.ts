@@ -45,6 +45,36 @@ describe('services/lineworks/attachment', () => {
       expect(uploadAttachment('tok', new Blob(['x']), 'x.txt')).rejects.toThrow(/uploadUrl/)
     })
 
+    test('multipart のフィールドは resourceName + file の 2 つで filename が乗る', async () => {
+      const calls: Array<{ url: string | URL; init?: RequestInit }> = []
+      globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
+        calls.push({ url, init })
+        if (calls.length === 1) {
+          return new Response(
+            JSON.stringify({ uploadUrl: 'https://upload.test/u', fileId: 'F3' }),
+            { status: 200 },
+          )
+        }
+        return new Response('', { status: 200 })
+      }) as unknown as typeof globalThis.fetch
+
+      await uploadAttachment('tok', new Blob(['hello']), 'photo.png')
+
+      const uploadInit = calls[1]?.init
+      const form = uploadInit?.body as FormData
+      expect(form).toBeInstanceOf(FormData)
+
+      // 2 フィールドが揃う
+      expect(form.get('resourceName')).toBe('photo.png')
+      const filePart = form.get('file')
+      expect(filePart).toBeInstanceOf(File)
+      expect((filePart as File).name).toBe('photo.png')
+
+      // アップロード本体のヘッダに Bearer token が乗る
+      const headers = uploadInit?.headers as Record<string, string>
+      expect(headers['Authorization']).toBe('Bearer tok')
+    })
+
     test('アップロード本体が非 ok は LineWorksApiError', async () => {
       let n = 0
       globalThis.fetch = mock(async () => {
