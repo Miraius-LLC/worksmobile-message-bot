@@ -169,4 +169,61 @@ describe('services/lineworks/messages', () => {
       expect(result.success).toBe(false)
     })
   })
+
+  describe('URL バリデーション (WHATWG URL 経由)', () => {
+    const schema = messageSchemas.link
+
+    test('ポート付き URL を受け入れる (旧正規表現は弾いていた回帰)', () => {
+      const result = schema.safeParse({
+        contentText: 'C',
+        linkText: 'L',
+        link: 'https://example.com:8080/path',
+      })
+      expect(result.success).toBe(true)
+    })
+
+    test('IPv4 URL を受け入れる', () => {
+      const result = schema.safeParse({
+        contentText: 'C',
+        linkText: 'L',
+        link: 'http://192.168.1.1/x',
+      })
+      expect(result.success).toBe(true)
+    })
+
+    test('IPv6 URL を受け入れる', () => {
+      const result = schema.safeParse({
+        contentText: 'C',
+        linkText: 'L',
+        link: 'http://[::1]:8080/x',
+      })
+      expect(result.success).toBe(true)
+    })
+
+    test('http / https 以外は弾く (ftp など)', () => {
+      const result = schema.safeParse({
+        contentText: 'C',
+        linkText: 'L',
+        link: 'ftp://example.com/x',
+      })
+      expect(result.success).toBe(false)
+    })
+
+    test('壊れた URL は弾く', () => {
+      const result = schema.safeParse({
+        contentText: 'C',
+        linkText: 'L',
+        link: 'not a url',
+      })
+      expect(result.success).toBe(false)
+    })
+
+    test('imageUrl は https のみ (http は弾く)', () => {
+      const imageSchema = messageSchemas.image
+      const ok = imageSchema.safeParse({ originalContentUrl: 'https://example.com:443/a.png' })
+      const ng = imageSchema.safeParse({ originalContentUrl: 'http://example.com/a.png' })
+      expect(ok.success).toBe(true)
+      expect(ng.success).toBe(false)
+    })
+  })
 })

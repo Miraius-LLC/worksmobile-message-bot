@@ -25,20 +25,35 @@ const ALLOWED_IMAGE_EXTENSIONS = new Set([
   'rw2',
 ])
 
-const URL_REGEX = /^(https?:\/\/)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/\S*)?$/
-const HTTPS_REGEX = /^https:\/\//
+/**
+ * URL の形式チェック。WHATWG URL parser ベースで判定する。
+ * 旧実装は正規表現 (`^(https?:\/\/)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/\S*)?$`) で
+ * ポート番号 (`:8080`) と IPv4 (`192.168.1.1` の末尾数値) が弾かれる回帰があった
+ */
+function isWebUrl(value: string, opts: { httpsOnly?: boolean } = {}): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return false
+  }
+  if (opts.httpsOnly) return parsed.protocol === 'https:'
+  return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+}
 
 /** HTTP / HTTPS の URL (最大 1000 文字) */
-const urlSchema = z.string().max(1000).regex(URL_REGEX, {
-  message: 'HTTP / HTTPS の URL を指定してください',
-})
+const urlSchema = z
+  .string()
+  .max(1000)
+  .refine(v => isWebUrl(v), { message: 'HTTP / HTTPS の URL を指定してください' })
 
 /** 画像 URL: HTTPS 必須 + 拡張子チェック (拡張子なしは許可) */
 const imageUrlSchema = z
   .string()
   .max(1000)
-  .regex(URL_REGEX, { message: 'URL の形式が不正です' })
-  .regex(HTTPS_REGEX, { message: 'HTTPS の URL を指定してください' })
+  .refine(v => isWebUrl(v, { httpsOnly: true }), {
+    message: 'HTTPS の URL を指定してください',
+  })
   .refine(
     url => {
       const ext = new URL(url).pathname.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase()
@@ -79,7 +94,7 @@ const baseAction = z
         case 'postback':
           return typeof a.postback === 'string'
         case 'uri':
-          return typeof a.uri === 'string' && URL_REGEX.test(a.uri)
+          return typeof a.uri === 'string' && isWebUrl(a.uri)
         case 'copy':
           return typeof a.copyText === 'string'
         default:
@@ -107,7 +122,9 @@ const quickReplySchema = z.object({
           imageUrl: z
             .string()
             .max(1000)
-            .regex(HTTPS_REGEX, { message: 'imageUrl は HTTPS の URL を指定してください' })
+            .refine(v => isWebUrl(v, { httpsOnly: true }), {
+              message: 'imageUrl は HTTPS の URL を指定してください',
+            })
             .optional(),
           action: labeledActionSchema,
         })
