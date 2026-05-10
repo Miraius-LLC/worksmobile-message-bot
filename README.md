@@ -183,6 +183,9 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 | `/messages/type/sticker`         | POST | [スタンプメッセージ](https://developers.worksmobile.com/jp/docs/bot-send-sticker)を送信               |
 | `/messages/type/image`           | POST | [画像メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-image)を送信                     |
 | `/messages/type/file`            | POST | [ファイルメッセージ](https://developers.worksmobile.com/jp/docs/bot-send-file)を送信                  |
+| `/messages/type/audio`           | POST | [音声メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-audio)を送信                     |
+| `/messages/type/video`           | POST | [動画メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-video)を送信                     |
+| `/messages/type/location`        | POST | [位置情報メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-location)を送信              |
 | `/messages/type/link`            | POST | [リンクメッセージ](https://developers.worksmobile.com/jp/docs/bot-send-link)を送信                    |
 | `/messages/type/button_template` | POST | [ボタンテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-button)を送信                |
 | `/messages/type/list_template`   | POST | [リストテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-list)を送信                  |
@@ -202,6 +205,9 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 | `/messages/type/sticker`         | POST | [スタンプメッセージ](https://developers.worksmobile.com/jp/docs/bot-send-sticker)を送信               |
 | `/messages/type/image`           | POST | [画像メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-image)を送信                     |
 | `/messages/type/file`            | POST | [ファイルメッセージ](https://developers.worksmobile.com/jp/docs/bot-send-file)を送信                  |
+| `/messages/type/audio`           | POST | [音声メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-audio)を送信                     |
+| `/messages/type/video`           | POST | [動画メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-video)を送信                     |
+| `/messages/type/location`        | POST | [位置情報メッセージ](https://developers.worksmobile.com/jp/docs/bot-send-location)を送信              |
 | `/messages/type/link`            | POST | [リンクメッセージ](https://developers.worksmobile.com/jp/docs/bot-send-link)を送信                    |
 | `/messages/type/button_template` | POST | [ボタンテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-button)を送信                |
 | `/messages/type/list_template`   | POST | [リストテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-list)を送信                  |
@@ -232,6 +238,9 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 | `text.text` | 1〜2000 文字 |
 | `image` | `previewImageUrl` + `originalContentUrl` を**両方**指定するか、`fileId` 単独。HTTPS 必須 |
 | `file.originalContentUrl` | **HTTPS のみ** (http は spec 違反) |
+| `audio` | `originalContentUrl` (HTTPS) または `fileId` のどちらか一方 |
+| `video` | `previewImageUrl` (HTTPS, **PNG 限定**) + `originalContentUrl` (HTTPS) を両方指定するか、`fileId` 単独 |
+| `location` | `title` / `address` (各 1〜100 文字)、`latitude` (-90〜90)、`longitude` (-180〜180) すべて必須 |
 | `link.contentText` / `linkText` / `link` | 各最大 1000 文字 |
 | `button_template.actions` | 1〜10 件、各 `label` は最大 20 文字 |
 | `list_template.elements` | 1〜**4** 件 |
@@ -286,6 +295,51 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
   ```json
   {
     "originalContentUrl": "https://example.com/file.pdf"
+  }
+  ```
+
+---
+
+#### 音声メッセージ を送信
+
+- Endpoint: `/channels/{:channelId}/messages/type/audio`
+- HTTP: `POST`
+- Body:
+  ```json
+  {
+    "originalContentUrl": "https://example.com/audio.mp3"
+  }
+  ```
+  > `originalContentUrl` は HTTPS のみ。`fileId` 単独でも可。
+
+---
+
+#### 動画メッセージ を送信
+
+- Endpoint: `/channels/{:channelId}/messages/type/video`
+- HTTP: `POST`
+- Body:
+  ```json
+  {
+    "previewImageUrl": "https://example.com/preview.png",
+    "originalContentUrl": "https://example.com/video.mp4"
+  }
+  ```
+  > `previewImageUrl` は **PNG 限定**。両方セット指定が必須 (`fileId` 単独でも可)。
+
+---
+
+#### 位置情報メッセージ を送信
+
+- Endpoint: `/channels/{:channelId}/messages/type/location`
+- HTTP: `POST`
+- Body:
+  ```json
+  {
+    "title": "本社",
+    "address": "東京都千代田区紀尾井町 1-3",
+    "latitude": 35.67966,
+    "longitude": 139.73669
   }
   ```
 

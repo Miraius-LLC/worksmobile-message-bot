@@ -311,6 +311,50 @@ const flexBodySchema = z.object({
   quickReply: quickReplySchema.optional(),
 })
 
+// audio: URL 方式 (HTTPS, 拡張子チェックなし) または fileId 単独
+const audioBodySchema = z
+  .object({
+    originalContentUrl: httpsUrlSchema.optional(),
+    fileId: z.string().min(1).optional(),
+    quickReply: quickReplySchema.optional(),
+  })
+  .refine(b => Boolean(b.originalContentUrl || b.fileId), {
+    message: "'originalContentUrl' / 'fileId' のいずれかを指定してください",
+  })
+
+// video: image と同じ「preview + original 両方、または fileId 単独」パターン。
+// spec で previewImageUrl は **PNG 限定** (image / list_template の imageUrlSchema より strict)
+const videoPreviewImageUrlSchema = httpsUrlSchema.refine(
+  url => {
+    const ext = new URL(url).pathname.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase()
+    if (!ext) return true
+    return ext === 'png'
+  },
+  { message: 'video の previewImageUrl は PNG 形式のみ許可されています' },
+)
+
+const videoBodySchema = z
+  .object({
+    previewImageUrl: videoPreviewImageUrlSchema.optional(),
+    originalContentUrl: httpsUrlSchema.optional(),
+    fileId: z.string().min(1).optional(),
+    quickReply: quickReplySchema.optional(),
+  })
+  .refine(b => (Boolean(b.previewImageUrl) && Boolean(b.originalContentUrl)) || Boolean(b.fileId), {
+    message:
+      "'previewImageUrl' と 'originalContentUrl' を両方指定するか、'fileId' を指定してください",
+  })
+
+// location: 位置情報。緯度経度の範囲は spec で明示されていないが、地理座標として
+// 自明な範囲 (-90..90 / -180..180) を防御的にチェックする
+const locationBodySchema = z.object({
+  title: z.string().min(1).max(100),
+  address: z.string().min(1).max(100),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  quickReply: quickReplySchema.optional(),
+})
+
 // =============================================================================
 // 公開マップ・型・dispatcher
 // =============================================================================
@@ -321,6 +365,9 @@ export const messageSchemas = {
   sticker: stickerBodySchema,
   image: imageBodySchema,
   file: fileBodySchema,
+  audio: audioBodySchema,
+  video: videoBodySchema,
+  location: locationBodySchema,
   link: linkBodySchema,
   button_template: buttonTemplateBodySchema,
   list_template: listTemplateBodySchema,

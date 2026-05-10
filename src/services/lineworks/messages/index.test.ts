@@ -2,12 +2,15 @@ import { describe, expect, test } from 'bun:test'
 import { messageSchemas, messageTypes } from '@/services/lineworks/messages'
 
 describe('services/lineworks/messages', () => {
-  test('messageTypes は LINE WORKS の 10 種類', () => {
+  test('messageTypes は LINE WORKS の 13 種類', () => {
     expect(messageTypes).toEqual([
       'text',
       'sticker',
       'image',
       'file',
+      'audio',
+      'video',
+      'location',
       'link',
       'button_template',
       'list_template',
@@ -406,6 +409,106 @@ describe('services/lineworks/messages', () => {
       })
       expect(schema.safeParse(buildAction('a'.repeat(300))).success).toBe(true)
       expect(schema.safeParse(buildAction('a'.repeat(301))).success).toBe(false)
+    })
+  })
+
+  describe('audio schema', () => {
+    const schema = messageSchemas.audio
+    test('originalContentUrl 単独で OK', () => {
+      expect(schema.safeParse({ originalContentUrl: 'https://example.com/a.mp3' }).success).toBe(
+        true,
+      )
+    })
+    test('fileId 単独で OK', () => {
+      expect(schema.safeParse({ fileId: 'F1' }).success).toBe(true)
+    })
+    test('両方空は NG', () => {
+      expect(schema.safeParse({}).success).toBe(false)
+    })
+    test('originalContentUrl は HTTPS のみ', () => {
+      expect(schema.safeParse({ originalContentUrl: 'http://example.com/a.mp3' }).success).toBe(
+        false,
+      )
+    })
+    test('拡張子チェックは無い (.mp3 でなくても通る)', () => {
+      expect(schema.safeParse({ originalContentUrl: 'https://example.com/a.wav' }).success).toBe(
+        true,
+      )
+    })
+  })
+
+  describe('video schema', () => {
+    const schema = messageSchemas.video
+    test('preview + original 両方で OK', () => {
+      expect(
+        schema.safeParse({
+          previewImageUrl: 'https://example.com/p.png',
+          originalContentUrl: 'https://example.com/v.mp4',
+        }).success,
+      ).toBe(true)
+    })
+    test('fileId 単独で OK', () => {
+      expect(schema.safeParse({ fileId: 'F1' }).success).toBe(true)
+    })
+    test('preview のみ / original のみは NG', () => {
+      expect(schema.safeParse({ previewImageUrl: 'https://example.com/p.png' }).success).toBe(false)
+      expect(schema.safeParse({ originalContentUrl: 'https://example.com/v.mp4' }).success).toBe(
+        false,
+      )
+    })
+    test('previewImageUrl は PNG 形式限定 (jpg は NG)', () => {
+      expect(
+        schema.safeParse({
+          previewImageUrl: 'https://example.com/p.jpg',
+          originalContentUrl: 'https://example.com/v.mp4',
+        }).success,
+      ).toBe(false)
+    })
+    test('原本動画 URL は HTTPS のみ', () => {
+      expect(
+        schema.safeParse({
+          previewImageUrl: 'https://example.com/p.png',
+          originalContentUrl: 'http://example.com/v.mp4',
+        }).success,
+      ).toBe(false)
+    })
+  })
+
+  describe('location schema', () => {
+    const schema = messageSchemas.location
+    const valid = {
+      title: '本社',
+      address: '東京都千代田区紀尾井町 1-3',
+      latitude: 35.67966,
+      longitude: 139.73669,
+    }
+    test('全フィールド揃えば OK', () => {
+      expect(schema.safeParse(valid).success).toBe(true)
+    })
+    test('title 欠落は NG', () => {
+      expect(schema.safeParse({ ...valid, title: undefined }).success).toBe(false)
+    })
+    test('address 欠落は NG', () => {
+      expect(schema.safeParse({ ...valid, address: undefined }).success).toBe(false)
+    })
+    test('title / address は最大 100 文字', () => {
+      expect(schema.safeParse({ ...valid, title: 'a'.repeat(100) }).success).toBe(true)
+      expect(schema.safeParse({ ...valid, title: 'a'.repeat(101) }).success).toBe(false)
+    })
+    test('latitude は -90 〜 90 の範囲', () => {
+      expect(schema.safeParse({ ...valid, latitude: -90 }).success).toBe(true)
+      expect(schema.safeParse({ ...valid, latitude: 90 }).success).toBe(true)
+      expect(schema.safeParse({ ...valid, latitude: -90.1 }).success).toBe(false)
+      expect(schema.safeParse({ ...valid, latitude: 90.1 }).success).toBe(false)
+    })
+    test('longitude は -180 〜 180 の範囲', () => {
+      expect(schema.safeParse({ ...valid, longitude: -180 }).success).toBe(true)
+      expect(schema.safeParse({ ...valid, longitude: 180 }).success).toBe(true)
+      expect(schema.safeParse({ ...valid, longitude: -180.1 }).success).toBe(false)
+      expect(schema.safeParse({ ...valid, longitude: 180.1 }).success).toBe(false)
+    })
+    test('latitude が文字列は NG (型エラー)', () => {
+      expect(schema.safeParse({ ...valid, latitude: '35.67' }).success).toBe(false)
     })
   })
 })

@@ -15,6 +15,14 @@ const fixtures: Record<MessageType, Record<string, unknown>> = {
   sticker: { packageId: '1', stickerId: '2' },
   image: { fileId: 'F1' },
   file: { fileId: 'F1' },
+  audio: { fileId: 'F1' },
+  video: { fileId: 'F1' },
+  location: {
+    title: '本社',
+    address: '東京都千代田区紀尾井町 1-3',
+    latitude: 35.67966,
+    longitude: 139.73669,
+  },
   link: {
     contentText: 'c',
     linkText: 'L',
@@ -79,7 +87,7 @@ describe('sendMessageByType: URL + wire format', () => {
     expect(sent).toEqual({ content: { type: 'text', text: 'hi' } })
   })
 
-  test('全 10 type で fetch が 1 回呼ばれ、content.type が type と一致する', async () => {
+  test('全 13 type で fetch が 1 回呼ばれ、content.type が type と一致する', async () => {
     for (const type of messageTypes) {
       fetchSpy.mockClear()
       await sendMessageByType('bot-X', 'tok', { channelId: 'C1' }, type, fixtures[type] as never)
