@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { requireEnv } from '@/test-helpers/utils'
-import { config, load } from '@/utils/config'
+import { config, isPemPrivateKey, load } from '@/utils/config'
 
 // test-helpers/setup.ts が PRIVATE_KEY (実 RSA 鍵) + CLIENT_ID 等を埋めて load() 済み
 
@@ -42,5 +42,37 @@ describe('utils/config', () => {
   test('config() は load() 後と同じインスタンスを返す', () => {
     const loaded = load()
     expect(config()).toBe(loaded)
+  })
+})
+
+describe('utils/config: isPemPrivateKey', () => {
+  test('PKCS#8 BEGIN 行は通る', () => {
+    expect(
+      isPemPrivateKey('-----BEGIN PRIVATE KEY-----\nMIIBVw...\n-----END PRIVATE KEY-----'),
+    ).toBe(true)
+  })
+
+  test('PKCS#1 (RSA) BEGIN 行も通る', () => {
+    expect(
+      isPemPrivateKey('-----BEGIN RSA PRIVATE KEY-----\nMIIE...\n-----END RSA PRIVATE KEY-----'),
+    ).toBe(true)
+  })
+
+  test('EC BEGIN 行も通る (BEGIN [A-Z ]* PRIVATE KEY)', () => {
+    expect(
+      isPemPrivateKey('-----BEGIN EC PRIVATE KEY-----\nMHcCA...\n-----END EC PRIVATE KEY-----'),
+    ).toBe(true)
+  })
+
+  test('文中に "PRIVATE KEY" を含むだけのゴミは弾く (旧 includes() は通っていた)', () => {
+    expect(isPemPrivateKey('foo PRIVATE KEY bar')).toBe(false)
+  })
+
+  test('BEGIN マーカーが無い public key 等は弾く', () => {
+    expect(isPemPrivateKey('-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----')).toBe(false)
+  })
+
+  test('空文字は弾く', () => {
+    expect(isPemPrivateKey('')).toBe(false)
   })
 })

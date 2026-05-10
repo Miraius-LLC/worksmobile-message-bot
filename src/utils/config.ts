@@ -3,6 +3,15 @@ import { logger } from '@/utils/logger'
 
 const CALLER = 'utils/config'
 
+/**
+ * デコード済 PEM が `-----BEGIN ... PRIVATE KEY-----` で始まっているか検査。
+ * PKCS#8 (`PRIVATE KEY`) / PKCS#1 (`RSA PRIVATE KEY`) のどちらの BEGIN 行にも対応。
+ * 旧実装の `includes('PRIVATE KEY')` は `"foo PRIVATE KEY bar"` も通る緩いチェックだった
+ */
+export function isPemPrivateKey(value: string): boolean {
+  return /^-----BEGIN [A-Z ]*PRIVATE KEY-----/m.test(value)
+}
+
 const configSchema = z
   .object({
     CLIENT_ID: z.string().min(1),
@@ -20,7 +29,7 @@ const configSchema = z
   })
   .transform(env => {
     const privateKey = Buffer.from(env.PRIVATE_KEY, 'base64').toString('utf-8')
-    if (!privateKey.includes('PRIVATE KEY')) {
+    if (!isPemPrivateKey(privateKey)) {
       throw new Error("'PRIVATE_KEY' が PEM 形式ではない可能性があります (Base64 エンコード前提)")
     }
     return {
