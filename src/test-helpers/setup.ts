@@ -20,6 +20,8 @@ function setupFixtureEnv() {
   process.env['CLIENT_SECRET'] ??= 'test-client-secret'
   process.env['SERVICE_ACCOUNT'] ??= 'test-sa@example.com'
   process.env['BOT_ID'] ??= 'test-bot-id'
+  process.env['BASIC_ID'] ??= 'test-user'
+  process.env['BASIC_PASS'] ??= 'test-pass'
 }
 setupFixtureEnv()
 

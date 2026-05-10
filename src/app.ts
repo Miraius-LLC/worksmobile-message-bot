@@ -1,13 +1,35 @@
 import { Hono } from 'hono'
+import { basicAuth } from 'hono/basic-auth'
+import { HTTPException } from 'hono/http-exception'
 import { secureHeaders } from 'hono/secure-headers'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { attachmentsApp } from '@/routes/attachments'
 import { messagesApp } from '@/routes/messages'
 import { LineWorksApiError } from '@/services/lineworks/api'
+import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
 import { traceContextMiddleware } from '@/utils/trace'
 
 const CALLER = 'app'
+
+/** BASIC 認証を適用しないパス (Cloud Run の health probe / liveness 用) */
+const PUBLIC_PATHS = new Set(['/', '/health'])
+
+/**
+ * BASIC 認証ミドルウェアを遅延初期化する。
+ * `app.ts` は import 時に評価されるが `config()` は `config.load()` 後にしか
+ * 呼べないため、最初のリクエスト時に組み立てて以降キャッシュする。
+ */
+let _authMiddleware: ReturnType<typeof basicAuth> | undefined
+function getAuthMiddleware(): ReturnType<typeof basicAuth> {
+  if (_authMiddleware) return _authMiddleware
+  const cfg = config()
+  _authMiddleware = basicAuth({
+    username: cfg.basicAuthUsername,
+    password: cfg.basicAuthPassword,
+  })
+  return _authMiddleware
+}
 
 /**
  * 設定済みの Hono アプリ。
@@ -21,6 +43,14 @@ app.use('*', traceContextMiddleware)
 // X-Frame-Options / X-Content-Type-Options / Strict-Transport-Security 等を一括付与
 app.use('*', secureHeaders())
 
+// `/` と `/health` 以外の全リクエストに BASIC 認証を要求する。
+// webhook 公開エンドポイントを保護するための最低限の認証で、credentials は
+// Secret Manager から `BASIC_AUTH_USERNAME` / `BASIC_AUTH_PASSWORD` で注入する。
+app.use('*', async (c, next) => {
+  if (PUBLIC_PATHS.has(c.req.path)) return next()
+  return getAuthMiddleware()(c, next)
+})
+
 app.get('/', c => c.json({ statusCode: 200, message: 'Server is running' }))
 app.get('/health', c => c.json({ status: 'ok' }))
 
@@ -33,6 +63,12 @@ app.onError((error, c) => {
   // LINE WORKS upstream が返したステータスは bridge 側のリトライ判定に必要なのでそのまま透過する
   if (error instanceof LineWorksApiError) {
     return c.json({ error: error.message }, error.status as ContentfulStatusCode)
+  }
+  // basicAuth ミドルウェア等が投げる HTTPException は Hono の標準ハンドリングを尊重する
+  // (401 + WWW-Authenticate ヘッダ等)。app.onError を定義すると HTTPException も
+  // ここを通るため、`getResponse()` で本来のレスポンスを取り出す必要がある
+  if (error instanceof HTTPException) {
+    return error.getResponse()
   }
   logger.error('未捕捉エラー', { caller: `${CALLER}.onError`, error })
   return c.json({ error: error.message }, 500)

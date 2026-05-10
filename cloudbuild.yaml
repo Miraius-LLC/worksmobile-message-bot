@@ -13,6 +13,8 @@ substitutions:
   _SERVICE_ACCOUNT: worksmobile-message-bot-sa@office-381404.iam.gserviceaccount.com
   _SECRET_CLIENT_SECRET: lineworks-client-secret
   _SECRET_PRIVATE_KEY: lineworks-private-key
+  _SECRET_BASIC_ID: lineworks-basic-id
+  _SECRET_BASIC_PASS: lineworks-basic-pass
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -60,7 +62,7 @@ steps:
       - --service-account=${_SERVICE_ACCOUNT}
 
       # --- Secret Manager マウント (機密 env) ---
-      - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest
+      - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest,BASIC_ID=${_SECRET_BASIC_ID}:latest,BASIC_PASS=${_SECRET_BASIC_PASS}:latest
 
       # --- 通常 env (機密度の低い設定値) ---
       - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID}

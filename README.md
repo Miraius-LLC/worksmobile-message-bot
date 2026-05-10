@@ -162,7 +162,7 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 
 ### 1. エンドポイント一覧
 
-> 認証: 現状は未実装。Cloud Run の認証や前段プロキシで保護する想定。アプリ内で BASIC 認証等を必要とする場合は `hono/basic-auth` ミドルウェアを `src/index.ts` に追加する。
+> 認証: `/` と `/health` を除く全エンドポイントに **BASIC 認証**を要求する (`hono/basic-auth` を `src/app.ts` で `app.use('*', ...)` 経由でマウント)。credentials は `BASIC_ID` / `BASIC_PASS` env で注入し、本番では Secret Manager (`lineworks-basic-id` / `lineworks-basic-pass`) からマウントする。`/` と `/health` は Cloud Run の health probe / Docker HEALTHCHECK 用に認証なしで公開している。
 
 #### [トークルーム指定](https://developers.worksmobile.com/jp/docs/bot-channel-message-send)
 

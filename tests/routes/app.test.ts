@@ -9,6 +9,9 @@ import { _resetTokenCacheForTest } from '@/services/lineworks/auth'
 const AUTH_HOST = 'auth.worksmobile.com'
 const API_HOST = 'www.worksapis.com'
 
+// setup.ts でフィクスチャ env として固定済 (BASIC_ID=test-user / BASIC_PASS=test-pass)
+const BASIC_AUTH = `Basic ${Buffer.from('test-user:test-pass').toString('base64')}`
+
 let originalFetch: typeof globalThis.fetch
 type FetchCall = { url: string; init?: RequestInit }
 let calls: FetchCall[]
@@ -64,12 +67,73 @@ describe('app: smoke', () => {
 })
 
 describe('app: notFound', () => {
-  test('未定義パスは 404 + { error: "Not Found", path }', async () => {
-    const res = await app.request('/nope/zzz')
+  test('未定義パスは認証付きなら 404 + { error: "Not Found", path }', async () => {
+    const res = await app.request('/nope/zzz', { headers: { Authorization: BASIC_AUTH } })
     expect(res.status).toBe(404)
     const body = (await res.json()) as { error: string; path: string }
     expect(body.error).toBe('Not Found')
     expect(body.path).toContain('/nope/zzz')
+  })
+})
+
+describe('app: BASIC 認証', () => {
+  test('/ は認証なしで 200 (Cloud Run 用の root probe)', async () => {
+    const res = await app.request('/')
+    expect(res.status).toBe(200)
+  })
+
+  test('/health は認証なしで 200 (Docker HEALTHCHECK / liveness 用)', async () => {
+    const res = await app.request('/health')
+    expect(res.status).toBe(200)
+  })
+
+  test('webhook ルートは Authorization 無しだと 401 + WWW-Authenticate', async () => {
+    const res = await app.request('/channels/C1/messages/type/text', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: 'hi' }),
+    })
+    expect(res.status).toBe(401)
+    expect(res.headers.get('www-authenticate')).toContain('Basic')
+  })
+
+  test('正しい credentials なら通って 200 (LINE WORKS 送信まで完走)', async () => {
+    const res = await app.request('/channels/C1/messages/type/text', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
+      body: JSON.stringify({ text: 'hi' }),
+    })
+    expect(res.status).toBe(200)
+  })
+
+  test('間違った password は 401', async () => {
+    const wrong = `Basic ${Buffer.from('test-user:wrong-pass').toString('base64')}`
+    const res = await app.request('/channels/C1/messages/type/text', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', Authorization: wrong },
+      body: JSON.stringify({ text: 'hi' }),
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('未知の username は 401', async () => {
+    const wrong = `Basic ${Buffer.from('attacker:test-pass').toString('base64')}`
+    const res = await app.request('/channels/C1/messages/type/text', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', Authorization: wrong },
+      body: JSON.stringify({ text: 'hi' }),
+    })
+    expect(res.status).toBe(401)
+  })
+
+  test('未定義パスでも認証無しなら 401 (path 存在を漏らさない)', async () => {
+    const res = await app.request('/nope/zzz')
+    expect(res.status).toBe(401)
+  })
+
+  test('/attachments も認証必須', async () => {
+    const res = await app.request('/attachments/F-abc')
+    expect(res.status).toBe(401)
   })
 })
 
@@ -78,7 +142,7 @@ describe('app: onError', () => {
     installFetch(() => new Response('upstream not found', { status: 404 }))
     const res = await app.request('/channels/C1/messages/type/text', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify({ text: 'hi' }),
     })
     expect(res.status).toBe(404)
@@ -91,7 +155,7 @@ describe('app: onError', () => {
     installFetch(() => new Response('upstream boom', { status: 503 }))
     const res = await app.request('/channels/C1/messages/type/text', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify({ text: 'hi' }),
     })
     expect(res.status).toBe(503)
@@ -111,7 +175,7 @@ describe('app: onError', () => {
 
     const res = await app.request('/channels/C1/messages/type/text', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify({ text: 'hi' }),
     })
     expect(res.status).toBe(500)

@@ -57,6 +57,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 | `SERVICE_ACCOUNT` | env (機密度低) |
 | `PRIVATE_KEY` | **Secret Manager `lineworks-private-key:latest`** にマウント (本番) / `.env` (開発)。Base64 エンコード済 PEM (`base64 -i private_*.key`) |
 | `BOT_ID` | env (機密度低) |
+| `BASIC_ID` | **Secret Manager `lineworks-basic-id:latest`** にマウント (本番) / `.env` (開発)。webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
+| `BASIC_PASS` | **Secret Manager `lineworks-basic-pass:latest`** にマウント (本番) / `.env` (開発)。BASIC 認証パスワード |
 | `PORT` | リッスンポート (デフォルト 8080) |
 | `NODE_ENV` | `production` で JSON ログを抑制せずそのまま出す (Hono 自体は logger を内蔵しないので env による分岐は最小限) |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
@@ -80,7 +82,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。アップロードサイズは `attachments/index.ts` の `bodyLimit({ maxSize: 10 * 1024 * 1024 })` で 10MB 上限
 - **route handler は try/catch しない**: throw されたエラーは `index.ts` の `app.onError` が拾って `{ error: message }` を 500 で返す。各ハンドラから 500 を直接返す書き方はしない (validation 400 など期待エラーを除く)
 - **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
-- **README に "BASIC AUTH" の記載があるが現状未実装**。Hono なら `hono/basic-auth` ミドルウェアを `app.use('*', basicAuth({...}))` で乗せる
+- **BASIC 認証は `app.ts` で `/` と `/health` 以外に強制**: `hono/basic-auth` を lazy 初期化 (config().load() タイミングを跨ぐため) + `PUBLIC_PATHS` set で除外パスを管理。Cloud Run health probe / Docker HEALTHCHECK が落ちないよう `/` `/health` だけ素通しにしている
+- **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
 
 ### Docker / デプロイ
 

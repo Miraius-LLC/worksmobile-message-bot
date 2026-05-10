@@ -14,6 +14,9 @@ const configSchema = z
     PORT: z.coerce.number().int().positive().default(8080),
     NODE_ENV: z.string().default('development'),
     LOG_PRETTY: z.literal('1').optional(),
+    /** webhook 公開エンドポイント保護用の BASIC 認証クレデンシャル */
+    BASIC_ID: z.string().min(1),
+    BASIC_PASS: z.string().min(1),
   })
   .transform(env => {
     const privateKey = Buffer.from(env.PRIVATE_KEY, 'base64').toString('utf-8')
@@ -29,6 +32,8 @@ const configSchema = z
       port: env.PORT,
       isProduction: env.NODE_ENV === 'production',
       logPretty: env.LOG_PRETTY === '1',
+      basicAuthUsername: env.BASIC_ID,
+      basicAuthPassword: env.BASIC_PASS,
     }
   })
 
