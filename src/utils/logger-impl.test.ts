@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { Hono } from 'hono'
 // `@/utils/logger` は preload で no-op に差し替えられているため、impl を直接 import する
 import { createLogger, shouldUsePretty, withDuration } from './logger-impl'
@@ -102,6 +102,43 @@ describe('utils/logger-impl: shouldUsePretty', () => {
 
   test('LOG_PRETTY=0 → false', () => {
     expect(shouldUsePretty({ LOG_PRETTY: '0', NODE_ENV: 'development' })).toBe(false)
+  })
+})
+
+describe('utils/logger-impl: production レベルフィルタ', () => {
+  let original: string | undefined
+  beforeEach(() => {
+    original = process.env['NODE_ENV']
+  })
+  afterEach(() => {
+    if (original === undefined) Reflect.deleteProperty(process.env, 'NODE_ENV')
+    else process.env['NODE_ENV'] = original
+  })
+
+  test('NODE_ENV=production では error 以上のみ出る (warn / info / success / request / debug は drop)', () => {
+    process.env['NODE_ENV'] = 'production'
+    const { logger, entries } = makeCapturingLogger()
+    logger.debug('d', { caller: 'X' })
+    logger.info('i', { caller: 'X' })
+    logger.success('s', { caller: 'X' })
+    logger.request('r', { caller: 'X' })
+    logger.warn('w', { caller: 'X' })
+    logger.error('e', { caller: 'X' })
+    logger.failure('f', { caller: 'X' })
+
+    // production の pino level は 'error' (50)。以前は全部 info 経由で書かれていたため
+    // failure 以外が落ちる回帰があった。動的レベル経由になったのでこの並びが正しい
+    const levels = entries.map(e => e['level'])
+    expect(levels).toEqual(['error', 'failure'])
+  })
+
+  test('NODE_ENV=development では debug まで全部出る', () => {
+    process.env['NODE_ENV'] = 'development'
+    const { logger, entries } = makeCapturingLogger()
+    logger.debug('d', { caller: 'X' })
+    logger.info('i', { caller: 'X' })
+    logger.error('e', { caller: 'X' })
+    expect(entries.map(e => e['level'])).toEqual(['debug', 'info', 'error'])
   })
 })
 

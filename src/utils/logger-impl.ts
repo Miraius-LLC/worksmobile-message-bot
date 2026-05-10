@@ -97,7 +97,12 @@ export function createLogger(
   )
 
   const log = (level: LogLevel, message: unknown, option?: LogOption): void => {
-    pinoLogger[level === 'failure' ? 'fatal' : 'info']({
+    // pino の customLevels は同名の動的メソッドを生やす (`pinoLogger.error(...)` 等)。
+    // ここを固定で `info` にすると production の level filter (`'error'` = 50) で
+    // logger.error 等が pino レベル 30 扱いになり silent drop されるため、
+    // 必ず該当レベルのメソッドを経由する。`this` バインドを保つためプロパティアクセスを
+    // 呼び出し式に直接含める
+    ;(pinoLogger as unknown as Record<LogLevel, (obj: Record<string, unknown>) => void>)[level]({
       ...option,
       // Cloud Trace のリクエストコンテキストがあれば trace / spanId を付与し、
       // Cloud Logging Console の Trace タブで関連ログが紐付くようにする
