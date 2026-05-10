@@ -88,8 +88,7 @@ const ACTION_TYPES = [
  * リクエストから `text` が消えて API 側で 400 になる。
  *
  * フィールド命名は LINE WORKS Action Object spec に揃える:
- *  - `data` は postback action の必須フィールド (旧実装は `postback` を必須化していたが
- *    spec とズレており、spec 通りのリクエストが弾かれる回帰になっていた)
+ *  - `data` は postback action の必須フィールド (文字列)
  *  - `displayText` は postback action の任意 (quickReply 内では必須) フィールド
  *  - `postback` は message action の任意フィールド (postback action 自体ではなく、
  *    message action 経由で postback イベントを起こす用途)
@@ -97,19 +96,20 @@ const ACTION_TYPES = [
 const baseAction = z
   .object({
     type: z.enum(ACTION_TYPES),
-    label: z.string().min(1).optional(),
+    label: z.string().min(1).max(20).optional(),
     postback: z.string().min(1).optional(),
     data: z.string().min(1).max(300).optional(),
     displayText: z.string().max(300).optional(),
-    uri: z.string().optional(),
-    copyText: z.string().min(1).optional(),
+    uri: z.string().max(1000).optional(),
+    copyText: z.string().min(1).max(1000).optional(),
   })
   .loose()
   .refine(
     a => {
       switch (a.type) {
         case 'postback':
-          // spec: postback action は `data` 必須
+          // spec: postback action は `data` 必須 (旧実装は `postback` を見ていたため
+          // spec 準拠のリクエストが弾かれる回帰だった)
           return typeof a.data === 'string'
         case 'uri':
           return typeof a.uri === 'string' && isWebUrl(a.uri)
@@ -125,30 +125,31 @@ const baseAction = z
 /** デフォルトアクション (label optional) */
 const defaultActionSchema = baseAction
 
-/** 通常アクション (label required) */
+/** 通常アクション (label required, max 20 文字) */
 const labeledActionSchema = baseAction.refine(
   a => typeof a.label === 'string' && a.label.length > 0,
   { message: 'action.label は必須です' },
 )
 
-/** クイックリプライ (Bot のメッセージに任意付与) */
+/** image_carousel 用アクション: label 必須かつ最大 12 文字 (spec 上の特例) */
+const imageCarouselActionSchema = labeledActionSchema.refine(
+  a => typeof a.label === 'string' && a.label.length <= 12,
+  { message: 'image_carousel の action.label は 12 文字以内' },
+)
+
+/** クイックリプライ (Bot のメッセージに任意付与, items は最大 13 件) */
 const quickReplySchema = z.object({
   items: z
     .array(
       z
         .object({
-          imageUrl: z
-            .string()
-            .max(1000)
-            .refine(v => isWebUrl(v, { httpsOnly: true }), {
-              message: 'imageUrl は HTTPS の URL を指定してください',
-            })
-            .optional(),
+          imageUrl: httpsUrlSchema.optional(),
           action: labeledActionSchema,
         })
         .loose(),
     )
-    .min(1, { message: 'quickReply.items は 1 件以上必要です' }),
+    .min(1, { message: 'quickReply.items は 1 件以上必要です' })
+    .max(13, { message: 'quickReply.items は最大 13 件までです' }),
 })
 
 // =============================================================================
@@ -199,14 +200,18 @@ const linkBodySchema = z.object({
 })
 
 const buttonTemplateBodySchema = z.object({
-  contentText: z.string().min(1),
-  actions: z.array(labeledActionSchema).min(1),
+  contentText: z.string().min(1).max(1000),
+  // spec: actions は 1 件以上 / 最大 10 件
+  actions: z.array(labeledActionSchema).min(1).max(10),
   quickReply: quickReplySchema.optional(),
 })
 
 const listTemplateBodySchema = z.object({
   coverData: z
     .object({
+      // spec: title / subtitle は coverData の任意フィールド (各 max 1000 字)
+      title: z.string().min(1).max(1000).optional(),
+      subtitle: z.string().max(1000).optional(),
       backgroundImageUrl: imageUrlSchema.optional(),
       backgroundFileId: z.string().min(1).optional(),
     })
@@ -215,15 +220,15 @@ const listTemplateBodySchema = z.object({
       message: "'backgroundImageUrl' と 'backgroundFileId' はどちらか一方のみ指定可能",
     })
     .optional(),
-  // spec: elements は最大 4 件 (旧実装は max 10 だった)
+  // spec: elements は最大 4 件 (旧実装は max 10 だった)。defaultAction は spec に存在しない
+  // ため明示フィールドから外す (`.loose()` でユーザが入れたら素通り、API 側で無視/拒否される)
   elements: z
     .array(
       z
         .object({
-          title: z.string().min(1),
+          title: z.string().min(1).max(1000),
           subtitle: z.string().max(1000).optional(),
           originalContentUrl: imageUrlSchema.optional(),
-          defaultAction: defaultActionSchema.optional(),
           action: labeledActionSchema.optional(),
         })
         .loose(),
@@ -235,39 +240,50 @@ const listTemplateBodySchema = z.object({
   quickReply: quickReplySchema.optional(),
 })
 
-const carouselBodySchema = z.object({
-  imageAspectRatio: z.string().default('rectangle'),
-  imageSize: z.string().default('cover'),
-  columns: z
-    .array(
-      z
-        .object({
-          originalContentUrl: imageUrlSchema.optional(),
-          fileId: z.string().min(1).optional(),
-          title: z.string().optional(),
-          text: z.string().min(1),
-          defaultAction: defaultActionSchema.optional(),
-          actions: z.array(labeledActionSchema).min(1),
-        })
-        .loose()
-        .refine(c => Boolean(c.originalContentUrl || c.fileId), {
-          message: "カラムには 'originalContentUrl' または 'fileId' のいずれかが必要",
-        })
-        .refine(
-          c => {
-            const max = c.originalContentUrl || c.title ? 60 : 120
-            return c.text.length <= max
-          },
-          {
-            message:
-              "カラムの 'text' が許容文字数を超えています (画像 / title あり: 60、なし: 120)",
-          },
-        ),
-    )
-    .min(1)
-    .max(10),
-  quickReply: quickReplySchema.optional(),
-})
+const carouselBodySchema = z
+  .object({
+    // spec: enum で固定値のみ受理 (旧実装は任意文字列を許容、誤値で LW 400 になる)
+    imageAspectRatio: z.enum(['rectangle', 'square']).default('rectangle'),
+    imageSize: z.enum(['cover', 'contain']).default('cover'),
+    columns: z
+      .array(
+        z
+          .object({
+            originalContentUrl: imageUrlSchema.optional(),
+            fileId: z.string().min(1).optional(),
+            title: z.string().max(40).optional(),
+            text: z.string().min(1),
+            defaultAction: defaultActionSchema.optional(),
+            // spec: 各 column の actions は 1 件以上 / 最大 3 件
+            actions: z.array(labeledActionSchema).min(1).max(3),
+          })
+          .loose()
+          .refine(c => Boolean(c.originalContentUrl || c.fileId), {
+            message: "カラムには 'originalContentUrl' または 'fileId' のいずれかが必要",
+          })
+          .refine(
+            c => {
+              const max = c.originalContentUrl || c.title ? 60 : 120
+              return c.text.length <= max
+            },
+            {
+              message:
+                "カラムの 'text' が許容文字数を超えています (画像 / title あり: 60、なし: 120)",
+            },
+          ),
+      )
+      .min(1)
+      .max(10),
+    quickReply: quickReplySchema.optional(),
+  })
+  // spec: 全 column で actions の件数が同一でなければならない (LINE WORKS 側で強制)
+  .refine(
+    body => {
+      const counts = new Set(body.columns.map(c => c.actions.length))
+      return counts.size === 1
+    },
+    { message: 'carousel: 全 columns の actions 件数を揃えてください' },
+  )
 
 const imageCarouselBodySchema = z.object({
   columns: z
@@ -276,7 +292,8 @@ const imageCarouselBodySchema = z.object({
         .object({
           originalContentUrl: imageUrlSchema.optional(),
           fileId: z.string().min(1).optional(),
-          action: labeledActionSchema.optional(),
+          // spec: image_carousel の action.label は最大 12 文字 (他 type より strict)
+          action: imageCarouselActionSchema.optional(),
         })
         .loose()
         .refine(c => Boolean(c.originalContentUrl || c.fileId), {

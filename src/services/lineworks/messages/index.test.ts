@@ -277,18 +277,125 @@ describe('services/lineworks/messages', () => {
     })
   })
 
-  describe('spec 準拠の境界 (重大バグ修正の回帰テスト)', () => {
+  describe('spec 準拠の境界 (上限件数 / 文字数)', () => {
     test('list_template.elements は最大 4 件 (5 件は NG)', () => {
       const schema = messageSchemas.list_template
       const buildElement = (i: number) => ({ title: `t${i}` })
+      const okBody = { elements: Array.from({ length: 4 }, (_, i) => buildElement(i)) }
+      const ngBody = { elements: Array.from({ length: 5 }, (_, i) => buildElement(i)) }
+      expect(schema.safeParse(okBody).success).toBe(true)
+      expect(schema.safeParse(ngBody).success).toBe(false)
+    })
+
+    test('button_template.actions は最大 10 件 (11 件は NG)', () => {
+      const schema = messageSchemas.button_template
+      const action = { type: 'message' as const, label: 'L' }
+      const okBody = {
+        contentText: 'C',
+        actions: Array.from({ length: 10 }, () => action),
+      }
+      const ngBody = {
+        contentText: 'C',
+        actions: Array.from({ length: 11 }, () => action),
+      }
+      expect(schema.safeParse(okBody).success).toBe(true)
+      expect(schema.safeParse(ngBody).success).toBe(false)
+    })
+
+    test('quickReply.items は最大 13 件 (14 件は NG)', () => {
+      const schema = messageSchemas.text
+      const item = { action: { type: 'message' as const, label: 'L' } }
       expect(
-        schema.safeParse({ elements: Array.from({ length: 4 }, (_, i) => buildElement(i)) })
-          .success,
+        schema.safeParse({
+          text: 'hi',
+          quickReply: { items: Array.from({ length: 13 }, () => item) },
+        }).success,
       ).toBe(true)
       expect(
-        schema.safeParse({ elements: Array.from({ length: 5 }, (_, i) => buildElement(i)) })
-          .success,
+        schema.safeParse({
+          text: 'hi',
+          quickReply: { items: Array.from({ length: 14 }, () => item) },
+        }).success,
       ).toBe(false)
+    })
+
+    test('carousel.imageAspectRatio は enum (rectangle / square のみ)', () => {
+      const schema = messageSchemas.carousel
+      const baseColumn = {
+        originalContentUrl: 'https://example.com/a.png',
+        text: 'T',
+        actions: [{ type: 'message' as const, label: 'L' }],
+      }
+      expect(schema.safeParse({ columns: [baseColumn], imageAspectRatio: 'square' }).success).toBe(
+        true,
+      )
+      expect(schema.safeParse({ columns: [baseColumn], imageAspectRatio: 'wide' }).success).toBe(
+        false,
+      )
+    })
+
+    test('carousel.columns[].actions は最大 3 件 (4 件は NG)', () => {
+      const schema = messageSchemas.carousel
+      const action = { type: 'message' as const, label: 'L' }
+      const buildColumns = (n: number) => [
+        {
+          originalContentUrl: 'https://example.com/a.png',
+          text: 'T',
+          actions: Array.from({ length: n }, () => action),
+        },
+      ]
+      expect(schema.safeParse({ columns: buildColumns(3) }).success).toBe(true)
+      expect(schema.safeParse({ columns: buildColumns(4) }).success).toBe(false)
+    })
+
+    test('carousel: 全 columns で actions 件数を揃える必要がある', () => {
+      const schema = messageSchemas.carousel
+      const action = { type: 'message' as const, label: 'L' }
+      const col = (n: number) => ({
+        originalContentUrl: 'https://example.com/a.png',
+        text: 'T',
+        actions: Array.from({ length: n }, () => action),
+      })
+      // 全 column が同数 (2 件ずつ) → OK
+      expect(schema.safeParse({ columns: [col(2), col(2), col(2)] }).success).toBe(true)
+      // column 間で件数が違う → NG
+      expect(schema.safeParse({ columns: [col(2), col(3)] }).success).toBe(false)
+    })
+
+    test('image_carousel の action.label は最大 12 文字', () => {
+      const schema = messageSchemas.image_carousel
+      const buildColumn = (label: string) => ({
+        originalContentUrl: 'https://example.com/a.png',
+        action: { type: 'message' as const, label },
+      })
+      expect(schema.safeParse({ columns: [buildColumn('a'.repeat(12))] }).success).toBe(true)
+      expect(schema.safeParse({ columns: [buildColumn('a'.repeat(13))] }).success).toBe(false)
+    })
+
+    test('label の基本上限は 20 文字 (button_template など)', () => {
+      const schema = messageSchemas.button_template
+      const action = { type: 'message' as const }
+      expect(
+        schema.safeParse({
+          contentText: 'C',
+          actions: [{ ...action, label: 'a'.repeat(20) }],
+        }).success,
+      ).toBe(true)
+      expect(
+        schema.safeParse({
+          contentText: 'C',
+          actions: [{ ...action, label: 'a'.repeat(21) }],
+        }).success,
+      ).toBe(false)
+    })
+
+    test('list_template.coverData.title / subtitle が受け入れられる', () => {
+      const schema = messageSchemas.list_template
+      const result = schema.safeParse({
+        coverData: { title: 't', subtitle: 's' },
+        elements: [{ title: 'e' }],
+      })
+      expect(result.success).toBe(true)
     })
 
     test('postback action: data は 300 文字まで', () => {
