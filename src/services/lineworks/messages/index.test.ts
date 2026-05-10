@@ -33,28 +33,56 @@ describe('services/lineworks/messages', () => {
 
   describe('image schema: 排他必須 + 画像 URL チェック', () => {
     const schema = messageSchemas.image
-    test('previewImageUrl のみで OK', () => {
-      expect(schema.safeParse({ previewImageUrl: 'https://example.com/a.png' }).success).toBe(true)
+    test('previewImageUrl + originalContentUrl 両方で OK', () => {
+      expect(
+        schema.safeParse({
+          previewImageUrl: 'https://example.com/a.png',
+          originalContentUrl: 'https://example.com/a.png',
+        }).success,
+      ).toBe(true)
     })
     test('fileId のみで OK', () => {
       expect(schema.safeParse({ fileId: 'fid' }).success).toBe(true)
     })
-    test('全部空は NG (どれか 1 つ必須)', () => {
+    test('previewImageUrl だけは NG (spec: preview と original は両方必須)', () => {
+      expect(schema.safeParse({ previewImageUrl: 'https://example.com/a.png' }).success).toBe(false)
+    })
+    test('originalContentUrl だけも NG', () => {
+      expect(schema.safeParse({ originalContentUrl: 'https://example.com/a.png' }).success).toBe(
+        false,
+      )
+    })
+    test('全部空は NG', () => {
       expect(schema.safeParse({}).success).toBe(false)
     })
     test('画像 URL は HTTPS 必須', () => {
-      expect(schema.safeParse({ previewImageUrl: 'http://example.com/a.png' }).success).toBe(false)
+      expect(
+        schema.safeParse({
+          previewImageUrl: 'http://example.com/a.png',
+          originalContentUrl: 'http://example.com/a.png',
+        }).success,
+      ).toBe(false)
     })
     test('許可されていない拡張子は NG', () => {
-      expect(schema.safeParse({ previewImageUrl: 'https://example.com/a.exe' }).success).toBe(false)
+      expect(
+        schema.safeParse({
+          previewImageUrl: 'https://example.com/a.exe',
+          originalContentUrl: 'https://example.com/a.exe',
+        }).success,
+      ).toBe(false)
     })
     test('拡張子なしの URL は OK', () => {
-      expect(schema.safeParse({ previewImageUrl: 'https://example.com/path' }).success).toBe(true)
+      expect(
+        schema.safeParse({
+          previewImageUrl: 'https://example.com/path',
+          originalContentUrl: 'https://example.com/path',
+        }).success,
+      ).toBe(true)
     })
   })
 
   describe('quickReply: action は loose で未知フィールドを保持', () => {
-    test('postback action は postback プロパティが必須 + 未知フィールド strip されない', () => {
+    test('postback action は data プロパティが必須 (spec 準拠) + label/displayText も保持', () => {
       const result = messageSchemas.text.safeParse({
         text: 'hi',
         quickReply: {
@@ -63,7 +91,6 @@ describe('services/lineworks/messages', () => {
               action: {
                 type: 'postback',
                 label: 'L',
-                postback: 'p',
                 data: 'd',
                 displayText: 't',
               },
@@ -73,17 +100,26 @@ describe('services/lineworks/messages', () => {
       })
       expect(result.success).toBe(true)
       if (!result.success) return
-      // text フィールドが strip されないことの確認 (regression test)
       const action = result.data.quickReply?.items[0]?.action as Record<string, unknown>
       expect(action['data']).toBe('d')
       expect(action['displayText']).toBe('t')
     })
 
-    test('postback action で postback プロパティが欠落していると NG', () => {
+    test('postback action で data が欠落していると NG (旧実装は postback フィールドを見ていた回帰)', () => {
       const result = messageSchemas.text.safeParse({
         text: 'hi',
         quickReply: {
           items: [{ action: { type: 'postback', label: 'L' } }],
+        },
+      })
+      expect(result.success).toBe(false)
+    })
+
+    test('postback action で旧名 postback フィールドだけだと NG (data が必要)', () => {
+      const result = messageSchemas.text.safeParse({
+        text: 'hi',
+        quickReply: {
+          items: [{ action: { type: 'postback', label: 'L', postback: 'old-style' } }],
         },
       })
       expect(result.success).toBe(false)
@@ -220,10 +256,49 @@ describe('services/lineworks/messages', () => {
 
     test('imageUrl は https のみ (http は弾く)', () => {
       const imageSchema = messageSchemas.image
-      const ok = imageSchema.safeParse({ originalContentUrl: 'https://example.com:443/a.png' })
-      const ng = imageSchema.safeParse({ originalContentUrl: 'http://example.com/a.png' })
+      const ok = imageSchema.safeParse({
+        previewImageUrl: 'https://example.com:443/a.png',
+        originalContentUrl: 'https://example.com:443/a.png',
+      })
+      const ng = imageSchema.safeParse({
+        previewImageUrl: 'http://example.com/a.png',
+        originalContentUrl: 'http://example.com/a.png',
+      })
       expect(ok.success).toBe(true)
       expect(ng.success).toBe(false)
+    })
+
+    test('file の originalContentUrl は HTTPS のみ (http は弾く)', () => {
+      const fileSchema = messageSchemas.file
+      const ok = fileSchema.safeParse({ originalContentUrl: 'https://example.com/a.pdf' })
+      const ng = fileSchema.safeParse({ originalContentUrl: 'http://example.com/a.pdf' })
+      expect(ok.success).toBe(true)
+      expect(ng.success).toBe(false)
+    })
+  })
+
+  describe('spec 準拠の境界 (重大バグ修正の回帰テスト)', () => {
+    test('list_template.elements は最大 4 件 (5 件は NG)', () => {
+      const schema = messageSchemas.list_template
+      const buildElement = (i: number) => ({ title: `t${i}` })
+      expect(
+        schema.safeParse({ elements: Array.from({ length: 4 }, (_, i) => buildElement(i)) })
+          .success,
+      ).toBe(true)
+      expect(
+        schema.safeParse({ elements: Array.from({ length: 5 }, (_, i) => buildElement(i)) })
+          .success,
+      ).toBe(false)
+    })
+
+    test('postback action: data は 300 文字まで', () => {
+      const schema = messageSchemas.text
+      const buildAction = (data: string) => ({
+        text: 'hi',
+        quickReply: { items: [{ action: { type: 'postback' as const, label: 'L', data } }] },
+      })
+      expect(schema.safeParse(buildAction('a'.repeat(300))).success).toBe(true)
+      expect(schema.safeParse(buildAction('a'.repeat(301))).success).toBe(false)
     })
   })
 })

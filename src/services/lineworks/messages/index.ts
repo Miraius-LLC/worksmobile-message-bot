@@ -47,6 +47,14 @@ const urlSchema = z
   .max(1000)
   .refine(v => isWebUrl(v), { message: 'HTTP / HTTPS の URL を指定してください' })
 
+/** HTTPS 限定の URL (最大 1000 文字)。LINE WORKS の `file.originalContentUrl` 等は HTTPS 必須 */
+const httpsUrlSchema = z
+  .string()
+  .max(1000)
+  .refine(v => isWebUrl(v, { httpsOnly: true }), {
+    message: 'HTTPS の URL を指定してください',
+  })
+
 /** 画像 URL: HTTPS 必須 + 拡張子チェック (拡張子なしは許可) */
 const imageUrlSchema = z
   .string()
@@ -75,15 +83,24 @@ const ACTION_TYPES = [
 
 /**
  * type に応じた必須フィールドが揃っているか。
- * `.loose()` で未知フィールド (LINE WORKS 固有の `text` / `data` / `displayText` 等)
- * を保持する。Zod 4 の z.object() はデフォルトで strip するため、これを付けないと
- * `type: 'message'` のリクエストから `text` が消えて API 側で 400 になる
+ * `.loose()` で未知フィールド (LINE WORKS 固有の `text` 等) を保持する。Zod 4 の
+ * z.object() はデフォルトで strip するため、これを付けないと `type: 'message'` の
+ * リクエストから `text` が消えて API 側で 400 になる。
+ *
+ * フィールド命名は LINE WORKS Action Object spec に揃える:
+ *  - `data` は postback action の必須フィールド (旧実装は `postback` を必須化していたが
+ *    spec とズレており、spec 通りのリクエストが弾かれる回帰になっていた)
+ *  - `displayText` は postback action の任意 (quickReply 内では必須) フィールド
+ *  - `postback` は message action の任意フィールド (postback action 自体ではなく、
+ *    message action 経由で postback イベントを起こす用途)
  */
 const baseAction = z
   .object({
     type: z.enum(ACTION_TYPES),
     label: z.string().min(1).optional(),
     postback: z.string().min(1).optional(),
+    data: z.string().min(1).max(300).optional(),
+    displayText: z.string().max(300).optional(),
     uri: z.string().optional(),
     copyText: z.string().min(1).optional(),
   })
@@ -92,7 +109,8 @@ const baseAction = z
     a => {
       switch (a.type) {
         case 'postback':
-          return typeof a.postback === 'string'
+          // spec: postback action は `data` 必須
+          return typeof a.data === 'string'
         case 'uri':
           return typeof a.uri === 'string' && isWebUrl(a.uri)
         case 'copy':
@@ -155,13 +173,17 @@ const imageBodySchema = z
     fileId: z.string().min(1).optional(),
     quickReply: quickReplySchema.optional(),
   })
-  .refine(b => Boolean(b.previewImageUrl || b.originalContentUrl || b.fileId), {
-    message: "'previewImageUrl' / 'originalContentUrl' / 'fileId' のいずれかを指定してください",
+  // spec: previewImageUrl と originalContentUrl は **両方**セット、または fileId 単独。
+  // 旧実装はいずれか 1 つで通していたが LINE WORKS 側は preview/original の片方だけだと 400
+  .refine(b => (Boolean(b.previewImageUrl) && Boolean(b.originalContentUrl)) || Boolean(b.fileId), {
+    message:
+      "'previewImageUrl' と 'originalContentUrl' を両方指定するか、'fileId' を指定してください",
   })
 
 const fileBodySchema = z
   .object({
-    originalContentUrl: urlSchema.optional(),
+    // spec: file の originalContentUrl は HTTPS のみ受理 (http は LINE WORKS 側で 400)
+    originalContentUrl: httpsUrlSchema.optional(),
     fileId: z.string().min(1).optional(),
     quickReply: quickReplySchema.optional(),
   })
@@ -193,6 +215,7 @@ const listTemplateBodySchema = z.object({
       message: "'backgroundImageUrl' と 'backgroundFileId' はどちらか一方のみ指定可能",
     })
     .optional(),
+  // spec: elements は最大 4 件 (旧実装は max 10 だった)
   elements: z
     .array(
       z
@@ -206,7 +229,7 @@ const listTemplateBodySchema = z.object({
         .loose(),
     )
     .min(1)
-    .max(10),
+    .max(4),
   /** 全体 actions: 2 次元配列の各要素は label 必須 action */
   actions: z.array(z.array(labeledActionSchema)).optional(),
   quickReply: quickReplySchema.optional(),
