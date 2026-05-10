@@ -10,10 +10,12 @@ dist
 .next
 out
 
-# Env / Secrets
+# Env / Secrets (LINE WORKS の RSA 秘密鍵を含む)
 .env
 .env.*
 !.env.example
+private_*.key
+*.pem
 
 # VCS / CI
 .git
@@ -37,6 +39,13 @@ biome.jsonc
 lefthook.yml
 .editorconfig
 .tool-versions
+bunfig.toml
+
+# テスト / 開発用 script (本番ビルドに不要)
+tests
+scripts
+src/**/*.test.ts
+src/test-helpers
 
 # 一時 / ログ / アップロード
 *.log

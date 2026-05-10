@@ -9,8 +9,12 @@
 # - HEALTHCHECK は curl を入れず Bun の fetch で済ませる
 # =============================================================================
 
+# global ARG (FROM 行で参照可能)。`.tool-versions` と同じ値に揃えること。
+# Cloud Build なら `--build-arg BUN_VERSION=...` で外部から上書き可能
+ARG BUN_VERSION=1.3.13
+
 # ---------- builder ----------
-FROM oven/bun:1.3.13-debian AS builder
+FROM oven/bun:${BUN_VERSION}-debian AS builder
 
 WORKDIR /app
 
@@ -24,7 +28,7 @@ COPY tsconfig.json ./
 RUN bun run build
 
 # ---------- runtime ----------
-FROM oven/bun:1.3.13-slim AS runtime
+FROM oven/bun:${BUN_VERSION}-slim AS runtime
 
 ENV NODE_ENV=production \
     PORT=8080 \

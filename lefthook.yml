@@ -18,7 +18,9 @@ pre-commit:
       glob: "*.{ts,tsx}"
       run: bunx tsc --noEmit
     test:
-      glob: "src/**/*.{ts,tsx}"
+      # `tests/` 配下だけ編集したコミット (例: feature テストの追加・修正のみ) でも
+      # pre-commit でテストを走らせるため、glob には `tests/` も含める
+      glob: "{src,tests}/**/*.{ts,tsx}"
       run: bun run scripts/run-related-tests.ts {staged_files}
 
 # pre-push では `bun test` を全件実行する (co-located unit + tests/ feature)。

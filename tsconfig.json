@@ -25,9 +25,8 @@
 
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "types": ["bun-types"]
+    }
   },
-  "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "build", "dist", ".tmp", "scripts"]
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "build", "dist", ".tmp"]
 }
