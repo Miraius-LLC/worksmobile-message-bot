@@ -11,7 +11,7 @@
 
 # global ARG (FROM 行で参照可能)。`.tool-versions` と同じ値に揃えること。
 # Cloud Build なら `--build-arg BUN_VERSION=...` で外部から上書き可能
-ARG BUN_VERSION=1.3.13
+ARG BUN_VERSION=1.3.14
 
 # ---------- builder ----------
 FROM oven/bun:${BUN_VERSION}-debian AS builder
