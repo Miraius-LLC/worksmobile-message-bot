@@ -85,7 +85,8 @@ export function createLogger(
       },
       timestamp: pino.stdTimeFunctions.isoTime,
       customLevels: LOG_LEVELS,
-      level: process.env['NODE_ENV'] === 'production' ? 'error' : 'debug',
+      // production でも warn は通す (4xx をログに残しつつ Error Reporting には乗せない運用のため)
+      level: process.env['NODE_ENV'] === 'production' ? 'warn' : 'debug',
       // Error はプロパティが non-enumerable のため、デフォルトでは `error: {}` で潰れる。
       // stdSerializers.err で name / message / stack を抽出する
       serializers: {

@@ -115,7 +115,7 @@ describe('utils/logger-impl: production レベルフィルタ', () => {
     else process.env['NODE_ENV'] = original
   })
 
-  test('NODE_ENV=production では error 以上のみ出る (warn / info / success / request / debug は drop)', () => {
+  test('NODE_ENV=production では warn 以上が出る (info / success / request / debug は drop)', () => {
     process.env['NODE_ENV'] = 'production'
     const { logger, entries } = makeCapturingLogger()
     logger.debug('d', { caller: 'X' })
@@ -126,10 +126,10 @@ describe('utils/logger-impl: production レベルフィルタ', () => {
     logger.error('e', { caller: 'X' })
     logger.failure('f', { caller: 'X' })
 
-    // production の pino level は 'error' (50)。以前は全部 info 経由で書かれていたため
-    // failure 以外が落ちる回帰があった。動的レベル経由になったのでこの並びが正しい
+    // production の pino level は 'warn' (40)。4xx 系を warn に降格しても Cloud Logging に
+    // 痕跡が残るように引き上げてある (Error Reporting には warn が乗らない前提)
     const levels = entries.map(e => e['level'])
-    expect(levels).toEqual(['error', 'failure'])
+    expect(levels).toEqual(['warn', 'error', 'failure'])
   })
 
   test('NODE_ENV=development では debug まで全部出る', () => {

@@ -39,8 +39,14 @@ export async function postJson(token: string, url: string, data: unknown): Promi
 
   if (!response.ok) {
     const body = await response.text().catch(() => '')
-    logger.error('LINE WORKS API 呼び出しに失敗', {
-      caller: `${CALLER}.postJson`,
+    // 5xx は本物のサービス障害 (error)、4xx はクライアント payload 不備で運用 alert に乗せたくない (warn)。
+    // ACCESS_DENIED (Bot がチャンネルから退室) だけは管理画面側の対応が要るので、
+    // 専用 caller で log-based metric から拾えるようにする
+    const isAccessDenied = /"ACCESS_DENIED"/.test(body)
+    const level: 'error' | 'warn' = response.status >= 500 ? 'error' : 'warn'
+    const caller = isAccessDenied ? `${CALLER}.postJson.botKicked` : `${CALLER}.postJson`
+    logger[level]('LINE WORKS API 呼び出しに失敗', {
+      caller,
       url,
       status: response.status,
       debug: body,

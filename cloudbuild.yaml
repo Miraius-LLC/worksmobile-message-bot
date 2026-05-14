@@ -29,6 +29,26 @@ images:
   - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
 
 steps:
+  # 0) トリガー substitution の必須項目が注入されているか検証する
+  #    (空のまま deploy すると Cloud Run の env が "" で更新され、起動時の Zod validation で
+  #    fail → 旧リビジョンに traffic が残ったまま新リビジョンだけ起動失敗を繰り返す事故が起きる)
+  - id: validate-substitutions
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -eu
+        missing=()
+        [ -n "${_CLIENT_ID}" ]         || missing+=("_CLIENT_ID")
+        [ -n "${_SERVICE_ACCOUNT_LW}" ] || missing+=("_SERVICE_ACCOUNT_LW")
+        [ -n "${_BOT_ID}" ]            || missing+=("_BOT_ID")
+        if [ "${#missing[@]}" -gt 0 ]; then
+          echo "ERROR: Cloud Build trigger substitution(s) missing: ${missing[*]}" >&2
+          echo "GCP Console > Cloud Build > Triggers > 該当トリガー > Substitution variables で値を設定してください" >&2
+          exit 1
+        fi
+
   # 1) Docker イメージビルド (BuildKit 限定構文は Dockerfile 側で使用しない)
   - id: build
     name: gcr.io/cloud-builders/docker
