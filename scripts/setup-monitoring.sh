@@ -4,7 +4,10 @@
 #
 # 適用内容:
 #   1) Notification Channel (email)
-#   2) Uptime Check on /healthz
+#   2) Uptime Check on /health
+#      (/healthz は Cloud Run / GFE 層で 404 になる現象を確認したため /health を使う。
+#       app.ts では HEALTH_PATHS = ['/healthz','/health','/readyz','/livez'] が全て
+#       同じハンドラで 200 を返すので機能的に等価)
 #   3) Log-based metric: severity>=ERROR の発生数
 #   4) Log-based metric: ACCESS_DENIED (Bot 退室) の発生数
 #   5) Alerting Policy x3 (uptime / error rate / bot kicked)
@@ -25,15 +28,16 @@ PROJECT_ID="${PROJECT_ID:-office-381404}"
 SERVICE_NAME="${SERVICE_NAME:-worksmobile-message-bot}"
 REGION="${REGION:-asia-northeast1}"
 ALERT_EMAIL="${ALERT_EMAIL:-fujii@miraius.co.jp}"
-SERVICE_HOST="${SERVICE_HOST:-worksmobile-message-bot-6dkxmuzina-an.a.run.app}"
+SERVICE_HOST="${SERVICE_HOST:-line-works.api.miraius.co.jp}"
+HEALTH_PATH="${HEALTH_PATH:-/health}"
 
 METRIC_ERRORS="worksmobile_message_bot_errors"
 METRIC_KICKED="worksmobile_message_bot_kicked"
 
-POLICY_UPTIME_NAME="[${SERVICE_NAME}] Uptime check 失敗 (/healthz)"
+POLICY_UPTIME_NAME="[${SERVICE_NAME}] Uptime check 失敗 (${HEALTH_PATH})"
 POLICY_ERRORS_NAME="[${SERVICE_NAME}] severity>=ERROR 発生"
 POLICY_KICKED_NAME="[${SERVICE_NAME}] Bot がチャンネルから退室 (ACCESS_DENIED)"
-UPTIME_DISPLAY_NAME="${SERVICE_NAME}-healthz"
+UPTIME_DISPLAY_NAME="${SERVICE_NAME}-health"
 
 log() { echo "==> $*"; }
 
@@ -73,7 +77,7 @@ if [ -z "${EXISTING_UPTIME}" ]; then
     --project="${PROJECT_ID}" \
     --resource-labels=host="${SERVICE_HOST}",project_id="${PROJECT_ID}" \
     --resource-type=uptime-url \
-    --path=/healthz \
+    --path="${HEALTH_PATH}" \
     --port=443 \
     --protocol=https \
     --period=5 \
