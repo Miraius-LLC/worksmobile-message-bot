@@ -42,9 +42,10 @@ log() { echo "==> $*"; }
 # -----------------------------------------------------------------------------
 log "Notification Channel (email=${ALERT_EMAIL}) を確認"
 CHANNEL_DISPLAY="email:${ALERT_EMAIL}"
+# Cloud Monitoring の filter 言語は snake_case + 文字列の "..." 必須
 CHANNEL_ID="$(gcloud beta monitoring channels list \
   --project="${PROJECT_ID}" \
-  --filter="type=email AND displayName=\"${CHANNEL_DISPLAY}\"" \
+  --filter="type=\"email\" AND display_name=\"${CHANNEL_DISPLAY}\"" \
   --format="value(name)" | head -n1)"
 if [ -z "${CHANNEL_ID}" ]; then
   log "  作成中..."
@@ -61,10 +62,11 @@ log "  channel: ${CHANNEL_ID}"
 # 2) Uptime Check on /healthz
 # -----------------------------------------------------------------------------
 log "Uptime Check (${UPTIME_DISPLAY_NAME}) を確認"
+# uptime list-configs は filter 文字列が API 側に通らないため、全件取得して grep で突合
 EXISTING_UPTIME="$(gcloud monitoring uptime list-configs \
   --project="${PROJECT_ID}" \
-  --filter="displayName=\"${UPTIME_DISPLAY_NAME}\"" \
-  --format="value(name)" | head -n1)"
+  --format="value(name,displayName)" \
+  | awk -v n="${UPTIME_DISPLAY_NAME}" -F'\t' '$2==n {print $1; exit}')"
 if [ -z "${EXISTING_UPTIME}" ]; then
   log "  作成中..."
   gcloud monitoring uptime create "${UPTIME_DISPLAY_NAME}" \
@@ -75,14 +77,15 @@ if [ -z "${EXISTING_UPTIME}" ]; then
     --port=443 \
     --protocol=https \
     --period=5 \
-    --status-classes=STATUS_CLASS_2XX
+    --status-classes=2xx >/dev/null
 else
   log "  既存を再利用 (${EXISTING_UPTIME})"
 fi
 UPTIME_CHECK_ID="$(gcloud monitoring uptime list-configs \
   --project="${PROJECT_ID}" \
-  --filter="displayName=\"${UPTIME_DISPLAY_NAME}\"" \
-  --format="value(name)" | head -n1 | awk -F/ '{print $NF}')"
+  --format="value(name,displayName)" \
+  | awk -v n="${UPTIME_DISPLAY_NAME}" -F'\t' '$2==n {print $1; exit}' \
+  | awk -F/ '{print $NF}')"
 log "  check id: ${UPTIME_CHECK_ID}"
 
 # -----------------------------------------------------------------------------
@@ -135,8 +138,8 @@ apply_policy() {
   local existing
   existing="$(gcloud alpha monitoring policies list \
     --project="${PROJECT_ID}" \
-    --filter="displayName=\"${display_name}\"" \
-    --format="value(name)" | head -n1)"
+    --format="value(name,displayName)" \
+    | awk -v n="${display_name}" -F'\t' '$2==n {print $1; exit}')"
   if [ -n "${existing}" ]; then
     log "  既存を削除 (${existing})"
     gcloud alpha monitoring policies delete "${existing}" --project="${PROJECT_ID}" --quiet
