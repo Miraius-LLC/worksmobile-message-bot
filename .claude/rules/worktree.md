@@ -8,7 +8,7 @@
 2. **作業**: worktree の中で読み書き → テスト → commit (pre-commit hook が走る)
 3. **離脱**: 変更を残したままセッションを main 側に戻す
 4. **取り込み**: `main` から ff-only でマージ
-5. **公開**: `git push origin main` (pre-push hook の full test が走る)
+5. **公開**: `git push origin main` (pre-push hook の全件テストが走る)
 6. **後片付け**: worktree とブランチを削除
 
 Claude Code から実行する時の対応:
@@ -33,4 +33,4 @@ Claude Code から実行する時の対応:
 - **`main` を直接編集しない**。緊急 hotfix でも worktree を 1 つ切る
 - `EnterWorktree` で作った worktree は使い終わったら `ExitWorktree action="keep"` で離脱、main にマージしてから `git worktree remove` で消す。残しっぱなしにしない
 - ブランチ削除 (`git branch -d`) は **main にマージ済みである** ことを `git -d` 自身に確認させる (`-D` で強制削除しない)
-- `git push origin main` 直前に `full-test` が走る (`lefthook.yml` の `pre-push`)。落ちたら原因を直してから push する
+- `git push origin main` 直前に **全件テストが走る** (各プロジェクトの `lefthook.yml` で定義された pre-push hook、例: `feature-test` / `full-test`)。落ちたら原因を直してから push する

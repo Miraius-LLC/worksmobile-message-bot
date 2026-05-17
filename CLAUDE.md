@@ -4,20 +4,17 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 ## ルール (常時適用)
 
+@./.claude/rules/coding-conventions.md
 @./.claude/rules/commit.md
 @./.claude/rules/worktree.md
+@./.claude/rules/git-log.md
+@./.claude/rules/tests.md
 
 ## トピック別ルール (作業に応じて読む)
 
 - ルート (HTTP エンドポイント) を追加・修正する → `.claude/rules/routes.md`
 - service 層 (LINE WORKS API ラッパ) を触る → `.claude/rules/services.md`
-- テストを書く・直す → `.claude/rules/tests.md`
-
-## コードスタイル (デフォルト差分)
-
-- import パスは `@/` で `src/` を参照 (拡張子 `.ts` は付けない)
-- Linter/Formatter は **Biome** 単体。スタイル整形は手で書き直さず Biome に任せる
-- ログは `@/utils/logger` 統合。各ファイル冒頭で `const CALLER = '...'` を宣言し、メソッド毎に `${CALLER}.<method>` を logger オプションに渡す
+- LINE WORKS 関連のテストパターン (典型モック / app.request / multipart) → `.claude/rules/tests-lineworks.md`
 
 ## 主要コマンド
 
