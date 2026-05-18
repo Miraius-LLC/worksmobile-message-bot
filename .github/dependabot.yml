@@ -9,6 +9,11 @@ updates:
       time: '09:00'
       timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+    ignore:
+      # TS 6 は @types/bun の解決が崩れる (5c090d7 参照)。@types/bun が TS 6 対応したら解除
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
     groups:
       # 関連 dep をまとめる (個別 PR を増やさない)
       hono:
