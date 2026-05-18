@@ -32,7 +32,13 @@ export async function downloadHandler(c: Context<AuthenticatedEnv>): Promise<Res
     headers.set(key, value)
   }
   if (!headers.has('content-disposition')) {
-    headers.set('Content-Disposition', `attachment; filename="${fileId}"`)
+    // fileId は `/:fileId` 経由で任意文字列が来うる。`"` / CRLF 混入を encodeURIComponent で抑止し、
+    // RFC 5987 形式 (filename*) を併記して非 ASCII も安全に扱う
+    const safeName = encodeURIComponent(fileId)
+    headers.set(
+      'Content-Disposition',
+      `attachment; filename="${safeName}"; filename*=UTF-8''${safeName}`,
+    )
   }
   return new Response(fileResponse.body, { status: 200, headers })
 }

@@ -115,6 +115,19 @@ describe('routes/attachments: download', () => {
     expect(res.headers.get('content-disposition')).toContain('F-abc')
   })
 
+  test('fileId に `"` / CRLF が含まれてもヘッダインジェクションされない', async () => {
+    // 生の改行 / quote がヘッダ値に混入せず、注入された X-Injected ヘッダが
+    // 独立して立っていないことを担保する
+    const res = await attachmentsApp.request('/F-%22%0D%0AX-Injected:%201', { method: 'GET' })
+    expect(res.status).toBe(200)
+    const cd = res.headers.get('content-disposition') ?? ''
+    expect(cd).not.toContain('\r')
+    expect(cd).not.toContain('\n')
+    expect(cd).toContain('%22')
+    expect(cd).toContain('%0D%0A')
+    expect(res.headers.get('X-Injected')).toBeNull()
+  })
+
   test('上流の Content-Disposition は引き継がれる', async () => {
     installFetch({
       body: 'x',
