@@ -28,7 +28,7 @@
     "lefthook:install": "lefthook install"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.2",
+    "@hono/node-server": "^2.0.3",
     "@hono/zod-validator": "^0.8.0",
     "hono": "^4.12.19",
     "pino": "^10.3.1",
