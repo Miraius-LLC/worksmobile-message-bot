@@ -14,7 +14,12 @@ const CALLER = 'app'
 
 /** BASIC 認証を適用しないパス (Cloud Run の health probe / Docker HEALTHCHECK / k8s probe 用) */
 const HEALTH_PATHS = ['/healthz', '/health', '/readyz', '/livez'] as const
-const PUBLIC_PATHS = new Set<string>(['/', ...HEALTH_PATHS])
+/**
+ * `/callback` は LINE WORKS から直接叩かれるため BASIC 認証は適用せず、
+ * `X-WORKS-Signature` (HMAC-SHA256 with BOT_SECRET) で真正性を担保する。
+ * 検証ロジックは `routes/callback.ts` 側で実施する
+ */
+const PUBLIC_PATHS = new Set<string>(['/', '/callback', ...HEALTH_PATHS])
 
 /**
  * BASIC 認証ミドルウェアを遅延初期化する。

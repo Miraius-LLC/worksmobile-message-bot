@@ -33,6 +33,12 @@ describe('utils/config', () => {
     expect(typeof cfg.port).toBe('number')
   })
 
+  test('botSecret が env からそのまま反映される (Callback 署名検証用)', () => {
+    const cfg = load()
+    expect(cfg.botSecret).toBe(requireEnv('BOT_SECRET'))
+    expect(cfg.botSecret.length).toBeGreaterThan(0)
+  })
+
   test('load() は idempotent — 2 回目もキャッシュを返す (同一インスタンス)', () => {
     const first = load()
     const second = load()
