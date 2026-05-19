@@ -2,6 +2,15 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { type AuthenticatedEnv, tokenMiddleware } from '@/routes/_middleware'
 import {
+  botDomainPatchSchema,
+  botDomainSchema,
+  deleteBotDomain,
+  listBotDomains,
+  patchBotDomain,
+  registerBotDomain,
+  replaceBotDomain,
+} from '@/services/lineworks/bots-domain'
+import {
   botCreateSchema,
   botPatchSchema,
   createBot,
@@ -122,4 +131,77 @@ botsApp.post('/:botId/secret', async c => {
   }
   const result = await reissueBotSecret(c.var.token, botId)
   return c.json(result)
+})
+
+// =============================================================================
+// ドメイン別 Bot CRUD (Phase 5-b)
+// =============================================================================
+
+/** GET /bots/:botId/domains — Bot が登録されているドメイン一覧 */
+botsApp.get('/:botId/domains', async c => {
+  const botId = c.req.param('botId')
+  const result = await listBotDomains(c.var.token, botId)
+  return c.json(result)
+})
+
+/** POST /bots/:botId/domains/:domainId — ドメインに Bot を登録 */
+botsApp.post(
+  '/:botId/domains/:domainId',
+  zValidator('json', botDomainSchema, (result, c) => {
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'リクエスト本文が不正です'
+      return c.json({ error: message }, 400)
+    }
+  }),
+  async c => {
+    const botId = c.req.param('botId')
+    const domainId = c.req.param('domainId')
+    const body = c.req.valid('json')
+    await registerBotDomain(c.var.token, botId, domainId, body)
+    return c.json({ botId, domainId }, 201)
+  },
+)
+
+/** PUT /bots/:botId/domains/:domainId — ドメイン別 Bot 設定を完全置換 */
+botsApp.put(
+  '/:botId/domains/:domainId',
+  zValidator('json', botDomainSchema, (result, c) => {
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'リクエスト本文が不正です'
+      return c.json({ error: message }, 400)
+    }
+  }),
+  async c => {
+    const botId = c.req.param('botId')
+    const domainId = c.req.param('domainId')
+    const body = c.req.valid('json')
+    await replaceBotDomain(c.var.token, botId, domainId, body)
+    return c.json({ botId, domainId })
+  },
+)
+
+/** PATCH /bots/:botId/domains/:domainId — ドメイン別 Bot 設定を部分更新 */
+botsApp.patch(
+  '/:botId/domains/:domainId',
+  zValidator('json', botDomainPatchSchema, (result, c) => {
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'リクエスト本文が不正です'
+      return c.json({ error: message }, 400)
+    }
+  }),
+  async c => {
+    const botId = c.req.param('botId')
+    const domainId = c.req.param('domainId')
+    const body = c.req.valid('json')
+    await patchBotDomain(c.var.token, botId, domainId, body)
+    return c.json({ botId, domainId })
+  },
+)
+
+/** DELETE /bots/:botId/domains/:domainId — Bot をドメインから削除 (idempotent) */
+botsApp.delete('/:botId/domains/:domainId', async c => {
+  const botId = c.req.param('botId')
+  const domainId = c.req.param('domainId')
+  await deleteBotDomain(c.var.token, botId, domainId)
+  return c.body(null, 204)
 })
