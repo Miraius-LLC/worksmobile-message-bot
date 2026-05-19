@@ -14,6 +14,7 @@ import { messagesApp } from '@/routes/messages'
 import { LineWorksApiError } from '@/services/lineworks/api'
 import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
+import { requestLogMiddleware } from '@/utils/request-log'
 import { traceContextMiddleware } from '@/utils/trace'
 
 const CALLER = 'app'
@@ -51,6 +52,10 @@ export const app = new Hono()
 
 // `x-cloud-trace-context` を AsyncLocalStorage に保存して以降の logger 呼び出しに自動付与
 app.use('*', traceContextMiddleware)
+
+// 全リクエストを 1 行 logger.request にまとめる。trace fields は traceContextMiddleware が
+// セットした AsyncLocalStorage を参照するため、必ずその後ろに置く
+app.use('*', requestLogMiddleware)
 
 // X-Frame-Options / X-Content-Type-Options / Strict-Transport-Security 等を一括付与
 app.use('*', secureHeaders())
