@@ -1,10 +1,10 @@
-import { describe, expect, mock, test } from 'bun:test'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import { createHmac } from 'node:crypto'
 
 // LINE WORKS Bot Callback の受信ルート (`POST /callback`) の feature テスト。
 // BASIC 認証は除外パスで素通り、`X-WORKS-Signature` の HMAC-SHA256 + raw body
 // 検証で真正性を担保する設計のため、ここでは「署名 OK / NG」「Zod 検証 OK / NG」
-// 「dispatcher 呼び出し」の 3 観点をカバーする。
+// 「dispatcher 呼び出し」「dedup」の 4 観点をカバーする。
 //
 // dispatcher は `mock.module` で差し替えるため `app` は動的 import する
 // (static import だと mock が間に合わず実装が import されてしまう)
@@ -15,6 +15,14 @@ mock.module('@/services/lineworks/callback/dispatch', () => ({
 }))
 
 const { app } = await import('@/app')
+const { _resetForTest: resetDedup } = await import('@/services/lineworks/callback/dedup')
+
+// 各テスト前に dedup の内部 Map を空にする。`dedup.ts` は module-level state を
+// 持つため、同じ fixture を使う test 間で「2 回目は重複扱い」になってしまうのを防ぐ
+beforeEach(() => {
+  resetDedup()
+  dispatchSpy.mockClear()
+})
 
 // setup.ts で BOT_SECRET=test-bot-secret に固定済
 const BOT_SECRET = 'test-bot-secret'
@@ -184,4 +192,47 @@ describe('POST /callback: 8 event type 全て', () => {
       expect(res.status).toBe(200)
     })
   }
+})
+
+describe('POST /callback: dedup (5 分 window)', () => {
+  test('同一 body の 2 回目は dispatch を呼ばず 200 を返す', async () => {
+    const raw = JSON.stringify(messageEventFixture)
+    const signature = sign(raw)
+
+    const res1 = await postCallback(raw, signature)
+    expect(res1.status).toBe(200)
+    expect(dispatchSpy).toHaveBeenCalledTimes(1)
+
+    const res2 = await postCallback(raw, signature)
+    expect(res2.status).toBe(200)
+    // dispatch は重複検出によりスキップされるため、合計 1 回のままになる
+    expect(dispatchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  test('異なる body は別々に dispatch される (key 衝突しない)', async () => {
+    const raw1 = JSON.stringify({ ...messageEventFixture, issuedTime: '2026-01-04T05:00:00Z' })
+    const raw2 = JSON.stringify({ ...messageEventFixture, issuedTime: '2026-01-04T06:00:00Z' })
+
+    await postCallback(raw1, sign(raw1))
+    await postCallback(raw2, sign(raw2))
+
+    expect(dispatchSpy).toHaveBeenCalledTimes(2)
+  })
+
+  test('dispatch が throw した場合は dedup を unregister して再送を許可する', async () => {
+    // 1 回目: dispatch を throw 化 → 500 → onError 経由
+    dispatchSpy.mockImplementationOnce(async () => {
+      throw new Error('dispatch failed')
+    })
+    const raw = JSON.stringify(messageEventFixture)
+    const signature = sign(raw)
+
+    const res1 = await postCallback(raw, signature)
+    expect(res1.status).toBe(500)
+
+    // 2 回目 (LINE WORKS の再送相当): dedup が unregister されているので再度 dispatch される
+    const res2 = await postCallback(raw, signature)
+    expect(res2.status).toBe(200)
+    expect(dispatchSpy).toHaveBeenCalledTimes(2)
+  })
 })
