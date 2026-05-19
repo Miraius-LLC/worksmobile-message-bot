@@ -259,6 +259,35 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 
 ---
 
+#### [チャンネル管理](https://developers.worksmobile.com/jp/reference/bot-channel-create) (トークルーム CRUD)
+
+- BASE URL: `/channels`
+- Bot がいるトークルームの作成 / 情報取得 / 退室 / メンバー一覧 (既存の `/channels/:id/messages/type/<type>` とは別経路)
+
+| Endpoint           | HTTP   | 説明                                                                                         |
+| ------------------ | ------ | -------------------------------------------------------------------------------------------- |
+| `/`                | POST   | [トークルーム作成](https://developers.worksmobile.com/jp/reference/bot-channel-create) → `{ channelId }` |
+| `/{:channelId}`    | GET    | トークルーム情報取得 (`domainId` / `title` / `channelType`)。未登録は 200 + `null`              |
+| `/{:channelId}`    | DELETE | Bot をトークルームから退室 (未参加でも 204 で idempotent)                                       |
+| `/{:channelId}/members` | GET | メンバー一覧。`?count=1〜100&cursor=...` でページング                                          |
+
+---
+
+#### [ドメインメンバー管理](https://developers.worksmobile.com/jp/reference/bot-domain-member-create) (Bot 利用ユーザー)
+
+- BASE URL: `/domains/{:domainId}`
+- ドメイン内で Bot を利用できるユーザーを 1 件ずつ登録 / 一覧取得 / 削除
+
+| Endpoint            | HTTP   | 説明                                                                                          |
+| ------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| `/members`          | POST   | Bot 利用ユーザーを 1 件登録 (`{ userId }`) → 201 + `{ userId }`                                  |
+| `/members`          | GET    | 利用ユーザー一覧。`?count=1〜100&cursor=...` でページング                                       |
+| `/members/{:userId}` | DELETE | Bot 利用ユーザーを削除 (未登録でも 204 で idempotent)                                          |
+
+> API 経由の登録 / 削除はユーザーへのサービス通知を送りません (管理画面経由とは挙動が異なる)。同一 Bot に対する操作 API は並列で叩かないこと。
+
+---
+
 ### 主要な制約サマリ (LINE WORKS spec 準拠)
 
 各 type のリクエスト本文は Zod schema で起動時にバリデーションされる。仕様より緩いと
@@ -290,6 +319,10 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 | リッチメニュー `richmenuName` | 1〜300 文字 |
 | リッチメニュー `areas[].action.label` | 最大 **20** 文字 (固定メニューより短い) |
 | リッチメニュー画像 | JPEG / PNG、2500x843 または 2500x1686、最大 **1 MB** |
+| トークルーム作成 `members` | 1〜100 件、重複不可 |
+| トークルーム作成 `title` | 最大 1000 文字 |
+| `channels/:id/members` `?count` | 1〜100 (デフォルト 50)、`cursor` でページング |
+| `domains/:domainId/members` `?count` | 1〜100 (デフォルト 50)、`cursor` でページング |
 
 ---
 
@@ -590,6 +623,48 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 
 - 一覧: `GET /menus/rich` → 200 + `{ richmenus: [...] }`
 - 削除: `DELETE /menus/rich/{:richmenuId}` → 204 (未登録も idempotent)
+
+---
+
+#### チャンネル管理 (Bot 退室 / メンバー一覧)
+
+##### 作成
+
+- Endpoint: `/channels`
+- HTTP: `POST`
+- Body:
+  ```json
+  {
+    "members": ["userId-1", "userId-2"],
+    "title": "業務連絡 (任意, 最大 1000 文字)"
+  }
+  ```
+- Response: `{ "channelId": "ch-001", "title": "業務連絡" }`
+
+##### 情報取得 / 退室 / メンバー一覧
+
+- 情報: `GET /channels/{:channelId}` → 200 + `{ domainId, channelId, title, channelType }` (未登録は `null`)
+- 退室: `DELETE /channels/{:channelId}` → 204 (Bot がそのトークルームから退室。未参加でも idempotent)
+- メンバー: `GET /channels/{:channelId}/members?count=50&cursor=...` → 200 + `{ members: [...], responseMetaData: { nextCursor? } }`
+
+---
+
+#### ドメインメンバー管理 (Bot 利用ユーザー)
+
+##### 登録
+
+- Endpoint: `/domains/{:domainId}/members`
+- HTTP: `POST`
+- Body:
+  ```json
+  { "userId": "u1-or-login-id@example.com" }
+  ```
+- Response: `201 + { "userId": "u1-or-login-id@example.com" }`
+
+##### 一覧 / 削除
+
+- 一覧: `GET /domains/{:domainId}/members?count=50&cursor=...` → 200 + `{ members: [...], responseMetaData: { nextCursor? } }`
+- 削除: `DELETE /domains/{:domainId}/members/{:userId}` → 204 (未登録でも idempotent)
 
 ***
 
