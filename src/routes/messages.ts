@@ -14,7 +14,12 @@ import { type AuthenticatedEnv, tokenMiddleware } from './_middleware'
 /** README に記載の `(channels|users)/:id/messages/type/<type>` を全部登録した Hono ルータ */
 export const messagesApp = new Hono<AuthenticatedEnv>()
 
-messagesApp.use('*', tokenMiddleware)
+// `messagesApp` は `app.route('/', messagesApp)` で root に mount されるため、`use('*')` で
+// 登録した middleware は app 全体に波及してしまい /callback 等 messages 以外のルートにも
+// tokenMiddleware が発火する事故が起きる。`/channels/*` / `/users/*` の 2 prefix に絞れば
+// messages のルート (`(channels|users)/:id/messages/type/<type>`) だけを覆える
+messagesApp.use('/channels/*', tokenMiddleware)
+messagesApp.use('/users/*', tokenMiddleware)
 
 for (const base of ['channels', 'users'] as const) {
   for (const type of messageTypes) {
