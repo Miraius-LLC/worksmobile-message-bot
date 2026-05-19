@@ -1,3 +1,4 @@
+import { handleMessage } from '@/services/lineworks/callback/handlers/message'
 import type { CallbackEvent } from '@/services/lineworks/callback/schemas'
 import { logger } from '@/utils/logger'
 
@@ -6,10 +7,8 @@ const CALLER = 'services/lineworks/callback/dispatch'
 /**
  * 受信した Callback event を type 別に分配する。
  *
- * Phase 1 (受信基盤) では「ログ出力 + 200 OK」のみ。
- * Phase 2 以降で各 type に handler を実装する際は、`switch` の各分岐で
- * `handlers/<type>.ts` から import した関数を呼ぶ形にする (シグネチャは
- * `(event: Extract<CallbackEvent, { type: 'X' }>) => Promise<void>`)。
+ * 各 type の handler は `handlers/<type>.ts` から import する。シグネチャは
+ * `(event: Extract<CallbackEvent, { type: 'X' }>) => Promise<void>` に統一。
  *
  * route 層 (`routes/callback.ts`) はこの関数を呼ぶだけで、内部のエラーは
  * そのまま throw される → `app.onError` が 500 で拾うので、各分岐で try/catch しない
@@ -22,10 +21,10 @@ export async function dispatch(event: CallbackEvent): Promise<void> {
 
   switch (event.type) {
     case 'message':
-      // Phase 2-b: services/lineworks/callback/handlers/message.ts を呼ぶ
+      await handleMessage(event)
       break
     case 'postback':
-      // Phase 2-c: services/lineworks/callback/handlers/postback.ts を呼ぶ
+      // Phase 2-c: handlers/postback.ts を呼ぶ
       break
     case 'join':
     case 'leave':
