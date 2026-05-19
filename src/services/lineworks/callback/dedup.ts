@@ -4,8 +4,9 @@ const TTL_MS = 5 * 60 * 1000
 
 /**
  * key (raw body の SHA-256) → 失効する Unix epoch ms。
- * 単一 instance 前提 (Cloud Run の min-instances=1)。`max-instances` を 2 以上に
- * すると instance ごとに別 Map が走るため dedup が破綻する。
+ * Cloud Run の `min-instances=1` で平常時は 1 instance に張り付くことを前提に動く。
+ * auto-scale で 2 instance 以上が同時稼働すると instance ごとに別 Map が走り破綻する。
+ * 詳細な運用前提・移行条件は README の「Callback (受信側) → Dedup」節を参照。
  */
 const seen = new Map<string, number>()
 
