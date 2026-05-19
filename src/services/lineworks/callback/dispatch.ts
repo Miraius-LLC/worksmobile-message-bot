@@ -1,4 +1,5 @@
 import { handleMessage } from '@/services/lineworks/callback/handlers/message'
+import { handlePostback } from '@/services/lineworks/callback/handlers/postback'
 import type { CallbackEvent } from '@/services/lineworks/callback/schemas'
 import { logger } from '@/utils/logger'
 
@@ -24,7 +25,7 @@ export async function dispatch(event: CallbackEvent): Promise<void> {
       await handleMessage(event)
       break
     case 'postback':
-      // Phase 2-c: handlers/postback.ts を呼ぶ
+      await handlePostback(event)
       break
     case 'join':
     case 'leave':
