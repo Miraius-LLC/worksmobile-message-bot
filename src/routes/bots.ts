@@ -104,11 +104,39 @@ botsApp.patch(
   },
 )
 
+/**
+ * 本番運用中の BOT_ID と一致するパスへの破壊的操作 (DELETE / Secret 再発行) を
+ * `?confirm=<botId>` クエリ無しでは 403 で拒否する。
+ *
+ * 用途: BASIC 認証が漏洩した場合や、CLI からの誤操作で本番 Bot を消失させる
+ * 事故を物理的に防ぐ。bypass したい場合は `?confirm=<本番 botId>` を URL に
+ * 付けて再リクエストする (botId と confirm が一致する場合のみ通す)
+ */
+function isSelfDestructBlocked(botId: string, confirm: string | undefined): boolean {
+  if (botId !== config().botId) return false
+  return confirm !== botId
+}
+
 /** DELETE /bots/:botId — Bot 削除 (破壊的、404 idempotent) */
 botsApp.delete('/:botId', async c => {
   const botId = c.req.param('botId')
+  const confirm = c.req.query('confirm')
+  if (isSelfDestructBlocked(botId, confirm)) {
+    logger.warn('本番運用中の BOT_ID への DELETE を 403 で拒否 (confirm 不一致)', {
+      caller: `${CALLER}.deleteBot.blocked`,
+      id: botId,
+    })
+    return c.json(
+      {
+        error:
+          '本番運用中の BOT_ID を削除しようとしています。意図的に実行する場合は ?confirm=<botId> を付けて再リクエストしてください',
+        botId,
+      },
+      403,
+    )
+  }
   if (botId === config().botId) {
-    logger.warn('本番運用中の BOT_ID に対する削除リクエスト', {
+    logger.warn('本番運用中の BOT_ID を confirm 付きで削除', {
       caller: `${CALLER}.deleteBot`,
       id: botId,
     })
@@ -120,6 +148,21 @@ botsApp.delete('/:botId', async c => {
 /** POST /bots/:botId/secret — Bot Secret 再発行 (破壊的、要 Secret Manager 更新) */
 botsApp.post('/:botId/secret', async c => {
   const botId = c.req.param('botId')
+  const confirm = c.req.query('confirm')
+  if (isSelfDestructBlocked(botId, confirm)) {
+    logger.warn('本番運用中の BOT_ID への Secret 再発行を 403 で拒否 (confirm 不一致)', {
+      caller: `${CALLER}.reissueSecret.blocked`,
+      id: botId,
+    })
+    return c.json(
+      {
+        error:
+          '本番運用中の BOT_ID の Secret を再発行しようとしています。意図的に実行する場合は ?confirm=<botId> を付けて再リクエストしてください。再発行後は Secret Manager の lineworks-bot-secret を更新する必要があります',
+        botId,
+      },
+      403,
+    )
+  }
   if (botId === config().botId) {
     logger.warn(
       '本番運用中の BOT_ID の Secret を再発行 → Secret Manager の lineworks-bot-secret を更新しないと Callback 署名検証が失敗します',

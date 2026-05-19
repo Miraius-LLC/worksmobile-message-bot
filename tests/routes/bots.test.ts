@@ -216,3 +216,88 @@ describe('POST /bots/:botId/secret (再発行)', () => {
     expect(res.status).toBe(401)
   })
 })
+
+// =============================================================================
+// 本番 BOT 自己破壊 403 ガード (test-helpers/setup.ts で BOT_ID='test-bot-id' 固定)
+// =============================================================================
+
+describe('本番 BOT 自己破壊 403 ガード', () => {
+  // setup.ts で process.env.BOT_ID = 'test-bot-id'。これと一致する :botId が「本番」扱い
+  const PROD_BOT_ID = 'test-bot-id'
+
+  describe('DELETE /bots/:botId', () => {
+    test('本番 BOT_ID + confirm 無し → 403', async () => {
+      installFetch(() => new Response('', { status: 204 }))
+      const res = await app.request(`/bots/${PROD_BOT_ID}`, {
+        method: 'DELETE',
+        headers: { Authorization: BASIC_AUTH },
+      })
+      expect(res.status).toBe(403)
+      const body = (await res.json()) as { error: string; botId: string }
+      expect(body.error).toContain('?confirm=')
+      expect(body.botId).toBe(PROD_BOT_ID)
+      // upstream は叩かれていない
+      expect(recorded.some(r => r.url.includes('/www.worksapis.com'))).toBe(false)
+    })
+
+    test('本番 BOT_ID + confirm 一致 → 204 (通す)', async () => {
+      installFetch(() => new Response('', { status: 204 }))
+      const res = await app.request(`/bots/${PROD_BOT_ID}?confirm=${PROD_BOT_ID}`, {
+        method: 'DELETE',
+        headers: { Authorization: BASIC_AUTH },
+      })
+      expect(res.status).toBe(204)
+    })
+
+    test('本番 BOT_ID + confirm 別値 → 403', async () => {
+      const res = await app.request(`/bots/${PROD_BOT_ID}?confirm=wrong-value`, {
+        method: 'DELETE',
+        headers: { Authorization: BASIC_AUTH },
+      })
+      expect(res.status).toBe(403)
+    })
+
+    test('本番 BOT_ID と異なる id は confirm 不要で 204', async () => {
+      installFetch(() => new Response('', { status: 204 }))
+      const res = await app.request('/bots/some-other-bot-id', {
+        method: 'DELETE',
+        headers: { Authorization: BASIC_AUTH },
+      })
+      expect(res.status).toBe(204)
+    })
+  })
+
+  describe('POST /bots/:botId/secret', () => {
+    test('本番 BOT_ID + confirm 無し → 403', async () => {
+      installFetch(() => new Response(JSON.stringify({ botSecret: 'x' }), { status: 200 }))
+      const res = await app.request(`/bots/${PROD_BOT_ID}/secret`, {
+        method: 'POST',
+        headers: { Authorization: BASIC_AUTH },
+      })
+      expect(res.status).toBe(403)
+      const body = (await res.json()) as { error: string }
+      expect(body.error).toContain('Secret Manager')
+      // upstream は叩かれていない
+      expect(recorded.some(r => r.url.includes('/secret'))).toBe(false)
+    })
+
+    test('本番 BOT_ID + confirm 一致 → 200 (通す)', async () => {
+      installFetch(() => new Response(JSON.stringify({ botSecret: 'new-x' }), { status: 200 }))
+      const res = await app.request(`/bots/${PROD_BOT_ID}/secret?confirm=${PROD_BOT_ID}`, {
+        method: 'POST',
+        headers: { Authorization: BASIC_AUTH },
+      })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ botSecret: 'new-x' })
+    })
+
+    test('本番 BOT_ID と異なる id は confirm 不要で 200', async () => {
+      installFetch(() => new Response(JSON.stringify({ botSecret: 'x' }), { status: 200 }))
+      const res = await app.request('/bots/some-other-bot-id/secret', {
+        method: 'POST',
+        headers: { Authorization: BASIC_AUTH },
+      })
+      expect(res.status).toBe(200)
+    })
+  })
+})

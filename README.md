@@ -303,7 +303,7 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 | `/{:botId}`           | DELETE | **破壊的** Bot 削除 (404 idempotent、復元不可)                                                       |
 | `/{:botId}/secret`    | POST   | **破壊的** Bot Secret 再発行 → 200 + `{ botSecret }`。発行後は Secret Manager の `lineworks-bot-secret` を更新しないと Callback 署名検証が失敗 |
 
-> 本番運用中の `BOT_ID` と一致する `:botId` への `DELETE` / `POST /secret` は警告ログを出すが、route 層では拒否しません。誤操作に注意。
+> 本番運用中の `BOT_ID` (env と一致) に対する `DELETE` と `POST /secret` は、**`?confirm=<botId>` クエリを付けないと 403 で拒否**されます。誤操作で本番 Bot を消失させないための物理ガード。意図的に実行する場合は `curl -X DELETE -u "$U:$P" "https://.../bots/<botId>?confirm=<botId>"` のように confirm を付ける。
 
 ---
 
