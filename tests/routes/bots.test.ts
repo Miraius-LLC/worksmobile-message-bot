@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { app } from '@/app'
 import { _resetTokenCacheForTest } from '@/services/lineworks/auth'
+import { config } from '@/utils/config'
 
 const AUTH_HOST = 'auth.worksmobile.com'
 const API_HOST = 'www.worksapis.com'
@@ -218,12 +219,13 @@ describe('POST /bots/:botId/secret (再発行)', () => {
 })
 
 // =============================================================================
-// 本番 BOT 自己破壊 403 ガード (test-helpers/setup.ts で BOT_ID='test-bot-id' 固定)
+// 本番 BOT 自己破壊 403 ガード
 // =============================================================================
 
 describe('本番 BOT 自己破壊 403 ガード', () => {
-  // setup.ts で process.env.BOT_ID = 'test-bot-id'。これと一致する :botId が「本番」扱い
-  const PROD_BOT_ID = 'test-bot-id'
+  // config().botId は test-helpers/setup.ts で `??=` で fallback 設定されるが、
+  // `.env` に BOT_ID がある場合はそちらが優先される。テストでは動的取得する
+  const PROD_BOT_ID = config().botId
 
   describe('DELETE /bots/:botId', () => {
     test('本番 BOT_ID + confirm 無し → 403', async () => {
