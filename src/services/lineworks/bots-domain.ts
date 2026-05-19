@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, LineWorksApiError } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -58,7 +59,7 @@ export async function registerBotDomain(
   domainId: string,
   input: BotDomainInput,
 ): Promise<void> {
-  const response = await fetch(domainsUrl(botId, domainId), {
+  const response = await fetchWithTimeout(domainsUrl(botId, domainId), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -80,7 +81,7 @@ export async function listBotDomains(
   token: string,
   botId: string,
 ): Promise<{ domains: unknown[] }> {
-  const response = await fetch(domainsUrl(botId), {
+  const response = await fetchWithTimeout(domainsUrl(botId), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -98,7 +99,7 @@ export async function replaceBotDomain(
   domainId: string,
   input: BotDomainInput,
 ): Promise<void> {
-  const response = await fetch(domainsUrl(botId, domainId), {
+  const response = await fetchWithTimeout(domainsUrl(botId, domainId), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -122,7 +123,7 @@ export async function patchBotDomain(
   domainId: string,
   input: BotDomainPatchInput,
 ): Promise<void> {
-  const response = await fetch(domainsUrl(botId, domainId), {
+  const response = await fetchWithTimeout(domainsUrl(botId, domainId), {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -145,7 +146,7 @@ export async function deleteBotDomain(
   botId: string,
   domainId: string,
 ): Promise<void> {
-  const response = await fetch(domainsUrl(botId, domainId), {
+  const response = await fetchWithTimeout(domainsUrl(botId, domainId), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   })

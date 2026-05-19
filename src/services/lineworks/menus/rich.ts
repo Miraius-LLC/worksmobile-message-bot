@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { fetchWithTimeout, LONG_TIMEOUT_MS } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -126,7 +127,7 @@ export async function createRichMenu(
   token: string,
   menu: RichMenuCreate,
 ): Promise<CreateRichMenuResult> {
-  const response = await fetch(richMenuBaseUrl(), {
+  const response = await fetchWithTimeout(richMenuBaseUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -150,7 +151,7 @@ export async function createRichMenu(
 
 /** リッチメニュー一覧 (Bot 内に登録された全件) */
 export async function listRichMenus(token: string): Promise<RichMenu[]> {
-  const response = await fetch(richMenuBaseUrl(), {
+  const response = await fetchWithTimeout(richMenuBaseUrl(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -186,10 +187,12 @@ export async function uploadRichMenuImage(
   const formData = new FormData()
   formData.append('file', image, filename)
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
+    // 1 MB までの multipart upload を許容するため長めの timeout
+    timeoutMs: LONG_TIMEOUT_MS,
   })
 
   if (!response.ok) await throwUpstream(response, `${CALLER}.uploadRichMenuImage`)
@@ -203,7 +206,7 @@ export async function uploadRichMenuImage(
 /** リッチメニューをデフォルト (全ユーザー共通) として適用 */
 export async function setDefaultRichMenu(token: string, richmenuId: string): Promise<void> {
   const url = `${richMenuBaseUrl()}/${richmenuId}/set-default`
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -219,7 +222,7 @@ export async function setDefaultRichMenu(token: string, richmenuId: string): Pro
 /** リッチメニューを削除。未登録時 (404) は idempotent に成功扱い */
 export async function deleteRichMenu(token: string, richmenuId: string): Promise<void> {
   const url = `${richMenuBaseUrl()}/${richmenuId}`
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   })

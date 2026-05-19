@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -83,7 +84,7 @@ export async function createChannel(
   token: string,
   input: CreateChannelInput,
 ): Promise<CreateChannelResult> {
-  const response = await fetch(channelsBaseUrl(), {
+  const response = await fetchWithTimeout(channelsBaseUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -107,7 +108,7 @@ export async function createChannel(
 
 /** トークルーム情報を取得する。存在しない場合 (404) は null を返す */
 export async function getChannel(token: string, channelId: string): Promise<ChannelInfo | null> {
-  const response = await fetch(`${channelsBaseUrl()}/${channelId}`, {
+  const response = await fetchWithTimeout(`${channelsBaseUrl()}/${channelId}`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -120,7 +121,7 @@ export async function getChannel(token: string, channelId: string): Promise<Chan
 
 /** Bot をトークルームから退室させる。未参加 (404) も idempotent に成功扱い */
 export async function leaveChannel(token: string, channelId: string): Promise<void> {
-  const response = await fetch(`${channelsBaseUrl()}/${channelId}`, {
+  const response = await fetchWithTimeout(`${channelsBaseUrl()}/${channelId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -154,7 +155,7 @@ export async function listChannelMembers(
   if (query.count !== undefined) url.searchParams.set('count', String(query.count))
   if (query.cursor) url.searchParams.set('cursor', query.cursor)
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })

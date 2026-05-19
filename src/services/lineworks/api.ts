@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { getErrorHint } from '@/services/lineworks/error-hints'
 import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
@@ -59,7 +60,7 @@ export function getBotId(): string {
 
 /** Bot API への JSON POST。失敗時はステータスとボディをログに出して throw する */
 export async function postJson(token: string, url: string, data: unknown): Promise<unknown> {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -1,3 +1,4 @@
+import { fetchWithTimeout, LONG_TIMEOUT_MS } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError, postJson } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -32,12 +33,14 @@ export async function uploadAttachment(
   formData.append('resourceName', fileName)
   formData.append('file', file, fileName)
 
-  const response = await fetch(issued.uploadUrl, {
+  const response = await fetchWithTimeout(issued.uploadUrl, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
     },
     body: formData,
+    // 10 MB までの multipart upload を許容するため長めの timeout
+    timeoutMs: LONG_TIMEOUT_MS,
   })
 
   if (!response.ok) {
@@ -67,7 +70,7 @@ export async function resolveDownloadUrl(token: string, fileId: string): Promise
   const botId = getBotId()
   const url = `${API_BASE}/bots/${botId}/attachments/${fileId}`
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,

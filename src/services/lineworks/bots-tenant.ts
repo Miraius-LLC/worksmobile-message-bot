@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, LineWorksApiError } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -122,7 +123,7 @@ async function throwUpstream(response: Response, caller: string): Promise<never>
 
 /** Bot を新規作成 → botId 含む BotInfo を返す */
 export async function createBot(token: string, input: BotCreateInput): Promise<BotInfo> {
-  const response = await fetch(botsUrl(), {
+  const response = await fetchWithTimeout(botsUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -141,7 +142,7 @@ export async function createBot(token: string, input: BotCreateInput): Promise<B
 
 /** テナント内の Bot 一覧を取得 (spec 上ページングなしの想定だが将来対応) */
 export async function listBots(token: string): Promise<BotListResult> {
-  const response = await fetch(botsUrl(), {
+  const response = await fetchWithTimeout(botsUrl(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -155,7 +156,7 @@ export async function listBots(token: string): Promise<BotListResult> {
 
 /** Bot 取得。未存在 (404) は null */
 export async function getBot(token: string, botId: string): Promise<BotInfo | null> {
-  const response = await fetch(botsUrl(botId), {
+  const response = await fetchWithTimeout(botsUrl(botId), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -172,7 +173,7 @@ export async function replaceBot(
   botId: string,
   input: BotCreateInput,
 ): Promise<BotInfo> {
-  const response = await fetch(botsUrl(botId), {
+  const response = await fetchWithTimeout(botsUrl(botId), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -193,7 +194,7 @@ export async function patchBot(
   botId: string,
   input: BotPatchInput,
 ): Promise<BotInfo> {
-  const response = await fetch(botsUrl(botId), {
+  const response = await fetchWithTimeout(botsUrl(botId), {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -213,7 +214,7 @@ export async function patchBot(
  * 404 は idempotent に成功扱い (既に削除済の Bot に対する DELETE は通す)
  */
 export async function deleteBot(token: string, botId: string): Promise<void> {
-  const response = await fetch(botsUrl(botId), {
+  const response = await fetchWithTimeout(botsUrl(botId), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -236,7 +237,7 @@ export async function deleteBot(token: string, botId: string): Promise<void> {
  * Secret Manager の更新も忘れずに行うこと
  */
 export async function reissueBotSecret(token: string, botId: string): Promise<ReissueSecretResult> {
-  const response = await fetch(`${botsUrl(botId)}/secret`, {
+  const response = await fetchWithTimeout(`${botsUrl(botId)}/secret`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   })

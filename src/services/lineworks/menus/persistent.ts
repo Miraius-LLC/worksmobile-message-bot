@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -103,7 +104,7 @@ export async function setPersistentMenu(
   token: string,
   menu: PersistentMenu,
 ): Promise<PersistentMenu> {
-  const response = await fetch(persistentMenuUrl(), {
+  const response = await fetchWithTimeout(persistentMenuUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -124,7 +125,7 @@ export async function setPersistentMenu(
  * 固定メニューを取得する。未登録の場合は `null` を返す (404 は LineWorksApiError ではなく null に変換)。
  */
 export async function getPersistentMenu(token: string): Promise<PersistentMenu | null> {
-  const response = await fetch(persistentMenuUrl(), {
+  const response = await fetchWithTimeout(persistentMenuUrl(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -140,7 +141,7 @@ export async function getPersistentMenu(token: string): Promise<PersistentMenu |
  * 未登録のものを削除しようとした場合 (404) も成功扱いで idempotent にする。
  */
 export async function deletePersistentMenu(token: string): Promise<void> {
-  const response = await fetch(persistentMenuUrl(), {
+  const response = await fetchWithTimeout(persistentMenuUrl(), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   })

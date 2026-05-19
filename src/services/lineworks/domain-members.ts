@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -69,7 +70,7 @@ export async function registerDomainMember(
   domainId: string,
   input: RegisterDomainMemberInput,
 ): Promise<void> {
-  const response = await fetch(membersUrl(domainId), {
+  const response = await fetchWithTimeout(membersUrl(domainId), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -99,7 +100,7 @@ export async function listDomainMembers(
   if (query.count !== undefined) url.searchParams.set('count', String(query.count))
   if (query.cursor) url.searchParams.set('cursor', query.cursor)
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchWithTimeout(url.toString(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -115,7 +116,7 @@ export async function unregisterDomainMember(
   domainId: string,
   userId: string,
 ): Promise<void> {
-  const response = await fetch(`${membersUrl(domainId)}/${userId}`, {
+  const response = await fetchWithTimeout(`${membersUrl(domainId)}/${userId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   })

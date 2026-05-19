@@ -1,4 +1,5 @@
 import { createSign } from 'node:crypto'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
 
@@ -56,7 +57,7 @@ async function fetchAccessToken(jwtToken: string): Promise<CachedToken> {
     scope: 'bot',
   })
 
-  const response = await fetch(AUTH_URL, {
+  const response = await fetchWithTimeout(AUTH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: params,
