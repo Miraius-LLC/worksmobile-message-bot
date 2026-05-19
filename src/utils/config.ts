@@ -26,11 +26,6 @@ const configSchema = z
     /** webhook 公開エンドポイント保護用の BASIC 認証クレデンシャル */
     BASIC_ID: z.string().min(1),
     BASIC_PASS: z.string().min(1),
-    /**
-     * LINE WORKS Bot Callback の署名検証用 Bot Secret。
-     * Developer Console > Bot 詳細から取得した値をそのまま入れる (Base64 等のデコードは不要)
-     */
-    BOT_SECRET: z.string().min(1),
   })
   .transform(env => {
     const privateKey = Buffer.from(env.PRIVATE_KEY, 'base64').toString('utf-8')
@@ -48,7 +43,6 @@ const configSchema = z
       logPretty: env.LOG_PRETTY === '1',
       basicAuthUsername: env.BASIC_ID,
       basicAuthPassword: env.BASIC_PASS,
-      botSecret: env.BOT_SECRET,
     }
   })
 

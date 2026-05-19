@@ -24,8 +24,6 @@ function setupFixtureEnv() {
   // 固定 Authorization ヘッダと食い違って 401 になるため、NODE_ENV と同じく強制上書きする
   process.env['BASIC_ID'] = 'test-user'
   process.env['BASIC_PASS'] = 'test-pass'
-  // BOT_SECRET も同様に固定 (Callback 署名検証テストで HMAC を組み立てるため決定論的に)
-  process.env['BOT_SECRET'] = 'test-bot-secret'
 }
 setupFixtureEnv()
 
