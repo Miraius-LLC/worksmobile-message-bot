@@ -6,6 +6,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { attachmentsApp } from '@/routes/attachments'
 import { callbackApp } from '@/routes/callback'
 import { persistentMenuApp } from '@/routes/menus/persistent'
+import { richMenuApp } from '@/routes/menus/rich'
 import { messagesApp } from '@/routes/messages'
 import { LineWorksApiError } from '@/services/lineworks/api'
 import { config } from '@/utils/config'
@@ -71,6 +72,7 @@ app.route('/', messagesApp)
 app.route('/attachments', attachmentsApp)
 app.route('/callback', callbackApp)
 app.route('/menus/persistent', persistentMenuApp)
+app.route('/menus/rich', richMenuApp)
 
 app.notFound(c => c.json({ error: 'Not Found', path: c.req.url }, 404))
 
