@@ -231,6 +231,34 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 
 ---
 
+#### [固定メニュー](https://developers.worksmobile.com/jp/reference/bot-persistentmenu-create) (持続表示メニュー)
+
+- BASE URL: `/menus/persistent`
+- Bot とのトーク画面でチャット入力欄上部に常時表示されるボタン群 (最大 4 件) を管理
+
+| Endpoint | HTTP   | 説明                                                                                                   |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| `/`      | POST   | [固定メニューを登録](https://developers.worksmobile.com/jp/reference/bot-persistentmenu-create) (上書き) |
+| `/`      | GET    | 固定メニューを取得 (未登録時は 200 + `null`)                                                            |
+| `/`      | DELETE | 固定メニューを削除 (未登録時も 204 で idempotent)                                                       |
+
+---
+
+#### [リッチメニュー](https://developers.worksmobile.com/jp/reference/bot-richmenu-create) (画像ベースの大型メニュー)
+
+- BASE URL: `/menus/rich`
+- 画像 1 枚を分割して領域ごとにアクションを割り当てる、UX 向け大型メニュー (MVP は 5 endpoint)
+
+| Endpoint                | HTTP   | 説明                                                                                            |
+| ----------------------- | ------ | ----------------------------------------------------------------------------------------------- |
+| `/`                     | POST   | リッチメニューを作成 → 200 + `{ richmenuId }`                                                    |
+| `/`                     | GET    | 登録済リッチメニュー一覧 → 200 + `{ richmenus: [...] }`                                          |
+| `/{:richmenuId}/image`  | POST   | 画像を登録 (`multipart/form-data`, `file` フィールドに JPEG / PNG, 1MB 以下)                    |
+| `/{:richmenuId}/set-default` | POST   | このリッチメニューを Bot 全員のデフォルトとして適用 → 200 + `{ richmenuId }`              |
+| `/{:richmenuId}`        | DELETE | リッチメニューを削除 (未登録時も 204 で idempotent)                                              |
+
+---
+
 ### 主要な制約サマリ (LINE WORKS spec 準拠)
 
 各 type のリクエスト本文は Zod schema で起動時にバリデーションされる。仕様より緩いと
@@ -257,6 +285,11 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 | `uri` action | `uri` は HTTP / HTTPS、最大 1000 文字 |
 | `copy` action | `copyText` は 1〜1000 文字 |
 | 添付ファイル upload | 最大 10 MB |
+| 固定メニュー `actions` | 0〜**4** 件、`label` 最大 1000 文字、`message.text` 最大 300 文字 |
+| リッチメニュー `size` | `width=2500` 固定、`height` は `843` (compact) または `1686` (full) のみ |
+| リッチメニュー `richmenuName` | 1〜300 文字 |
+| リッチメニュー `areas[].action.label` | 最大 **20** 文字 (固定メニューより短い) |
+| リッチメニュー画像 | JPEG / PNG、2500x843 または 2500x1686、最大 **1 MB** |
 
 ---
 
@@ -478,6 +511,85 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 - Endpoint: `/attachments/{:fileId}`
 - HTTP: `GET`
 - Response: ファイルストリーム
+
+---
+
+#### 固定メニュー を登録
+
+- Endpoint: `/menus/persistent`
+- HTTP: `POST`
+- Body:
+  ```json
+  {
+    "content": {
+      "actions": [
+        { "type": "message", "label": "本日の予定", "text": "/today" },
+        { "type": "message", "label": "ヘルプ", "text": "/help" },
+        { "type": "uri", "label": "ダッシュボード", "uri": "https://example.com/dashboard" }
+      ]
+    }
+  }
+  ```
+  > `actions` は最大 4 件。`label` 最大 1000 文字、`message.text` 最大 300 文字。
+
+#### 固定メニュー を取得 / 削除
+
+- 取得: `GET /menus/persistent` → 200 + メニュー JSON (未登録時は `null`)
+- 削除: `DELETE /menus/persistent` → 204 (未登録も idempotent)
+
+---
+
+#### リッチメニュー を作成して画像登録 → デフォルト適用
+
+リッチメニューは「作成 → 画像登録 → デフォルト適用」の 3 ステップ。
+
+##### 1. 作成
+
+- Endpoint: `/menus/rich`
+- HTTP: `POST`
+- Body (compact size 例):
+  ```json
+  {
+    "richmenuName": "SUMIRE 業務メニュー v1",
+    "size": { "width": 2500, "height": 843 },
+    "areas": [
+      {
+        "bounds": { "x": 0, "y": 0, "width": 1250, "height": 843 },
+        "action": { "type": "postback", "label": "本日の予定", "data": "action=today" }
+      },
+      {
+        "bounds": { "x": 1250, "y": 0, "width": 1250, "height": 843 },
+        "action": { "type": "postback", "label": "送迎開始", "data": "action=pickup_start" }
+      }
+    ]
+  }
+  ```
+- Response:
+  ```json
+  { "richmenuId": "rm-001-xxx" }
+  ```
+
+##### 2. 画像登録
+
+- Endpoint: `/menus/rich/{:richmenuId}/image`
+- HTTP: `POST`
+- Body:
+  ```md
+    multipart/form-data
+    Key: file
+    Value: <2500x843 or 2500x1686 の JPEG/PNG, 1MB 以下>
+  ```
+
+##### 3. デフォルトとして適用
+
+- Endpoint: `/menus/rich/{:richmenuId}/set-default`
+- HTTP: `POST`
+- Body: なし (URL の `:richmenuId` だけで完結)
+
+##### 4. 一覧取得 / 削除
+
+- 一覧: `GET /menus/rich` → 200 + `{ richmenus: [...] }`
+- 削除: `DELETE /menus/rich/{:richmenuId}` → 204 (未登録も idempotent)
 
 ***
 
