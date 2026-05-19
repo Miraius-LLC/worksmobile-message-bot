@@ -288,6 +288,40 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 
 ---
 
+#### [Bot CRUD (テナント)](https://developers.worksmobile.com/jp/reference/bot-create) (Bot 自体の作成・更新・削除)
+
+- BASE URL: `/bots`
+- LINE WORKS テナント上の Bot を programmable に管理。**Developer Console で手動操作する代替手段**として用意
+
+| Endpoint              | HTTP   | 説明                                                                                                |
+| --------------------- | ------ | --------------------------------------------------------------------------------------------------- |
+| `/`                   | POST   | Bot を新規作成 → 201 + `{ botId, ... }`                                                              |
+| `/`                   | GET    | テナント内 Bot 一覧 → 200 + `{ bots: [...] }`                                                        |
+| `/{:botId}`           | GET    | Bot 取得 (未登録は 200 + `null`)                                                                     |
+| `/{:botId}`           | PUT    | Bot 完全置換 (全フィールド再送)                                                                      |
+| `/{:botId}`           | PATCH  | Bot 部分更新 (送ったフィールドだけ)                                                                  |
+| `/{:botId}`           | DELETE | **破壊的** Bot 削除 (404 idempotent、復元不可)                                                       |
+| `/{:botId}/secret`    | POST   | **破壊的** Bot Secret 再発行 → 200 + `{ botSecret }`。発行後は Secret Manager の `lineworks-bot-secret` を更新しないと Callback 署名検証が失敗 |
+
+> 本番運用中の `BOT_ID` と一致する `:botId` への `DELETE` / `POST /secret` は警告ログを出すが、route 層では拒否しません。誤操作に注意。
+
+---
+
+#### [Bot CRUD (ドメイン別)](https://developers.worksmobile.com/jp/reference/bot-domain-bot-update) (ドメイン上の Bot 設定)
+
+- BASE URL: `/bots/{:botId}/domains`
+- ドメイン単位の Bot 設定 (administrators / enableCallback 等) を個別に管理
+
+| Endpoint              | HTTP   | 説明                                                                                          |
+| --------------------- | ------ | --------------------------------------------------------------------------------------------- |
+| `/`                   | GET    | Bot が登録されているドメイン一覧                                                              |
+| `/{:domainId}`        | POST   | ドメインに Bot を登録                                                                          |
+| `/{:domainId}`        | PUT    | ドメイン別 Bot 設定を完全置換                                                                  |
+| `/{:domainId}`        | PATCH  | ドメイン別 Bot 設定を部分更新                                                                  |
+| `/{:domainId}`        | DELETE | Bot をドメインから削除 (404 idempotent)                                                       |
+
+---
+
 ### 主要な制約サマリ (LINE WORKS spec 準拠)
 
 各 type のリクエスト本文は Zod schema で起動時にバリデーションされる。仕様より緩いと
@@ -323,6 +357,12 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 | トークルーム作成 `title` | 最大 1000 文字 |
 | `channels/:id/members` `?count` | 1〜100 (デフォルト 50)、`cursor` でページング |
 | `domains/:domainId/members` `?count` | 1〜100 (デフォルト 50)、`cursor` でページング |
+| Bot `botName` / `description` | 各 1〜100 文字 |
+| Bot `photoUrl` / `callbackUrl` | **HTTPS のみ**、最大 1000 文字 |
+| Bot `administrators` | 1〜3 件、重複不可 |
+| Bot `subadministrators` | 0〜3 件 |
+| Bot `callbackEvents` | `text`/`location`/`sticker`/`image`/`file`/`audio`/`video` から選択 |
+| Bot `channelEvents` | `join`/`leave`/`joined`/`left`/`begin`/`end` から選択 |
 
 ---
 
@@ -665,6 +705,56 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 
 - 一覧: `GET /domains/{:domainId}/members?count=50&cursor=...` → 200 + `{ members: [...], responseMetaData: { nextCursor? } }`
 - 削除: `DELETE /domains/{:domainId}/members/{:userId}` → 204 (未登録でも idempotent)
+
+---
+
+#### Bot CRUD (テナント)
+
+##### 作成
+
+- Endpoint: `/bots`
+- HTTP: `POST`
+- Body (必須 4 + 任意):
+  ```json
+  {
+    "botName": "SUMIRE Group",
+    "photoUrl": "https://example.com/photo.png",
+    "description": "職員通知 Bot",
+    "administrators": ["admin-user-id"],
+    "enableCallback": true,
+    "callbackUrl": "https://line-works.api.miraius.co.jp/callback",
+    "callbackEvents": ["text", "image", "file"],
+    "channelEvents": ["join", "leave", "joined", "left", "begin", "end"],
+    "enableGroupJoin": true
+  }
+  ```
+- Response: `201 + { "botId": "b-001", ...input }`
+
+##### 取得 / 一覧 / 更新 / 削除 / Secret 再発行
+
+- 一覧: `GET /bots` → 200 + `{ bots: [...] }`
+- 取得: `GET /bots/{:botId}` → 200 + BotInfo (未登録は `null`)
+- 完全置換: `PUT /bots/{:botId}` (作成と同じ body 構造)
+- 部分更新: `PATCH /bots/{:botId}` (`{ "botName": "Renamed" }` 等の部分 body)
+- 削除: `DELETE /bots/{:botId}` → 204 (**破壊的・復元不可・本番 BOT_ID へは警告ログ**)
+- Secret 再発行: `POST /bots/{:botId}/secret` → 200 + `{ botSecret }` (**破壊的・Secret Manager 更新必須**)
+
+> ⚠️ Bot 削除と Secret 再発行は LINE WORKS 上の Bot を直接書き換える破壊的操作です。本番運用中 Bot に対しては、必ず影響範囲を確認してから実行してください。Secret 再発行後は以下を実行する必要があります:
+> ```sh
+> echo -n "$NEW_SECRET" | gcloud secrets versions add lineworks-bot-secret --data-file=-
+> ```
+
+---
+
+#### Bot CRUD (ドメイン別)
+
+ドメイン上の Bot 設定 (administrators / enableCallback 等) をドメイン単位で個別管理。テナント Bot CRUD と区別。
+
+- 登録: `POST /bots/{:botId}/domains/{:domainId}` (body: `{ administrators: ['u1'], enableCallback?: bool, ... }`) → 201 + `{ botId, domainId }`
+- 一覧: `GET /bots/{:botId}/domains` → 200 + `{ domains: [...] }`
+- 完全置換: `PUT /bots/{:botId}/domains/{:domainId}`
+- 部分更新: `PATCH /bots/{:botId}/domains/{:domainId}` (送ったフィールドだけ)
+- 削除: `DELETE /bots/{:botId}/domains/{:domainId}` → 204 (404 idempotent)
 
 ***
 
