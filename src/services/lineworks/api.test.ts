@@ -73,6 +73,51 @@ describe('services/lineworks/api', () => {
       expect(err.status).toBe(404)
       expect(err.upstreamBody).toBe('upstream error body')
     })
+
+    test('upstream body が JSON で code が含まれていれば抽出 + hint 解決', async () => {
+      const body = JSON.stringify({ code: 'ACCESS_DENIED', description: 'Bot kicked' })
+      installFetch(async () => new Response(body, { status: 403 }))
+      let caught: unknown
+      try {
+        await postJson('tok', 'https://x.test/y', {})
+      } catch (e) {
+        caught = e
+      }
+      const err = caught as LineWorksApiError
+      expect(err.code).toBe('ACCESS_DENIED')
+      expect(err.description).toBe('Bot kicked')
+      expect(err.hint).toContain('Bot ポリシー')
+      expect(err.message).toContain('code=ACCESS_DENIED')
+      expect(err.message).toContain('Bot kicked')
+    })
+
+    test('upstream body が JSON でも未知 code なら hint は undefined', async () => {
+      const body = JSON.stringify({ code: 'NEW_UNKNOWN_CODE' })
+      installFetch(async () => new Response(body, { status: 400 }))
+      let caught: unknown
+      try {
+        await postJson('tok', 'https://x.test/y', {})
+      } catch (e) {
+        caught = e
+      }
+      const err = caught as LineWorksApiError
+      expect(err.code).toBe('NEW_UNKNOWN_CODE')
+      expect(err.hint).toBeUndefined()
+    })
+
+    test('upstream body が JSON でない (plain text) なら code/hint は undefined', async () => {
+      installFetch(async () => new Response('plain error text', { status: 500 }))
+      let caught: unknown
+      try {
+        await postJson('tok', 'https://x.test/y', {})
+      } catch (e) {
+        caught = e
+      }
+      const err = caught as LineWorksApiError
+      expect(err.code).toBeUndefined()
+      expect(err.hint).toBeUndefined()
+      expect(err.upstreamBody).toBe('plain error text')
+    })
   })
 
   describe('sendBotMessage', () => {

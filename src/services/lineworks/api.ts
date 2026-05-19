@@ -1,3 +1,4 @@
+import { getErrorHint } from '@/services/lineworks/error-hints'
 import { config } from '@/utils/config'
 import { logger } from '@/utils/logger'
 
@@ -8,17 +9,47 @@ export const API_BASE = 'https://www.worksapis.com/v1.0'
 /**
  * LINE WORKS Bot API がエラーステータスを返したことを示す例外。
  * `app.onError` がこの型を見て upstream の HTTP ステータスをそのまま返すので、
- * 呼び出し側 (IFTTT / Make 等の bridge) のリトライ判定 (4xx は retry しない / 5xx は retry) が正しく効く
+ * 呼び出し側 (IFTTT / Make 等の bridge) のリトライ判定 (4xx は retry しない / 5xx は retry) が正しく効く。
+ *
+ * constructor は upstream body を JSON parse して `code` を抽出し、`error-hints.ts` の
+ * マッピングから日本語 `hint` を組み立てる (Bot ダッシュボードの設定漏れ等の典型原因を
+ * クライアント側で切り分けやすくするため)。code 抽出失敗時は body をそのまま保持
  */
 export class LineWorksApiError extends Error {
   readonly status: number
   readonly upstreamBody: string
+  readonly code: string | undefined
+  readonly description: string | undefined
+  readonly hint: string | undefined
 
   constructor(status: number, upstreamBody: string) {
-    super(`LINE WORKS API の呼び出しに失敗しました (status=${status})`)
+    const { code, description } = parseUpstream(upstreamBody)
+    const hint = getErrorHint(code)
+    const detailParts = [code ? `code=${code}` : null, description].filter((s): s is string =>
+      Boolean(s),
+    )
+    const detail = detailParts.length > 0 ? ` ${detailParts.join(' / ')}` : ''
+    super(`LINE WORKS API の呼び出しに失敗しました (status=${status})${detail}`)
     this.name = 'LineWorksApiError'
     this.status = status
     this.upstreamBody = upstreamBody
+    this.code = code
+    this.description = description
+    this.hint = hint
+  }
+}
+
+/** upstream body を JSON として parse して code / description を抽出 (失敗時は undefined) */
+function parseUpstream(body: string): { code?: string; description?: string } {
+  if (!body) return {}
+  try {
+    const parsed = JSON.parse(body) as { code?: unknown; description?: unknown }
+    return {
+      code: typeof parsed.code === 'string' ? parsed.code : undefined,
+      description: typeof parsed.description === 'string' ? parsed.description : undefined,
+    }
+  } catch {
+    return {}
   }
 }
 

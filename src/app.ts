@@ -81,9 +81,14 @@ app.route('/domains', domainsApp)
 app.notFound(c => c.json({ error: 'Not Found', path: c.req.url }, 404))
 
 app.onError((error, c) => {
-  // LINE WORKS upstream が返したステータスは bridge 側のリトライ判定に必要なのでそのまま透過する
+  // LINE WORKS upstream が返したステータスは bridge 側のリトライ判定に必要なのでそのまま透過する。
+  // code (upstream の Error code) と hint (typical 原因の日本語説明) も含めて
+  // クライアントが原因を切り分けやすくする
   if (error instanceof LineWorksApiError) {
-    return c.json({ error: error.message }, error.status as ContentfulStatusCode)
+    return c.json(
+      { error: error.message, code: error.code, hint: error.hint },
+      error.status as ContentfulStatusCode,
+    )
   }
   // basicAuth ミドルウェア等が投げる HTTPException は Hono の標準ハンドリングを尊重する
   // (401 + WWW-Authenticate ヘッダ等)。app.onError を定義すると HTTPException も

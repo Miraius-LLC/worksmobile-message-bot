@@ -171,6 +171,37 @@ describe('app: onError', () => {
     expect(res.status).toBe(503)
   })
 
+  test('LineWorksApiError レスポンスに code + hint を含める (Bot ダッシュボード設定漏れの切り分け用)', async () => {
+    const upstreamBody = JSON.stringify({
+      code: 'ACCESS_DENIED',
+      description: 'Bot was removed from channel',
+    })
+    installFetch(() => new Response(upstreamBody, { status: 403 }))
+    const res = await app.request('/channels/C1/messages/type/text', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
+      body: JSON.stringify({ text: 'hi' }),
+    })
+    expect(res.status).toBe(403)
+    const body = (await res.json()) as { error: string; code?: string; hint?: string }
+    expect(body.code).toBe('ACCESS_DENIED')
+    expect(body.hint).toContain('Bot ポリシー')
+    expect(body.error).toContain('code=ACCESS_DENIED')
+  })
+
+  test('upstream が code を返さない 5xx エラーは code/hint なしのレスポンス', async () => {
+    installFetch(() => new Response('upstream boom', { status: 503 }))
+    const res = await app.request('/channels/C1/messages/type/text', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
+      body: JSON.stringify({ text: 'hi' }),
+    })
+    expect(res.status).toBe(503)
+    const body = (await res.json()) as { error: string; code?: string; hint?: string }
+    expect(body.code).toBeUndefined()
+    expect(body.hint).toBeUndefined()
+  })
+
   test('予期しない Error は 500 + { error: message }', async () => {
     // tokenMiddleware の getServerToken が throw する経路を踏む
     installFetch(() => new Response('', { status: 200 }))
