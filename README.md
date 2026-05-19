@@ -174,7 +174,7 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 
 ### 1. エンドポイント一覧
 
-> 認証: `/` と health probe 系パス (`/healthz` / `/health` / `/readyz` / `/livez`) を除く全エンドポイントに **BASIC 認証**を要求する (`hono/basic-auth` を `src/app.ts` で `app.use('*', ...)` 経由でマウント)。credentials は `BASIC_ID` / `BASIC_PASS` env で注入し、本番では Secret Manager (`lineworks-basic-id` / `lineworks-basic-pass`) からマウントする。health probe 系は Cloud Run / k8s / Docker HEALTHCHECK 用に認証なしで公開しており、いずれも 200 OK + `{ status: "ok" }` を返す。`/healthz` を正、それ以外は互換用エイリアス。
+> 認証: `/` と health probe 系パス (`/healthz` / `/health` / `/readyz` / `/livez`) + `/callback` を除く全エンドポイントに **BASIC 認証**を要求する (`hono/basic-auth` を `src/app.ts` で `app.use('*', ...)` 経由でマウント)。credentials は `BASIC_ID` / `BASIC_PASS` env で注入し、本番では Secret Manager (`lineworks-basic-id` / `lineworks-basic-pass`) からマウントする。health probe 系は Cloud Run / k8s / Docker HEALTHCHECK 用に認証なしで公開しており、いずれも 200 OK + `{ status: "ok" }` を返す。`/healthz` を正、それ以外は互換用エイリアス。`/callback` は LINE WORKS が BASIC 認証を喋らないため除外し、代わりに `X-WORKS-Signature` の HMAC 検証で真正性を担保する (詳細は本ファイル末尾「Callback (受信側)」)。
 
 #### [トークルーム指定](https://developers.worksmobile.com/jp/docs/bot-channel-message-send)
 
@@ -478,6 +478,74 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 - Endpoint: `/attachments/{:fileId}`
 - HTTP: `GET`
 - Response: ファイルストリーム
+
+***
+
+## Callback (受信側)
+
+LINE WORKS から Bot 宛のイベント (メッセージ送信 / ボタン押下 / トーク参加・退室 等) を受け取って自動応答するエンドポイント。
+
+### エンドポイント
+
+| Endpoint    | HTTP | 説明                                                                                          |
+| ----------- | ---- | --------------------------------------------------------------------------------------------- |
+| `/callback` | POST | LINE WORKS からの [Bot Callback](https://developers.worksmobile.com/jp/docs/bot-callback) を受信 |
+
+#### 認証
+
+- BASIC 認証は適用しない (LINE WORKS は BASIC 認証ヘッダを付けないため)
+- 代わりに **`X-WORKS-Signature` ヘッダ (= raw body の HMAC-SHA256 を Bot Secret を鍵に計算し Base64 化した値) を検証**して真正性を担保する
+- 検証 NG → `401 invalid signature` を返す。LINE WORKS は再送しないため body は短くしている
+- 検証 OK → JSON.parse → Zod の `discriminatedUnion` で event 形式チェック → dispatcher へ流して `200` を返す
+
+#### 受信できる event 種別
+
+`discriminatedUnion('type', [...])` で 8 種を網羅:
+
+| type       | 発火タイミング                                              |
+| ---------- | ----------------------------------------------------------- |
+| `message`  | メンバーが Bot にメッセージを送った (text / image / etc.)  |
+| `postback` | ボタンテンプレート等の postback action が押された           |
+| `join`     | Bot が複数人トークに招待された                              |
+| `leave`    | Bot が複数人トークから退出した                              |
+| `joined`   | Bot が属するトークルームに新メンバーが参加した              |
+| `left`     | Bot が属するトークルームからメンバーが退出した              |
+| `begin`    | 1:1 トーク開始 (メンバーが Bot との 1:1 トークを開いた)     |
+| `end`      | 1:1 トーク終了                                              |
+
+未知 type は 400 を返す (Zod 検証で reject)。仕様変更で新 type が増えた場合は `schemas.ts` の union に追加。
+
+### 応答コマンド (MVP)
+
+`message` イベントの text content に対して、現状以下 2 コマンドだけ応答する (それ以外は Bot が不用意に喋らない設計):
+
+| コマンド          | 動作                              |
+| ----------------- | --------------------------------- |
+| `/help`           | 利用可能コマンド一覧を返信        |
+| `/echo <text>`    | `<text>` をそのままオウム返し     |
+
+新コマンドは `src/services/lineworks/callback/handlers/message.ts` に追加する。
+
+`postback` イベントは現状 handler 雛形のみ (ログ出力)。ボタン押下時の具体的な action は `data` フィールドの内容に応じて `handlers/postback.ts` で分岐させる。
+
+### 初回セットアップ手順 (Developer Console)
+
+1. [Developer Console](https://developers.worksmobile.com/jp/console/) → **Bot** → 該当 Bot → 編集
+2. **Bot Secret** をコピーして、Secret Manager に投入:
+   ```sh
+   pbpaste | gcloud --project=<PROJECT_ID> secrets create lineworks-bot-secret --data-file=- --replication-policy=automatic
+   gcloud --project=<PROJECT_ID> secrets add-iam-policy-binding lineworks-bot-secret \
+     --member=serviceAccount:worksmobile-message-bot-sa@<PROJECT_ID>.iam.gserviceaccount.com \
+     --role=roles/secretmanager.secretAccessor
+   ```
+3. Cloud Run へ再デプロイ (Secret Manager マウントを反映するため。`main` への push でも可)
+4. Bot 編集画面の **Callback URL** を `On` にして:
+   - URL: `https://<本番ドメイン>/callback` (例: `https://line-works.api.miraius.co.jp/callback`)
+   - 受信する Callback Event を必要なものだけ ON (`Message Event` / `Postback Event` / `Join` / `Leave` / `Joined` / `Left` / `Begin` / `End`)
+5. Bot ポリシーで「1:1 トーク」「複数人トーク」を許可 (受信するイベントに応じて)
+6. **保存** → LINE WORKS の自分宛 Bot にメッセージ `/help` を送って、ヘルプ文が返信されることを確認
+
+> ⚠️ Callback URL を On にする前に、Cloud Run 側に `/callback` ルートがデプロイ済であることを必ず確認する。デプロイ前に On にすると LINE WORKS の callback が 404 を返し、イベントが失われる (LINE WORKS は再送しない)。
 
 ***
 
