@@ -50,6 +50,21 @@ steps:
           exit 1
         fi
 
+  # 0.5) bun test を全件走らせる
+  #     - lefthook の pre-push hook を `--no-verify` でバイパスされた場合の最後の砦
+  #     - 失敗すれば build step に進まないため、未テストコードを本番反映できない
+  #     - image の bun バージョンは Dockerfile の `ARG BUN_VERSION` と `.tool-versions`
+  #       に合わせる (3 箇所揃えること、片方だけ上げない)
+  - id: test
+    name: oven/bun:1.3.14-debian
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -eu
+        bun install --frozen-lockfile
+        bun test
+
   # 1) Docker イメージビルド (BuildKit 限定構文は Dockerfile 側で使用しない)
   - id: build
     name: gcr.io/cloud-builders/docker
