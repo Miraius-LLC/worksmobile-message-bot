@@ -5,6 +5,7 @@ import { secureHeaders } from 'hono/secure-headers'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { attachmentsApp } from '@/routes/attachments'
 import { callbackApp } from '@/routes/callback'
+import { channelsApp } from '@/routes/channels'
 import { persistentMenuApp } from '@/routes/menus/persistent'
 import { richMenuApp } from '@/routes/menus/rich'
 import { messagesApp } from '@/routes/messages'
@@ -73,6 +74,7 @@ app.route('/attachments', attachmentsApp)
 app.route('/callback', callbackApp)
 app.route('/menus/persistent', persistentMenuApp)
 app.route('/menus/rich', richMenuApp)
+app.route('/channels', channelsApp)
 
 app.notFound(c => c.json({ error: 'Not Found', path: c.req.url }, 404))
 
