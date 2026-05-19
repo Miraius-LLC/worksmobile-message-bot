@@ -9,12 +9,6 @@ updates:
       time: '09:00'
       timezone: Asia/Tokyo
     open-pull-requests-limit: 5
-    ignore:
-      # TS 6.0.3 は tsconfig の `include` 指定時に `types` を silent drop し、@types/bun
-      # (bun-types) の `bun:test` 解決が壊れる。TS 6.1+ の bug fix か bun-types 側対応待ち
-      - dependency-name: typescript
-        update-types:
-          - version-update:semver-major
     groups:
       # 関連 dep をまとめる (個別 PR を増やさない)
       hono:
