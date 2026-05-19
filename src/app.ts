@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception'
 import { secureHeaders } from 'hono/secure-headers'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { attachmentsApp } from '@/routes/attachments'
+import { callbackApp } from '@/routes/callback'
 import { messagesApp } from '@/routes/messages'
 import { LineWorksApiError } from '@/services/lineworks/api'
 import { config } from '@/utils/config'
@@ -67,6 +68,7 @@ for (const path of HEALTH_PATHS) {
 
 app.route('/', messagesApp)
 app.route('/attachments', attachmentsApp)
+app.route('/callback', callbackApp)
 
 app.notFound(c => c.json({ error: 'Not Found', path: c.req.url }, 404))
 
