@@ -15,6 +15,7 @@ substitutions:
   _SECRET_PRIVATE_KEY: lineworks-private-key
   _SECRET_BASIC_ID: lineworks-basic-id
   _SECRET_BASIC_PASS: lineworks-basic-pass
+  _SECRET_BOT_SECRET: lineworks-bot-secret
   # `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` は **公開リポに値を残さない**ため、
   # Cloud Build トリガーのサブスティテューション設定で注入する (GCP Console: Cloud Build →
   # Triggers → 該当トリガー編集 → "Substitution variables" セクション)。
@@ -87,7 +88,7 @@ steps:
       - --service-account=${_SERVICE_ACCOUNT}
 
       # --- Secret Manager マウント (機密 env) ---
-      - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest,BASIC_ID=${_SECRET_BASIC_ID}:latest,BASIC_PASS=${_SECRET_BASIC_PASS}:latest
+      - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest,BASIC_ID=${_SECRET_BASIC_ID}:latest,BASIC_PASS=${_SECRET_BASIC_PASS}:latest,BOT_SECRET=${_SECRET_BOT_SECRET}:latest
 
       # --- 通常 env (機密度の低い設定値) ---
       - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLIENT_ID=${_CLIENT_ID},SERVICE_ACCOUNT=${_SERVICE_ACCOUNT_LW},BOT_ID=${_BOT_ID}

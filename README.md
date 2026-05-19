@@ -39,6 +39,7 @@ CLIENT_SECRET=your_client_secret
 SERVICE_ACCOUNT=your_service_account
 PRIVATE_KEY=your_private_key_base64_encoded
 BOT_ID=your_bot_id
+BOT_SECRET=your_bot_secret
 BASIC_ID=your_basic_auth_username
 BASIC_PASS=your_basic_auth_password
 
@@ -54,6 +55,7 @@ LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 | `SERVICE_ACCOUNT` | サービスアカウント |
 | `PRIVATE_KEY` | Base64 エンコードされたプライベートキー (`base64 -i ./private_XXXXXX.key \| pbcopy`) |
 | `BOT_ID` | Bot ID |
+| `BOT_SECRET` | Bot Secret (Callback の `X-WORKS-Signature` HMAC-SHA256 検証鍵)。Developer Console の Bot 詳細から取得 |
 | `BASIC_ID` | webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
 | `BASIC_PASS` | BASIC 認証パスワード |
 | `PORT` | listen ポート (省略時 `8080`) |
@@ -115,9 +117,10 @@ echo -n "$CLIENT_SECRET_VALUE" | gcloud secrets create lineworks-client-secret -
 echo -n "$PRIVATE_KEY_VALUE_BASE64" | gcloud secrets create lineworks-private-key --data-file=-
 echo -n "$BASIC_AUTH_USERNAME" | gcloud secrets create lineworks-basic-id --data-file=-
 echo -n "$BASIC_AUTH_PASSWORD" | gcloud secrets create lineworks-basic-pass --data-file=-
+echo -n "$BOT_SECRET_VALUE" | gcloud secrets create lineworks-bot-secret --data-file=-
 
 # 3. SA に accessor 権限を付与 (per-secret)
-for s in lineworks-client-secret lineworks-private-key lineworks-basic-id lineworks-basic-pass; do
+for s in lineworks-client-secret lineworks-private-key lineworks-basic-id lineworks-basic-pass lineworks-bot-secret; do
   gcloud secrets add-iam-policy-binding $s \
     --member="serviceAccount:worksmobile-message-bot-sa@<PROJECT_ID>.iam.gserviceaccount.com" \
     --role=roles/secretmanager.secretAccessor

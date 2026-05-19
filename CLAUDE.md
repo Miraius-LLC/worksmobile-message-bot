@@ -54,6 +54,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 | `SERVICE_ACCOUNT` | env (機密度低) |
 | `PRIVATE_KEY` | **Secret Manager `lineworks-private-key:latest`** にマウント (本番) / `.env` (開発)。Base64 エンコード済 PEM (`base64 -i private_*.key`) |
 | `BOT_ID` | env (機密度低) |
+| `BOT_SECRET` | **Secret Manager `lineworks-bot-secret:latest`** にマウント (本番) / `.env` (開発)。Callback の `X-WORKS-Signature` (HMAC-SHA256) 検証鍵。Developer Console の Bot 詳細から取得した値をそのまま入れる (Base64 デコード等は不要) |
 | `BASIC_ID` | **Secret Manager `lineworks-basic-id:latest`** にマウント (本番) / `.env` (開発)。webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
 | `BASIC_PASS` | **Secret Manager `lineworks-basic-pass:latest`** にマウント (本番) / `.env` (開発)。BASIC 認証パスワード |
 | `PORT` | リッスンポート (デフォルト 8080) |
@@ -93,8 +94,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
 - **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入
 - **build / deploy パイプラインは `cloudbuild.yaml` に記述**: trigger に inline build を残さず、ファイル経由で動かす (filename 設定が必要)。Cloud Run 固有設定 (SA / secrets / scaling / resources / `--no-use-http2` / labels) はすべてここで管理し、手動 `gcloud run services update` での drift を防ぐ
-- **Cloud Run の runtime SA は専用**: `worksmobile-message-bot-sa@office-381404.iam.gserviceaccount.com`。デフォルトの compute SA は使わない (権限分離)。SA は `lineworks-client-secret` / `lineworks-private-key` / `lineworks-basic-id` / `lineworks-basic-pass` の `secretAccessor` ロールのみ持つ
-- **機密 env は Secret Manager 経由**: `CLIENT_SECRET` / `PRIVATE_KEY` / `BASIC_ID` / `BASIC_PASS` を Cloud Run の env に**直書きしない**。`gcloud secrets versions add` で値を更新し、Cloud Run は `:latest` を参照する設定 (`--update-secrets=...`) のため、再 deploy 不要で値だけ差し替え可能
+- **Cloud Run の runtime SA は専用**: `worksmobile-message-bot-sa@office-381404.iam.gserviceaccount.com`。デフォルトの compute SA は使わない (権限分離)。SA は `lineworks-client-secret` / `lineworks-private-key` / `lineworks-basic-id` / `lineworks-basic-pass` / `lineworks-bot-secret` の `secretAccessor` ロールのみ持つ
+- **機密 env は Secret Manager 経由**: `CLIENT_SECRET` / `PRIVATE_KEY` / `BASIC_ID` / `BASIC_PASS` / `BOT_SECRET` を Cloud Run の env に**直書きしない**。`gcloud secrets versions add` で値を更新し、Cloud Run は `:latest` を参照する設定 (`--update-secrets=...`) のため、再 deploy 不要で値だけ差し替え可能
 - **機密度の低い env (`CLIENT_ID` / `SERVICE_ACCOUNT` / `BOT_ID`) も毎回再アサート**する drift 防止策。ただしリポが**公開**なので **値自体は cloudbuild.yaml に書かない**。GCP Console 側の Cloud Build トリガー設定で `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` の substitution variable に値を入れる。yaml 側はプレースホルダ参照 (`${_CLIENT_ID}` 等) のみ
 - **Artifact Registry の cleanup policy 設定済**: タグ無しイメージは 7 日後削除、タグ付きは最新 10 件保持 (`cloud-run-source-deploy` リポジトリ)
 
