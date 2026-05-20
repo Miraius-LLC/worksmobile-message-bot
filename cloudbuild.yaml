@@ -16,6 +16,9 @@ substitutions:
   _SECRET_BASIC_ID: lineworks-basic-id
   _SECRET_BASIC_PASS: lineworks-basic-pass
   _SECRET_BOT_SECRET: lineworks-bot-secret
+  # 受信 callback の転送先 (= 501 / scheduler-501 の /callback)。非機密なのでデフォルト値を直書き。
+  # 501 の Cloud Run default URL (project hash 由来で安定)
+  _FORWARD_501_CALLBACK_URL: https://scheduler-501-6dkxmuzina-an.a.run.app/callback
   # `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` は **公開リポに値を残さない**ため、
   # Cloud Build トリガーのサブスティテューション設定で注入する (GCP Console: Cloud Build →
   # Triggers → 該当トリガー編集 → "Substitution variables" セクション)。
@@ -106,7 +109,8 @@ steps:
       - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest,BASIC_ID=${_SECRET_BASIC_ID}:latest,BASIC_PASS=${_SECRET_BASIC_PASS}:latest,BOT_SECRET=${_SECRET_BOT_SECRET}:latest
 
       # --- 通常 env (機密度の低い設定値) ---
-      - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLIENT_ID=${_CLIENT_ID},SERVICE_ACCOUNT=${_SERVICE_ACCOUNT_LW},BOT_ID=${_BOT_ID}
+      #     FORWARD_501_CALLBACK_URL: 受信 callback を 501 (scheduler-501) に転送する先 (案 B)
+      - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLIENT_ID=${_CLIENT_ID},SERVICE_ACCOUNT=${_SERVICE_ACCOUNT_LW},BOT_ID=${_BOT_ID},FORWARD_501_CALLBACK_URL=${_FORWARD_501_CALLBACK_URL}
 
       # --- ネットワーク ---
       - --no-use-http2  # コンテナは HTTP/1.1、Cloud Run frontend が HTTP/2 終端
