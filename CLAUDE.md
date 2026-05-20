@@ -82,7 +82,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
 - **BASIC 認証は `app.ts` で `/` と health probe 系 (`/healthz` / `/health` / `/readyz` / `/livez`) 以外に強制**: `hono/basic-auth` を lazy 初期化 (config().load() タイミングを跨ぐため) + `PUBLIC_PATHS` set で除外パスを管理。Cloud Run / k8s probe / Docker HEALTHCHECK が落ちないよう `/` と health probe 系だけ素通しにしている。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換用エイリアスで同じハンドラを共有 (`HEALTH_PATHS` 配列で集中管理)
 - **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
-- **callback dedup は in-memory Map で 5 分 window**: `services/lineworks/callback/dedup.ts` が raw body の SHA-256 を key にして直近 5 分以内の再送を検出。Cloud Run の **min-instances=1** 前提 (複数 instance になると instance ごとに別 Map になって破綻)。`dispatch` が throw した場合は `unregister` を呼んで LINE WORKS の再送を許可する設計 (副作用喪失防止)。max-instances を増やす要件が出たら Redis 等の共有ストアに置き換える前提
+- **callback dedup は in-memory Map で 5 分 window**: `services/lineworks/callback/dedup.ts` が raw body の SHA-256 を key にして直近 5 分以内の再送を検出。Cloud Run の **min-instances=1** 前提 (複数 instance になると instance ごとに別 Map になって破綻)。**501 への転送 (`forward.ts`)** が throw した場合は `unregister` を呼んで LINE WORKS の再送を許可する設計 (喪失防止)。max-instances を増やす要件が出たら Redis 等の共有ストアに置き換える前提
+- **callback は 501 に転送する (案 B)**: 受信 callback は `services/lineworks/callback/forward.ts` で env `FORWARD_501_CALLBACK_URL` (= scheduler-501 の `/callback`) に raw body + `X-WORKS-Signature` をそのまま転送する。応答コマンド (`/today` `/status` 等) の handler は 501 側にあるため、wmbot は LINE WORKS gateway として受けて素通しするだけ。wmbot 内の `dispatch.ts` / `handlers/` は現在呼ばれない (削除はせず雛形として残置)
 
 ### Docker / デプロイ
 

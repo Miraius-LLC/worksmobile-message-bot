@@ -31,6 +31,12 @@ const configSchema = z
      * Developer Console > Bot 詳細から取得した値をそのまま入れる (Base64 等のデコードは不要)
      */
     BOT_SECRET: z.string().min(1),
+    /**
+     * 受信した Callback を転送する先 (= 501 / scheduler-501 の /callback URL)。
+     * 501 が業務 handler (/today /status 等) を持つため、wmbot は LINE WORKS gateway として
+     * 受けて素通しする (案 B)。未設定なら転送しない (= 素通し skip して 200)。
+     */
+    FORWARD_501_CALLBACK_URL: z.string().url().optional(),
   })
   .transform(env => {
     const privateKey = Buffer.from(env.PRIVATE_KEY, 'base64').toString('utf-8')
@@ -49,6 +55,7 @@ const configSchema = z
       basicAuthUsername: env.BASIC_ID,
       basicAuthPassword: env.BASIC_PASS,
       botSecret: env.BOT_SECRET,
+      forward501CallbackUrl: env.FORWARD_501_CALLBACK_URL,
     }
   })
 

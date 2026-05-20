@@ -1,27 +1,44 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { createHmac } from 'node:crypto'
 
 // LINE WORKS Bot Callback の受信ルート (`POST /callback`) の feature テスト。
 // BASIC 認証は除外パスで素通り、`X-WORKS-Signature` の HMAC-SHA256 + raw body
 // 検証で真正性を担保する設計のため、ここでは「署名 OK / NG」「Zod 検証 OK / NG」
-// 「dispatcher 呼び出し」「dedup」の 4 観点をカバーする。
+// 「501 への転送呼び出し」「dedup」の 4 観点をカバーする。
 //
-// dispatcher は `mock.module` で差し替えるため `app` は動的 import する
-// (static import だと mock が間に合わず実装が import されてしまう)
-
-const dispatchSpy = mock(async () => {})
-mock.module('@/services/lineworks/callback/dispatch', () => ({
-  dispatch: dispatchSpy,
-}))
+// 案 B では受信 callback を forwardEventTo501 経由で 501 に転送する。forward モジュールを
+// mock.module すると forward.test.ts (実装をテスト) にリークするため、ここでは
+// **globalThis.fetch をスタブ** して実 forwardEventTo501 を動かし、転送先 fetch の
+// 呼び出し回数・status でルート挙動を検証する (afterEach で fetch 復元、リークしない)。
 
 const { app } = await import('@/app')
 const { _resetForTest: resetDedup } = await import('@/services/lineworks/callback/dedup')
 
-// 各テスト前に dedup の内部 Map を空にする。`dedup.ts` は module-level state を
-// 持つため、同じ fixture を使う test 間で「2 回目は重複扱い」になってしまうのを防ぐ
+// 501 への転送先 (setup.ts の FORWARD_501_CALLBACK_URL と一致させる)
+const FORWARD_URL = 'https://scheduler-501.test/callback'
+
+let originalFetch: typeof fetch
+let forwardCalls: { url: string; init?: RequestInit }[]
+let forwardStatus: number
+
 beforeEach(() => {
   resetDedup()
-  dispatchSpy.mockClear()
+  originalFetch = globalThis.fetch
+  forwardCalls = []
+  forwardStatus = 200
+  globalThis.fetch = mock(async (input: string | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString()
+    // 501 への転送だけを捕捉する (他の fetch があれば素通し)
+    if (url === FORWARD_URL) {
+      forwardCalls.push({ url, init })
+      return new Response(forwardStatus >= 400 ? 'err' : '', { status: forwardStatus })
+    }
+    return new Response('', { status: 200 })
+  }) as unknown as typeof fetch
+})
+
+afterEach(() => {
+  globalThis.fetch = originalFetch
 })
 
 // setup.ts で BOT_SECRET=test-bot-secret に固定済
@@ -114,31 +131,39 @@ describe('POST /callback: body 検証', () => {
   })
 })
 
-describe('POST /callback: dispatcher 呼び出し', () => {
-  test('200 を返す前に dispatch(event) を 1 回呼ぶ', async () => {
-    dispatchSpy.mockClear()
+describe('POST /callback: 501 への転送', () => {
+  test('200 を返す前に 501 へ raw body + 署名をそのまま転送する', async () => {
     const raw = JSON.stringify(messageEventFixture)
-    const res = await postCallback(raw, sign(raw))
+    const signature = sign(raw)
+    const res = await postCallback(raw, signature)
     expect(res.status).toBe(200)
-    expect(dispatchSpy).toHaveBeenCalledTimes(1)
-    const args = dispatchSpy.mock.calls[0] as unknown as [unknown]
-    expect(args[0]).toMatchObject({ type: 'message', source: messageEventFixture.source })
+    expect(forwardCalls.length).toBe(1)
+    // raw body を 1 byte も変えず転送 + 署名ヘッダを引き継ぐ
+    expect(forwardCalls[0]?.init?.body).toBe(raw)
+    const headers = new Headers(forwardCalls[0]?.init?.headers)
+    expect(headers.get('X-WORKS-Signature')).toBe(signature)
   })
 
-  test('署名検証 NG では dispatch を呼ばない', async () => {
-    dispatchSpy.mockClear()
+  test('署名検証 NG では転送しない', async () => {
     const raw = JSON.stringify(messageEventFixture)
     const res = await postCallback(raw, null)
     expect(res.status).toBe(401)
-    expect(dispatchSpy).not.toHaveBeenCalled()
+    expect(forwardCalls.length).toBe(0)
   })
 
-  test('Zod 検証 NG では dispatch を呼ばない', async () => {
-    dispatchSpy.mockClear()
+  test('Zod 検証 NG では転送しない', async () => {
     const raw = JSON.stringify({ type: 'nope' })
     const res = await postCallback(raw, sign(raw))
     expect(res.status).toBe(400)
-    expect(dispatchSpy).not.toHaveBeenCalled()
+    expect(forwardCalls.length).toBe(0)
+  })
+
+  test('501 が 5xx を返すと 500 (再送を促す)', async () => {
+    forwardStatus = 503
+    const raw = JSON.stringify(messageEventFixture)
+    const res = await postCallback(raw, sign(raw))
+    expect(res.status).toBe(500)
+    expect(forwardCalls.length).toBe(1)
   })
 })
 
@@ -195,44 +220,43 @@ describe('POST /callback: 8 event type 全て', () => {
 })
 
 describe('POST /callback: dedup (5 分 window)', () => {
-  test('同一 body の 2 回目は dispatch を呼ばず 200 を返す', async () => {
+  test('同一 body の 2 回目は転送せず 200 を返す', async () => {
     const raw = JSON.stringify(messageEventFixture)
     const signature = sign(raw)
 
     const res1 = await postCallback(raw, signature)
     expect(res1.status).toBe(200)
-    expect(dispatchSpy).toHaveBeenCalledTimes(1)
+    expect(forwardCalls.length).toBe(1)
 
     const res2 = await postCallback(raw, signature)
     expect(res2.status).toBe(200)
-    // dispatch は重複検出によりスキップされるため、合計 1 回のままになる
-    expect(dispatchSpy).toHaveBeenCalledTimes(1)
+    // 転送は重複検出によりスキップされるため、合計 1 回のままになる
+    expect(forwardCalls.length).toBe(1)
   })
 
-  test('異なる body は別々に dispatch される (key 衝突しない)', async () => {
+  test('異なる body は別々に転送される (key 衝突しない)', async () => {
     const raw1 = JSON.stringify({ ...messageEventFixture, issuedTime: '2026-01-04T05:00:00Z' })
     const raw2 = JSON.stringify({ ...messageEventFixture, issuedTime: '2026-01-04T06:00:00Z' })
 
     await postCallback(raw1, sign(raw1))
     await postCallback(raw2, sign(raw2))
 
-    expect(dispatchSpy).toHaveBeenCalledTimes(2)
+    expect(forwardCalls.length).toBe(2)
   })
 
-  test('dispatch が throw した場合は dedup を unregister して再送を許可する', async () => {
-    // 1 回目: dispatch を throw 化 → 500 → onError 経由
-    dispatchSpy.mockImplementationOnce(async () => {
-      throw new Error('dispatch failed')
-    })
+  test('転送が throw した場合は dedup を unregister して再送を許可する', async () => {
     const raw = JSON.stringify(messageEventFixture)
     const signature = sign(raw)
 
+    // 1 回目: 501 が 5xx → forward throw → 500 → onError 経由
+    forwardStatus = 503
     const res1 = await postCallback(raw, signature)
     expect(res1.status).toBe(500)
 
-    // 2 回目 (LINE WORKS の再送相当): dedup が unregister されているので再度 dispatch される
+    // 2 回目 (LINE WORKS の再送相当): dedup が unregister されているので再度転送される
+    forwardStatus = 200
     const res2 = await postCallback(raw, signature)
     expect(res2.status).toBe(200)
-    expect(dispatchSpy).toHaveBeenCalledTimes(2)
+    expect(forwardCalls.length).toBe(2)
   })
 })
