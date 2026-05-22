@@ -82,8 +82,7 @@ single-context。用語集 = root [`CONTEXT.md`](./CONTEXT.md)、設計決定 = 
 
 ### MUST (これを破ると壊れる)
 
-- **JWT の `aud` は固定**: `https://auth.worksmobile.com/oauth2/v2.0/token`。LINE WORKS の OAuth エンドポイント自体を `aud` にする仕様で、`auth.ts` 内の `AUTH_URL` 定数と一致させる
-- **JWT は `node:crypto` で自前生成** (`createSign('RSA-SHA256')`)。`jsonwebtoken` パッケージは撤去済。仕様変更時は base64url エンコードと改行に注意
+- **JWT は `node:crypto` で自前生成 + `aud` 固定** ([ADR-0003](./docs/adr/0003-jwt-node-crypto-rs256.md))。`auth.ts` 内の `AUTH_URL` 定数 (`https://auth.worksmobile.com/oauth2/v2.0/token`) を `aud` と一致させる。仕様変更時は base64url エンコードと改行に注意
 - **`PRIVATE_KEY` は Base64 エンコード**を前提に PEM へデコードしている。生 PEM をそのまま入れると JWT 署名で失敗。`config.ts` の Zod schema が起動時に PEM 含有チェックする
 - **添付ファイル取得は 3xx の Location 抽出**。LINE WORKS のダウンロード API は 3xx を返してくるため `redirect: 'manual'` で受け、`Location` ヘッダから実 URL を取り出す。`fetch` のデフォルト (follow) ではリダイレクト先に Authorization ヘッダが付与されない問題と二重に絡むので変えない
 - **アクセストークンの scope は `bot` 固定**。他スコープが必要になる場合は `auth.ts` を分岐させる前に LINE WORKS 側の権限設定を確認
@@ -91,34 +90,28 @@ single-context。用語集 = root [`CONTEXT.md`](./CONTEXT.md)、設計決定 = 
 
 ### よくあるハマり
 
-- **コンテナは HTTP/1.1 のみで listen**: end-to-end h2c は **採用しない**。理由は Bun / Node の `node:http2` 単独サーバが HTTP/1.1 を併行受信できず (`allowHTTP1` は ALPN/Upgrade 経由のみ機能)、Cloud Run の Envoy は素の HTTP/1.1 を投げてくるため protocol error になる
-- **公開側の HTTP/2 は Cloud Run フロントエンドが終端する**: クライアント↔Cloud Run は HTTP/2、Cloud Run↔コンテナは HTTP/1.1。`gcloud run deploy` に `--use-http2` フラグは**つけない**。webhook サーバなので multiplexing の効果は限定的
+- **コンテナは HTTP/1.1 のみで listen / end-to-end h2c は採用しない** ([ADR-0002](./docs/adr/0002-container-http1-only-no-h2c.md))。公開側 HTTP/2 は Cloud Run フロントが終端、コンテナは HTTP/1.1。`gcloud run deploy` に `--use-http2` は**つけない**
 - **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。アップロードサイズは `attachments/index.ts` の `bodyLimit({ maxSize: 10 * 1024 * 1024 })` で 10MB 上限
 - **route handler は try/catch しない**: throw されたエラーは `index.ts` の `app.onError` が拾って `{ error: message }` を 500 で返す。各ハンドラから 500 を直接返す書き方はしない (validation 400 など期待エラーを除く)
 - **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
-- **BASIC 認証は `app.ts` で `/` と health probe 系 (`/healthz` / `/health` / `/readyz` / `/livez`) 以外に強制**: `hono/basic-auth` を lazy 初期化 (config().load() タイミングを跨ぐため) + `PUBLIC_PATHS` set で除外パスを管理。Cloud Run / k8s probe / Docker HEALTHCHECK が落ちないよう `/` と health probe 系だけ素通しにしている。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換用エイリアスで同じハンドラを共有 (`HEALTH_PATHS` 配列で集中管理)
+- **BASIC 認証は `app.ts` で `/` と health probe / `/callback` 以外に強制** ([ADR-0006](./docs/adr/0006-basic-auth-except-health-and-callback.md))。`hono/basic-auth` を lazy 初期化 + `PUBLIC_PATHS` で除外。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換エイリアスで同じハンドラを共有 (`HEALTH_PATHS` 配列で集中管理)
 - **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
-- **callback dedup は in-memory Map で 5 分 window**: `services/lineworks/callback/dedup.ts` が raw body の SHA-256 を key にして直近 5 分以内の再送を検出。Cloud Run の **min-instances=1** 前提 (複数 instance になると instance ごとに別 Map になって破綻)。**501 への転送 (`forward.ts`)** が throw した場合は `unregister` を呼んで LINE WORKS の再送を許可する設計 (喪失防止)。max-instances を増やす要件が出たら Redis 等の共有ストアに置き換える前提
-- **callback は 501 に転送する (案 B)**: 受信 callback は `services/lineworks/callback/forward.ts` で env `FORWARD_501_CALLBACK_URL` (= scheduler-501 の `/callback`) に raw body + `X-WORKS-Signature` をそのまま転送する。応答コマンド (`/today` `/status` 等) の handler は 501 側にあるため、wmbot は LINE WORKS gateway として受けて素通しするだけ。wmbot 内の `dispatch.ts` / `handlers/` は現在呼ばれない (削除はせず雛形として残置)
+- **callback dedup は in-memory Map で 5 分 window** ([ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md))。`callback/dedup.ts` が raw body の SHA-256 を key に再送を検出。**min-instances=1** 前提。501 転送 (`forward.ts`) が throw したら `unregister` で再送許可 (喪失防止)
+- **callback は 501 に転送する (案 B)** ([ADR-0005](./docs/adr/0005-forward-callback-to-501.md))。`callback/forward.ts` が env `FORWARD_501_CALLBACK_URL` へ raw body + `X-WORKS-Signature` を素通し。応答コマンドの handler は 501 側にあり、wmbot 内の `dispatch.ts` / `handlers/` は現在呼ばれない (雛形として残置)
 
 ### Docker / デプロイ
 
-- **マルチステージビルド**: builder で `bun install` + `bun run build` → runtime には `build/index.js` だけ COPY する。`node_modules` / `tsconfig.json` / `package.json` は runtime に**残さない**
+> Docker / Cloud Build の構造的な決定は [ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) (マルチステージ / BuildKit 不可 / 非 root / curl レス healthcheck / cloudbuild.yaml が SoT)、SA / secret 運用は [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md) (専用 runtime SA / Secret Manager / 公開リポ向け substitution) を参照。以下は実装の細部ゴッチャ。
+
 - **runtime ベースは `oven/bun:<ver>-slim`** (debian-slim)。builder は `oven/bun:<ver>-debian` (フル) を使い分ける
-- **非 root で起動**: `USER bun` (uid 1000)。COPY は `--chown=bun:bun` を付ける
-- **BuildKit 限定構文は使わない**: Cloud Build のデフォルト `gcr.io/cloud-builders/docker` が BuildKit 非対応。`--mount=type=cache` / `--mount=type=secret` 等は禁止。普通のレイヤキャッシュ (`COPY package.json bun.lock` を独立ステップにする等) で代替する
-- **HEALTHCHECK は `curl` を入れず `bun -e "fetch(...)"`** で `/healthz` を叩く。curl パッケージを入れない方針
 - **CMD は `["bun", "build/index.js"]`** で直接バンドルを起動 (`bun run start` → package.json 参照を避ける)
 - **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
 - **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入
-- **build / deploy パイプラインは `cloudbuild.yaml` に記述**: trigger に inline build を残さず、ファイル経由で動かす (filename 設定が必要)。Cloud Run 固有設定 (SA / secrets / scaling / resources / `--no-use-http2` / labels) はすべてここで管理し、手動 `gcloud run services update` での drift を防ぐ
-- **Cloud Run の runtime SA は専用**: `worksmobile-message-bot-sa@office-381404.iam.gserviceaccount.com`。デフォルトの compute SA は使わない (権限分離)。SA は `lineworks-client-secret` / `lineworks-private-key` / `lineworks-basic-id` / `lineworks-basic-pass` / `lineworks-bot-secret` の `secretAccessor` ロールのみ持つ
-- **機密 env は Secret Manager 経由**: `CLIENT_SECRET` / `PRIVATE_KEY` / `BASIC_ID` / `BASIC_PASS` / `BOT_SECRET` を Cloud Run の env に**直書きしない**。`gcloud secrets versions add` で値を更新し、Cloud Run は `:latest` を参照する設定 (`--update-secrets=...`) のため、再 deploy 不要で値だけ差し替え可能
-- **機密度の低い env (`CLIENT_ID` / `SERVICE_ACCOUNT` / `BOT_ID`) も毎回再アサート**する drift 防止策。ただしリポが**公開**なので **値自体は cloudbuild.yaml に書かない**。GCP Console 側の Cloud Build トリガー設定で `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` の substitution variable に値を入れる。yaml 側はプレースホルダ参照 (`${_CLIENT_ID}` 等) のみ
+- **機密 env を Cloud Run の env に直書きしない** ([ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md))。`gcloud secrets versions add` で値を更新すると Cloud Run は `:latest` を参照するため再 deploy 不要で差し替えできる。機密度の低い env も substitution variable 経由で yaml には値を残さない
 - **Artifact Registry の cleanup policy 設定済**: タグ無しイメージは 7 日後削除、タグ付きは最新 10 件保持 (`cloud-run-source-deploy` リポジトリ)
 
 ### 命名・配置の慣習
 
 - **送信先は `channelId` か `userId` の片方のみ**: `messages/index.ts` の `buildMessageUrl` がどちらか一方を要求する
-- **メッセージタイプは `services/lineworks/messages/index.ts` の `messageSchemas` マップに集約**。新タイプを足す時はそこに schema を 1 件追加するだけで、`routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<type>` を登録 + 汎用 `sendMessageByType` が `{ type, ...body }` を組み立てて送信する。**個別 sender 関数は書かない**
+- **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_` で始まるファイルは内部ヘルパ**: `routes/_middleware.ts` のように、サブルータに直接マウントしない補助モジュールであることを示す慣習 (501 ルール継承)
