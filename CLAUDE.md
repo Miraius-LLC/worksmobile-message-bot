@@ -74,7 +74,7 @@ single-context。用語集 = root [`CONTEXT.md`](./CONTEXT.md)、設計決定 = 
 | `BASIC_ID` | **Secret Manager `lineworks-basic-id:latest`** にマウント (本番) / `.env` (開発)。webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
 | `BASIC_PASS` | **Secret Manager `lineworks-basic-pass:latest`** にマウント (本番) / `.env` (開発)。BASIC 認証パスワード |
 | `PORT` | リッスンポート (デフォルト 8080) |
-| `NODE_ENV` | `production` で JSON ログを抑制せずそのまま出す (Hono 自体は logger を内蔵しないので env による分岐は最小限) |
+| `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (`logger-impl.ts`、4xx は warn で残し Error Reporting には乗せない)。`shouldUsePretty` が production では `LOG_PRETTY=1` を無視して JSON 出力に倒す |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging の trace 連携が fully-qualified resource name (`projects/<id>/traces/<traceId>`) で出る。未設定なら trace ID 単独 |
 

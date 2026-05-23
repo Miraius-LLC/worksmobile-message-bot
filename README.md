@@ -18,7 +18,7 @@
 - **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
 - **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Cloud Logging severity / trace 連携付き
 - **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
-- **CI**: GitHub Actions (PR で `tsc --noEmit` + `biome check`)
+- **CI**: GitHub Actions (PR + `main` への push で `tsc --noEmit` + `biome check` + `bun test`)
 - **CD**: Cloud Build (`cloudbuild.yaml`) → Cloud Run (asia-northeast1)
 
 ### 参考にさせていただいた記事
@@ -60,7 +60,7 @@ LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 | `BASIC_PASS` | BASIC 認証パスワード |
 | `FORWARD_501_CALLBACK_URL` | (任意) 受信 callback の転送先 = 501 (scheduler-501) の `/callback` URL。未設定なら転送せず素通し |
 | `PORT` | listen ポート (省略時 `8080`) |
-| `NODE_ENV` | `production` でログレベルを `error` 以上に絞る |
+| `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (4xx は warn で残しつつ Error Reporting には乗せない運用)。development では `debug` まで出す |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`cloudbuild.yaml` のデプロイ step で自動注入される) |
 
