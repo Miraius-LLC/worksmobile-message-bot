@@ -48,12 +48,12 @@ single-context。用語集 = root [`CONTEXT.md`](./CONTEXT.md)、設計決定 = 
 
 - `src/index.ts` — エントリ。`Hono` インスタンス生成 → trace / secure-headers ミドルウェア → サブルータを `app.route(...)` で mount → `@hono/node-server` の `serve()` で起動 + SIGTERM の graceful shutdown
 - `src/routes/_middleware.ts` — `tokenMiddleware` で `c.var.token` に LINE WORKS のアクセストークンを注入
-- `src/routes/messages.ts` — `messagesApp` (Hono) を export。`(channels|users)/:id/messages/type/<type>` を 20 エンドポイント分まとめて `app.post(...)` で登録 (zValidator + `sendMessageByType`)
+- `src/routes/messages.ts` — `messagesApp` (Hono) を export。`(channels|users)/:id/messages/type/<type>` を 26 エンドポイント分 (13 type × channels/users の 2 base) まとめて `app.post(...)` で登録 (zValidator + `sendMessageByType`)
 - `src/routes/attachments/` — `attachmentsApp` (Hono) を export。`/attachments` prefix 配下に `POST /` (upload + 10MB bodyLimit) と `GET /:fileId` (download) をマウント
 - `src/services/lineworks/` — LINE WORKS API ラッパ
   - `auth.ts` — JWT 生成 (`node:crypto` で RS256 自前実装) + アクセストークン取得 + キャッシュ + single-flight (`getServerToken`)
   - `api.ts` — Bot API への JSON POST 共通処理 (`postJson`, `sendBotMessage`)
-  - `messages/index.ts` — 10 type 分の Zod schema + `sendMessageByType` 汎用 dispatcher (`{ type, ...body }` で組み立てて送信)
+  - `messages/index.ts` — 13 type 分の Zod schema + `sendMessageByType` 汎用 dispatcher (`{ type, ...body }` で組み立てて送信)
   - `attachment.ts` — アップロード / ダウンロード URL 解決
 - `src/utils/config.ts` — Zod schema で env を起動時に検証 + `.transform()` で camelCase Config に整形 (fail-fast)
 - `src/utils/logger.ts` — pino ベース logger。Cloud Logging の `severity` フィールド + `logging.googleapis.com/trace` を自動付与
