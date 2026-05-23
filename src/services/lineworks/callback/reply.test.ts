@@ -2,15 +2,21 @@ import { describe, expect, mock, test } from 'bun:test'
 
 // reply ヘルパは内部で getServerToken / sendMessageByType を呼ぶので、
 // mock.module で差し替えてから動的 import する (tests-lineworks.md の典型パターン)
+//
+// mock.module はファイル跨ぎでグローバルに効くため、共有モジュール
+// (@/services/lineworks/messages) を差し替える際は実 export を spread で維持し、
+// spy したい sendMessageByType だけ上書きする。messageSchemas / messageTypes を
+// 空に潰すと、それを import する別ファイル (messages/index.test.ts) にリークして
+// 「ローカル緑・CI 赤」を引き起こす (lessons L7)。
+
+import * as realMessages from '@/services/lineworks/messages'
 
 const sendMessageByTypeMock = mock(async () => {})
 const getServerTokenMock = mock(async () => 'fixed-test-token')
 
 mock.module('@/services/lineworks/messages', () => ({
+  ...realMessages, // messageSchemas / messageTypes など実 export を維持
   sendMessageByType: sendMessageByTypeMock,
-  // 既存 export を維持
-  messageSchemas: {},
-  messageTypes: [] as string[],
 }))
 mock.module('@/services/lineworks/auth', () => ({
   getServerToken: getServerTokenMock,
