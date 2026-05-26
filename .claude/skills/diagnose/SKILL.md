@@ -1,6 +1,6 @@
 ---
 name: diagnose
-description: Disciplined diagnosis loop for hard bugs and performance regressions. Reproduce → minimise → hypothesise → instrument → fix → regression-test. Use when user says "diagnose this" / "debug this", reports a bug, says something is broken/throwing/failing, or describes a performance regression.
+description: 難しいバグやパフォーマンス劣化のための規律ある診断ループ。再現→最小化→仮説→計測→修正→回帰テストの順で進める。「diagnose this」「debug this」、バグ報告、壊れている/例外/失敗、性能劣化を訴えるときに使用する。
 ---
 
 # Diagnose
