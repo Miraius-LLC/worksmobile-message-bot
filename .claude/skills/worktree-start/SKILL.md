@@ -60,6 +60,16 @@ skill 側で `worktree-<suffix>` 形式に整形し、最終確認:
 git worktree add .claude/worktrees/<suffix> -b worktree-<suffix>
 ```
 
+### Step 4.5: fresh worktree の初期化 (依存 + secret)
+
+新規 worktree は gitignore 成果物 (`node_modules` / `.env` / `.dev.vars` / `.wrangler/`) を引き継がない。立ち上げ直後に以下を実行する (lessons L16 / L26):
+
+- **`bun install`** — `node_modules` が無いと「export 不在」「大量テスト失敗」として現れる (L16)。テスト/typecheck の前に必須。
+- **secret 注入** — op inject 採用済の repo (root に `.env.tpl` / `package.json` に `secrets:inject` がある) は **`bun run secrets:inject`** で `.env` / `.dev.vars` を 1Password から生成 (旧来の「`.env` を手コピー」は不要 = `.tpl` が tracked なので worktree に既に存在する、L26)。op 未採用の repo は従来どおり実体を手当て。
+- **CF (wrangler) 系** は必要に応じ `wrangler d1 migrations apply --local` + seed で `.wrangler/` のローカル DB を再生成 (コピーすると stale 連番で事故る、L15/L26)。
+
+> secret 注入は op の Touch ID アンロックを伴うので、この skill ステップ (= 対話下) で回す。非対話な hook で自動実行するとアンロック待ちでハングしうる (`bun install` は認証不要なので hook 化可)。
+
 ### Step 5: 作業開始の合図
 
 ```
