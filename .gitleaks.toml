@@ -1,0 +1,61 @@
+# gitleaks 設定 (worksmobile-message-bot)。lefthook の pre-commit (gitleaks protect --staged) が読む。
+#
+# Miraius 固有ルールの SoT は ~/.config/gitleaks/miraius.toml。本ファイルはチームリポ (Miraius-LLC) で
+# 他環境/CI が藤井ローカルの絶対パスを持たないため、[extend].path で参照せずルールをインライン複製する。
+# ルール変更時は SoT を正として両方を更新する。(本 repo は public だが、入るのは検知用 regex のみで実鍵値は含まない)
+#
+# 設計方針: freee も LINE WORKS も鍵に固定接頭辞のクセが弱い (base64 風 / ランダム列) ため、
+# 原則「変数名 + 値」のコンテキストで検知する。base64 化 PEM 秘密鍵のみ固定接頭辞で単独検知する。
+# (この repo の PRIVATE_KEY は base64 化 PEM = miraius-base64-pem-private-key で捕捉)
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "miraius-freee-client-secret"
+description = "freee API client secret (88 文字前後の base64 風)"
+regex = '''(?i)freee[_\-]?(api[_\-]?)?(client[_\-]?)?secret\s*[:=]\s*['"]?([A-Za-z0-9_\-+/=]{40,100})['"]?'''
+keywords = ["freee"]
+
+[[rules]]
+id = "miraius-freee-refresh-token"
+description = "freee API OAuth2 refresh token"
+regex = '''(?i)freee[_\-]?(api[_\-]?)?refresh[_\-]?token\s*[:=]\s*['"]?([A-Za-z0-9_\-+/=]{32,64})['"]?'''
+keywords = ["freee"]
+
+[[rules]]
+id = "miraius-lineworks-bot-secret"
+description = "LINE WORKS Bot secret"
+regex = '''(?i)(lineworks|line[_\-]?works|works)?[_\-]?bot[_\-]?secret\s*[:=]\s*['"]?([A-Za-z0-9_\-]{20,60})['"]?'''
+keywords = ["bot_secret", "botsecret"]
+
+[[rules]]
+id = "miraius-base64-pem-private-key"
+description = "Base64-encoded PEM private key (1 行形式)"
+regex = '''LS0tLS1CRUdJTi[A-Za-z0-9+/=]{100,}'''
+keywords = ["ls0tls1c"]
+
+# --- 誤検知の除外 (allowlist) ---
+# テスト / サンプル / テンプレ / vendored skill ドキュメントはファイル単位で除外
+[[allowlists]]
+description = "test / sample / template / vendored skill docs"
+paths = [
+  '''.*\.test\.tsx?$''',
+  '''.*\.env\.sample$''',
+  '''.*\.tpl$''',
+  '''(^|/)\.claude/skills/.*''',
+]
+
+# Secret Manager 参照 (<name>:latest) や明示プレースホルダは実鍵でない (検知行全体で判定)
+[[allowlists]]
+description = "Secret Manager refs and obvious placeholders"
+regexTarget = "line"
+regexes = [
+  ''':latest\b''',
+  '''lineworks-(client-secret|private-key|bot-secret|basic-id|basic-pass)''',
+  '''(?i)\b(your|example|dummy|placeholder|changeme)\b''',
+  '''xxxx+''',
+  '''<[A-Za-z0-9_\- ]+>''',
+  '''photos\.app\.goo\.gl''',
+  '''\b(app|tbl|fld)[A-Za-z0-9]{14}\b''',
+]

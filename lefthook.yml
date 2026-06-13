@@ -11,6 +11,8 @@ post-rebase:
 pre-commit:
   parallel: true
   commands:
+    gitleaks:
+      run: gitleaks protect --staged --no-banner --redact
     biome:
       run: bunx biome check --write ./src
       stage_fixed: true
