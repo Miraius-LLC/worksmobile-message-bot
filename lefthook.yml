@@ -1,12 +1,12 @@
 post-merge:
   commands:
     install:
-      run: bun i
+      run: scripts/with-dev-env bun i
 
 post-rebase:
   commands:
     install:
-      run: bun i
+      run: scripts/with-dev-env bun i
 
 pre-commit:
   parallel: true
@@ -14,16 +14,16 @@ pre-commit:
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
     biome:
-      run: bunx biome check --write ./src
+      run: scripts/with-dev-env bunx biome check --write ./src
       stage_fixed: true
     typescript:
       glob: "*.{ts,tsx}"
-      run: bunx tsc --noEmit
+      run: scripts/with-dev-env bunx tsc --noEmit
     test:
       # `tests/` 配下だけ編集したコミット (例: feature テストの追加・修正のみ) でも
       # pre-commit でテストを走らせるため、glob には `tests/` も含める
       glob: "{src,tests}/**/*.{ts,tsx}"
-      run: bun run scripts/run-related-tests.ts {staged_files}
+      run: scripts/with-dev-env bun run scripts/run-related-tests.ts {staged_files}
 
 # pre-push では `bun test` を全件実行する (co-located unit + tests/ feature)。
 # pre-commit は staged された本体に対応する関連テストしか拾わないため、
@@ -32,4 +32,4 @@ pre-commit:
 pre-push:
   commands:
     full-test:
-      run: bun test
+      run: scripts/with-dev-env bun test

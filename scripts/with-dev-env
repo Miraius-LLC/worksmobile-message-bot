@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+set -eu
+
+if [ "$#" -eq 0 ]; then
+  echo "usage: $0 <command> [args...]" >&2
+  exit 64
+fi
+
+cmd=$1
+
+if command -v mise >/dev/null 2>&1; then
+  if mise exec -- command -v "$cmd" >/dev/null 2>&1; then
+    exec mise exec -- "$@"
+  fi
+fi
+
+if command -v "$cmd" >/dev/null 2>&1; then
+  exec "$@"
+fi
+
+echo "Missing command: $cmd" >&2
+echo "Install mise and run 'mise install', or install $cmd directly." >&2
+exit 127
