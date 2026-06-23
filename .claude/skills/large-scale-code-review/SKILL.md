@@ -40,7 +40,7 @@ description: >-
 3. **同調しない。** 各 agent は忖度・気兼ねで相手に合わせない。技術的根拠だけで判断する (§10 3 原則 #2)。
    統合段階でも相違を均さない。3 者が**独立に**到達した一致だけを「高信頼」とし、割れたものは「意見差分」で残す。
 4. **レビュー判断は必ず agent-room 経由 (確定)。** ~/Develop/AGENTS.md §10 の絶対ルール。自セッション内の
-   内部 self-review で他者レビューを代替しない。実レビューは agent-room post で実 agent に投げて取得する。
+   内部 self-review で他者レビューを代替しない。実レビューは agent-room delegate で実 agent に投げて取得する。
 5. **完全 read-only (絶対)。** レビュアーはコードを書き換えない・worktree を作らない・実装しない・commit しない。
    見るだけ。各自の指摘は **MD ファイルに保存して報告**し、**まとめ役 (主エージェント) がそれらを 1 本に統合**する。
 
@@ -64,8 +64,8 @@ description: >-
 
 - **まとめ役 (オーケストレータ 兼 出場選手)** = この skill を起動した agent。スコープ確定・依頼書配布・統合・
   文書化・表彰式進行を担う。**同時に自分も独立票を 1 本投じる出場選手**であり、カンニング防止プロトコル (Phase 1) を守る。
-  - **Claude は遅いので、まとめ役・統合を codex に委ねてよい**。スコープが大きく Claude がボトルネックなら、
-    オーケストレーション自体を `agent-room post --to codex` でまとめ役ごと委譲する判断をしてよい (要所は藤井に一言)。
+  - **まとめ役・統合は Codex 寄りを既定候補にする**。Claude に固定担当領域は置かず、スコープが大きい場合や速度が重要な場合は、
+    オーケストレーション自体を `agent-room delegate --to codex` でまとめ役ごと委譲する判断をしてよい (要所は藤井に一言)。
 - **3 人の独立レビュアー (出場選手)** = claude / codex / agy。まとめ役は自分自身の独立レビューを 1 本担い、
   残り 2 agent に agent-room で同一依頼を投げる (自己トリガ禁止: claude は `--to claude` しない、codex は `--to codex`、
   agy は `--to agy` しない。自分の分は自セッションで実施する)。結果 3 者の独立レビューが揃う。
@@ -98,8 +98,8 @@ description: >-
 
 #### 1-b. 並列にディスパッチ (直列にしない＝後発が先発を見て同調するのを防ぐ)
 
-- `agent-room post --from <self> --to codex -w "@codex repo:<project> 第 n 回 <repo名> 大レビュー大会の独立レビューです。指示書 /tmp/<repo名>-review-<...>.md を読んで単独でレビューしてください"`
-- `agent-room post --from <self> --to agy   -w "@agy   repo:<project> 第 n 回 <repo名> 大レビュー大会の独立レビューです。指示書 /tmp/<repo名>-review-<...>.md を読んで単独でレビューしてください"`
+- `agent-room delegate --from <self> --to codex "@codex repo:<project> 第 n 回 <repo名> 大レビュー大会の独立レビューです。指示書 /tmp/<repo名>-review-<...>.md を読んで単独でレビューしてください"`
+- `agent-room delegate --from <self> --to agy   "@agy   repo:<project> 第 n 回 <repo名> 大レビュー大会の独立レビューです。指示書 /tmp/<repo名>-review-<...>.md を読んで単独でレビューしてください"`
 
 #### 1-c. 🚨 カンニング防止プロトコル (まとめ役=出場選手の独立性担保)
 
@@ -150,7 +150,7 @@ description: >-
 統合が終わったら、**殊勲賞 (MVP) 表彰式**を agent-room で開催する。他 agent が気づけず単独で挙がった指摘
 (合意度 1/3) を「貴重さ = 重大度 (Critical 重視) × 独自性」でランク付けし、**殊勲賞トップ 5** を発表する。
 
-- 発表は **`agent-room post --from <self> --to codex,agy -w "..."`** で**他 agent を起こして**トップ 5 を共有し、
+- 発表は **`agent-room delegate --from <self> --to codex,agy "..."`** で**他 agent を起こして**トップ 5 を共有し、
   それぞれの**感想**をもらう (例: この発見をどう見るか / 自分が見落とした理由 / 異論)。まとめ役自身の感想も添える。
   (自己トリガ禁止: まとめ役が claude なら `--to codex,agy`、codex なら `--to claude,agy`、agy なら `--to claude,codex`。)
 - 発表文は大会名を冠してキャッチーに (例:「🏆 第 n 回 <repo名> 大レビュー大会・殊勲賞発表! 第 1 位は **by @agy** の…」)。
@@ -258,5 +258,5 @@ repo:<project>
 - `diagnose` — 観点 5 (バグ・エラー温床) の深掘りに使える。
 - `receiving-code-review` — 返ってきた指摘の受け取り方 (鵜呑み / 全否定しない)。
 - `requesting-code-review` — レビュー依頼の組み立て。
-- ~/Develop/AGENTS.md §10 — agent-room 協業の SoT (主担当表・自然文指示の解釈・規律)。
+- ~/Develop/AGENTS.md §10 — agent-room 協業の SoT (固定担当廃止・自然文指示の解釈・規律)。
 - `docs/agent-room-cli.md` — agent-room CLI のコマンド表。
