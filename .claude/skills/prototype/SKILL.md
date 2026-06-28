@@ -1,6 +1,7 @@
 ---
 name: prototype
 description: 設計確定前に使い捨てプロトタイプで肉付けする。状態/ロジック検証は実行可能なターミナルアプリ、UI 検討は1ルートで切替できる複数の大胆な UI 案、の2分岐に振り分ける。プロトタイプを作りたい、データモデルや状態機械を検証したい、UI をモックしたいときに使用する。
+disable-model-invocation: true
 ---
 
 # Prototype
