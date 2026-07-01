@@ -14,7 +14,7 @@ pre-commit:
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
     biome:
-      run: scripts/with-dev-env bunx biome check --write ./src
+      run: scripts/with-dev-env bunx biome check --write ./src ./tests ./scripts
       stage_fixed: true
     typescript:
       glob: "*.{ts,tsx}"

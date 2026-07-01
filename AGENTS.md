@@ -22,7 +22,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 |---|---|
 | 開発サーバ起動 (ホットリロード, .env 自動読込) | `bun run dev` |
 | 型チェック | `bunx tsc --noEmit` |
-| Lint/format (auto-fix) | `bunx biome check --write ./src` |
+| Lint/format (auto-fix) | `bunx biome check --write ./src ./tests ./scripts` |
 | 本番ビルド | `bun run build` |
 | Docker イメージビルド | `bun run docker:build` |
 

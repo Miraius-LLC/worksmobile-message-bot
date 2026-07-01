@@ -67,9 +67,10 @@ log "  channel: ${CHANNEL_ID}"
 # -----------------------------------------------------------------------------
 log "Uptime Check (${UPTIME_DISPLAY_NAME}) を確認"
 # uptime list-configs は filter 文字列が API 側に通らないため、全件取得して grep で突合
-EXISTING_UPTIME="$(gcloud monitoring uptime list-configs \
+UPTIME_CONFIGS="$(gcloud monitoring uptime list-configs \
   --project="${PROJECT_ID}" \
-  --format="value(name,displayName)" \
+  --format="value(name,displayName)")"
+EXISTING_UPTIME="$(printf '%s\n' "${UPTIME_CONFIGS}" \
   | awk -v n="${UPTIME_DISPLAY_NAME}" -F'\t' '$2==n {print $1; exit}')"
 if [ -z "${EXISTING_UPTIME}" ]; then
   log "  作成中..."
@@ -82,12 +83,13 @@ if [ -z "${EXISTING_UPTIME}" ]; then
     --protocol=https \
     --period=5 \
     --status-classes=2xx >/dev/null
+  UPTIME_CONFIGS="$(gcloud monitoring uptime list-configs \
+    --project="${PROJECT_ID}" \
+    --format="value(name,displayName)")"
 else
   log "  既存を再利用 (${EXISTING_UPTIME})"
 fi
-UPTIME_CHECK_ID="$(gcloud monitoring uptime list-configs \
-  --project="${PROJECT_ID}" \
-  --format="value(name,displayName)" \
+UPTIME_CHECK_ID="$(printf '%s\n' "${UPTIME_CONFIGS}" \
   | awk -v n="${UPTIME_DISPLAY_NAME}" -F'\t' '$2==n {print $1; exit}' \
   | awk -F/ '{print $NF}')"
 log "  check id: ${UPTIME_CHECK_ID}"

@@ -25,6 +25,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## CI / CD・基盤
 
+- **scripts の検証対象化**: pre-commit / CI / package scripts の Biome 対象に `scripts/` を追加し、`run-related-tests.ts` の関連テスト抽出ロジックを unit test 付きで分離。監視設定スクリプトは uptime config の重複取得を削減。
 - **Cloud Build に bun test step を追加**: ビルドパイプラインに `bun test` を組み込み、`--no-verify` での pre-push バイパスを防止（[ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) / [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。`cloudbuild.yaml` が Cloud Run 構成（runtime SA / Secret Manager マウント / scaling / resources / ingress）の SoT。
 - **HTTP/1.1-only（end-to-end h2c 不採用）**: コンテナは HTTP/1.1 のみで listen し、公開側 HTTP/2 は Cloud Run フロントが終端（`--no-use-http2`、[ADR-0002](./docs/adr/0002-container-http1-only-no-h2c.md)）。
 - **Cloud Run + Hono + Bun の採用**: 常時 1 インスタンス張り付きの薄いラッパとして Cloud Run（asia-northeast1）を採用（[ADR-0001](./docs/adr/0001-cloud-run-hono-bun.md)）。専用 runtime SA + Secret Manager + 機密度の低い env は substitution variable で公開リポジトリに値を残さない（[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。

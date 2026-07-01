@@ -90,7 +90,7 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 |---|---|
 | 開発サーバ起動 (ホットリロード) | `bun run dev` |
 | 型チェック | `bunx tsc --noEmit` |
-| Lint / format (auto-fix) | `bunx biome check --write ./src` |
+| Lint / format (auto-fix) | `bunx biome check --write ./src ./tests ./scripts` |
 | 本番ビルド (`build/index.js` を出力) | `bun run build` |
 | 本番ビルドを起動 | `bun run start` |
 | Docker イメージビルド | `bun run docker:build` |

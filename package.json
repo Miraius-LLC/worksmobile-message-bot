@@ -22,8 +22,8 @@
     "build": "bun build ./src/index.ts --outdir=./build --target=bun --minify",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit",
-    "lint": "bunx biome check ./src ./tests",
-    "format": "bunx biome check --write ./src ./tests",
+    "lint": "bunx biome check ./src ./tests ./scripts",
+    "format": "bunx biome check --write ./src ./tests ./scripts",
     "docker:build": "docker build -t worksmobile-message-bot .",
     "docker:run": "docker run -p 8080:8080 --env-file=.env worksmobile-message-bot",
     "lefthook:install": "lefthook install"

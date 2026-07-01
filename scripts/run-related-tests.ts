@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * lefthook の pre-commit から呼ばれるヘルパ。
  *
@@ -10,39 +11,73 @@
  * - 該当テストが 1 件も無ければ何もせず exit 0
  */
 
+import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-function pickTargets(stagedFiles: string[]): string[] {
-  const targets = new Set<string>()
-  for (const file of stagedFiles) {
-    if (!file.endsWith('.ts') && !file.endsWith('.tsx')) continue
-    if (!existsSync(file)) continue // 削除されたファイルはスキップ
+const TYPESCRIPT_FILE_RE = /\.tsx?$/
+const TYPESCRIPT_TEST_FILE_RE = /\.test\.tsx?$/
+const TYPESCRIPT_DECLARATION_FILE_RE = /\.d\.tsx?$/
 
-    if (file.endsWith('.test.ts') || file.endsWith('.test.tsx')) {
+type FileExists = (file: string) => boolean
+
+export function toRelatedTestFile(file: string): string {
+  return file.replace(/\.tsx?$/, extension => `.test${extension}`)
+}
+
+export function pickTargets(stagedFiles: string[], fileExists: FileExists = existsSync): string[] {
+  const targets = new Set<string>()
+  const seen = new Set<string>()
+
+  for (const file of stagedFiles) {
+    if (seen.has(file)) continue
+    seen.add(file)
+
+    if (!TYPESCRIPT_FILE_RE.test(file)) continue
+    if (TYPESCRIPT_DECLARATION_FILE_RE.test(file)) continue
+    if (!fileExists(file)) continue // 削除されたファイルはスキップ
+
+    if (TYPESCRIPT_TEST_FILE_RE.test(file)) {
       targets.add(file)
       continue
     }
-    const testFile = file.replace(/\.tsx?$/, m => `.test${m}`)
-    if (existsSync(testFile)) targets.add(testFile)
+
+    const testFile = toRelatedTestFile(file)
+    if (fileExists(testFile)) targets.add(testFile)
   }
+
   return [...targets]
 }
 
-const stagedFiles = process.argv.slice(2)
-const targets = pickTargets(stagedFiles)
-
-if (targets.length === 0) {
-  console.log('No related tests for staged files. Skipping.')
-  process.exit(0)
+function writeLine(message: string): void {
+  process.stdout.write(`${message}\n`)
 }
 
-console.log(`Running ${targets.length} related test file(s):`)
-for (const t of targets) console.log(`  - ${t}`)
+function runTests(targets: string[]): Promise<number> {
+  const proc = spawn('bun', ['test', ...targets.map(target => resolve(target))], {
+    stdio: 'inherit',
+  })
 
-const proc = Bun.spawn(['bun', 'test', ...targets.map(t => resolve(t))], {
-  stdout: 'inherit',
-  stderr: 'inherit',
-})
-const code = await proc.exited
-process.exit(code)
+  return new Promise(resolveCode => {
+    proc.on('error', () => resolveCode(1))
+    proc.on('close', code => resolveCode(code ?? 1))
+  })
+}
+
+async function main(stagedFiles: string[]): Promise<number> {
+  const targets = pickTargets(stagedFiles)
+
+  if (targets.length === 0) {
+    writeLine('No related tests for staged files. Skipping.')
+    return 0
+  }
+
+  writeLine(`Running ${targets.length} related test file(s):`)
+  for (const target of targets) writeLine(`  - ${target}`)
+
+  return await runTests(targets)
+}
+
+if (import.meta.main) {
+  process.exit(await main(process.argv.slice(2)))
+}
