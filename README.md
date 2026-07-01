@@ -31,7 +31,15 @@
 
 ## 環境変数の設定
 
-`.env` を作成して以下を設定。
+ローカルの `.env` は 1Password から生成する。
+
+```sh
+bun run secrets:dump
+```
+
+`secrets:dump` は `.env.tpl` の `op://` 参照を読み、値を表示せず `.env` にマージする。既存の `.env` にある未管理キーやコメントは残る。`secrets:check` は書き込まずに 1Password 参照の疎通だけ確認する。
+
+手動で作成する場合は以下を設定する。
 
 ```env
 CLIENT_ID=your_client_id
@@ -95,6 +103,8 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 | 本番ビルドを起動 | `bun run start` |
 | Docker イメージビルド | `bun run docker:build` |
 | pre-commit hook 有効化 | `bun run lefthook:install` |
+| 1Password から `.env` 生成 | `bun run secrets:dump` |
+| 1Password 参照の疎通確認 | `bun run secrets:check` |
 
 `pre-commit` で biome auto-fix と `tsc --noEmit` が走るため、手動で先回り実行する必要は無い。
 

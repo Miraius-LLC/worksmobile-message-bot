@@ -21,6 +21,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 | 用途 | コマンド |
 |---|---|
 | 開発サーバ起動 (ホットリロード, .env 自動読込) | `bun run dev` |
+| 1Password から `.env` 生成 | `bun run secrets:dump` |
+| 1Password 参照の疎通確認 | `bun run secrets:check` |
 | 型チェック | `bunx tsc --noEmit` |
 | Lint/format (auto-fix) | `bunx biome check --write ./src ./tests ./scripts` |
 | 本番ビルド | `bun run build` |
