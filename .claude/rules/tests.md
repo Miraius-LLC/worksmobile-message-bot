@@ -114,6 +114,15 @@ test('mock が呼ばれる', async () => {
 
 外部依存 (API への `fetch`, JWT 署名, Secret Manager) はテストで実体を読まない。`mock.module` で必要なメソッドだけ no-op / spy にする。
 
+### `mock.module` はファイル跨ぎでリークする (発現は OS のファイル評価順依存)
+
+`mock.module` の差し替えはテストファイルを跨いで残留し、ファイル評価順 (readdir 順 = OS/FS 依存) によって他ファイルの成否が変わる。**ローカル macOS / pre-push 全件テストでは緑でも、CI Linux でだけ赤くなり得る** (lessons L46 の実事故)。
+
+- 共有モジュール (workspace パッケージ等) を複数 feature test で mock しない (lessons L7)。
+- どうしても mock する場合は「**本ファイル実行中フラグ** (globalThis、`beforeAll` で set / `afterAll` で delete) が立つ間だけ固定応答、他ファイル実行中は **capture 済み実体へ委譲**」の無害化パターンにする。
+- 委譲先を namespace 経由 (`realModule.fn(...)`) で書かない — ESM live binding が mock 適用後は mock 自身を指し `Maximum call stack size exceeded` の無限再帰になる。`mock.module` の**前に** `const captured = realModule.fn` で関数参照を capture して委譲する。
+- leak の再現・修正検証は CI 任せにせず、「該当 mock だけを `--preload` で残留させて対象テストを実行」で評価順に依らず決定論的に行う。
+
 ## 何を / 何をテストしないか
 
 - **書く**:

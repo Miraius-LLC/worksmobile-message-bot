@@ -94,7 +94,7 @@ Qiita 記事に明記がない部分は TypeScript 公式 ([TypeScript Coding Gu
 
 `lefthook.yml` で:
 - **pre-commit**: biome auto-fix → `tsc --noEmit` → 関連テスト (staged から逆引き)
-- **pre-push**: 全件テスト (`bun test`)
+- **pre-push**: 全件テスト (`bun test`)。プロジェクトによって追加チェックを重ねる (例: asunaro は schema drift / apps/web 専用 typecheck + vitest / release tag guard。各 repo の `lefthook.yml` が SoT)
 
 手動で先回り実行する必要は無い。落ちたら原因を直してから commit / push。
 
