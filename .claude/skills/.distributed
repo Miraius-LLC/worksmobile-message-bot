@@ -1,4 +1,5 @@
 ask-matt
+code-review
 codebase-design
 diagnosing-bugs
 domain-modeling
@@ -7,6 +8,7 @@ implement
 improve-codebase-architecture
 large-scale-code-review
 prototype
+research
 resolving-merge-conflicts
 tdd
 to-issues
