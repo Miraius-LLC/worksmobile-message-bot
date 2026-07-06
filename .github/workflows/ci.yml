@@ -21,15 +21,21 @@ jobs:
 
       - name: Install dependencies
         run: |
-          for attempt in 1 2 3 4; do
-            if bun install --frozen-lockfile; then
-              exit 0
-            fi
-            sleepSeconds=$((attempt * 30))
-            echo "::warning::bun install failed on attempt ${attempt}; retrying in ${sleepSeconds}s..."
-            sleep "$sleepSeconds"
-          done
-          bun install --frozen-lockfile
+          set +e
+          installOutput="$(bun install --frozen-lockfile 2>&1)"
+          installStatus=$?
+          set -e
+          printf '%s\n' "$installOutput"
+          if [ "$installStatus" -eq 0 ]; then
+            exit 0
+          fi
+          if printf '%s\n' "$installOutput" | grep -q 'Socket Security Scanner: Received 429 from server'; then
+            echo "::warning::Socket authenticated scan hit 429; retrying bun install without SOCKET_API_KEY."
+            unset SOCKET_API_KEY
+            bun install --frozen-lockfile
+          else
+            exit "$installStatus"
+          fi
         env:
           SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
 
