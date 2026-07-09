@@ -46,6 +46,7 @@ A starting situation that generates work, then merges onto the main flow.
 Not feature work — upkeep.
 
 - **`/improve-codebase-architecture`** — run whenever you have a spare moment to keep the codebase good for agents to operate in. It surfaces **deepening opportunities**; picking one _generates an idea_ you can take into the main flow at `/grill-with-docs`. It's the survey that finds the candidates; **`/codebase-design`** (below) is the bench you design the chosen one on.
+- **`/architecture-review-deck`** — use when the user wants a proposal artifact, especially DB/domain/RLS/migration/refactoring options with **メリット・デメリット・トレードオフ** and an HTML comparison deck. It is presentation-shaped, not an implementation flow.
 
 ## Vocabulary underneath
 
