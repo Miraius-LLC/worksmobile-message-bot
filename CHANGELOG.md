@@ -2,6 +2,10 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## ドキュメント
+
+- 新規 ADR に共通テンプレートを導入し、legacy 維持・連番・supersede・索引更新の運用を標準化。
+
 ## 受信（Callback）系
 
 - **Callback を 501（scheduler-501）へ転送（案 B）**: 検証を通った callback を raw body + 署名のまま 501 の `/callback` へ素通し転送する gateway 方式に一本化（`callback/forward.ts`、env `FORWARD_501_CALLBACK_URL`、[ADR-0005](./docs/adr/0005-forward-callback-to-501.md)）。応答コマンドの判断は 501 側に置き、本サーバ内のローカル handler 雛形（`callback/{dispatch,handlers,reply}.ts`）は二重応答を避けるため呼ばれない（雛形として残置）。デプロイ env も `cloudbuild.yaml` に明示。
