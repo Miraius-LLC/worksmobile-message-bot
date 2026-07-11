@@ -22,7 +22,7 @@ date: 2026-05-23
 
 ## Decision Outcome
 
-Chosen option: 「コンテナは HTTP/1.1 のみ、end-to-end h2c 不採用」
+Chosen option: 「原文を完全保存したまま標準構造を付加する」
 
 移行前のADRに記録された判断を維持する。判断の詳細・理由・比較した選択肢は「Original Record」を正とする。
 
