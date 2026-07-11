@@ -4,7 +4,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## ドキュメント
 
-- 新規 ADR に共通テンプレートを導入し、legacy 維持・連番・supersede・索引更新の運用を標準化。
+- 既存ADR 9件を移行前Markdown・SHA-256付きOriginal Recordを持つ共通形式へ移行し、全ADRを共通監査対象化。
 
 ## 受信（Callback）系
 

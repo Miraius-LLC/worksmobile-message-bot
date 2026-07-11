@@ -4,7 +4,7 @@
 
 ## 形式
 
-- 新規 ADR は [`adr-template.md`](./adr-template.md) を複製し、標準形式を使う。既存 ADR は legacy として作成時の形式を維持し、一括書き換えしない。
+- 新規 ADR は [`adr-template.md`](./adr-template.md) を複製し、標準形式を使う。既存 ADR は移行前原文を SHA-256 付き Original Record として保存した標準形式へ移行済み。
 - ファイル名は連番 `0001-slug.md`。新規は最大番号 + 1 とし、欠番を再利用しない。
 - `status: accepted` になった ADR は原則として書き換えず、新しい判断で置き換える場合は後継 ADR を追加して supersede 関係を記録する。
 - 新規 ADR を追加した変更では、本 README の索引も同時に更新する。
