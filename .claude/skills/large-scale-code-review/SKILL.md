@@ -6,7 +6,7 @@ description: >-
   三角測量 (triangulation)」方式で出場する。3 者は対等で重み付けせず、互いの指摘を見ずに (blind) 独立判断する。
   3 者が独立に一致した指摘＝高信頼、相違＝丸めず「意見差分」として 1 本のレビュー文書 (docs/reviews/) にまとめる。
   最後に殊勲賞 (MVP) 表彰式を agent-room で開催し、他 agent が気づけなかった貴重な単独指摘を讃える。
-  レビュー判断は ~/Develop/AGENTS.md §10 に従い必ず agent-room 経由で他 agent に投げ、内部 self-review で
+  レビュー判断は ~/Develop/AGENTS.md と docs/collaboration.md に従い必ず agent-room 経由で他 agent に投げ、内部 self-review で
   代替しない。藤井の ~/Develop/ 配下で「大規模コードレビュー」「全体レビュー」「コード監査」「レビュー大会」
   「この repo をまとめてレビュー」「包括的にレビューして」「複数エージェントでレビュー」などと言われたら、
   agent-room を明示されなくても必ずこの skill を使う。数行の差分や 1 ファイルの軽い確認には使わない
@@ -37,9 +37,9 @@ description: >-
    - **まとめ役 (主エージェント) も出場選手の 1 人。自分の独立票を MD に書き出して保存・確定するまで、
      他 2 者の返信 MD を一切開かない** (詳細は Phase 1 の「カンニング防止プロトコル」)。これを破った票は**汚染票**として
      無効化し、別の未汚染 agent に投げ直す。成果物にも「○○ 票は手順違反で除外」と明記する (隠さない)。
-3. **同調しない。** 各 agent は忖度・気兼ねで相手に合わせない。技術的根拠だけで判断する (§10 3 原則 #2)。
+3. **同調しない。** 各 agent は忖度・気兼ねで相手に合わせない。技術的根拠だけで判断する (`docs/collaboration.md` 3原則 #2)。
    統合段階でも相違を均さない。3 者が**独立に**到達した一致だけを「高信頼」とし、割れたものは「意見差分」で残す。
-4. **レビュー判断は必ず agent-room 経由 (確定)。** ~/Develop/AGENTS.md §10 の絶対ルール。自セッション内の
+4. **レビュー判断は必ず agent-room 経由 (確定)。** `~/Develop/AGENTS.md` の絶対ルール。自セッション内の
    内部 self-review で他者レビューを代替しない。実レビューは agent-room delegate で実 agent に投げて取得する。
 5. **完全 read-only (絶対)。** レビュアーはコードを書き換えない・worktree を作らない・実装しない・commit しない。
    見るだけ。各自の指摘は **MD ファイルに保存して報告**し、**まとめ役 (主エージェント) がそれらを 1 本に統合**する。
@@ -121,7 +121,7 @@ description: >-
 
 - **観測は速い経路で**: terminal セッションからは `post --watch` を background で待たず、
   `Monitor` で `agent-room watch --since <run> --until codex,agy` を回して done を速く拾う
-  (~/Develop/AGENTS.md §10、commit 476d2ba)。長文全文は `agent-room reply <run_id>` か `reviews/` の md を Read
+  (`~/Develop/docs/collaboration.md`、commit 476d2ba)。長文全文は `agent-room reply <run_id>` か `reviews/` の md を Read
   (ただし **自票を確定する前は他者本文を開かない**、1-c)。
 - **受け取り方** (`receiving-code-review` の規律): 返ってきた指摘を鵜呑みにも全否定もしない。
   技術的に妥当か file:line で裏取りする。ただし**この段階では自分の独立票を書き換えない** (Phase 2 で突き合わせる)。
@@ -258,5 +258,6 @@ repo:<project>
 - `diagnose` — 観点 5 (バグ・エラー温床) の深掘りに使える。
 - `receiving-code-review` — 返ってきた指摘の受け取り方 (鵜呑み / 全否定しない)。
 - `requesting-code-review` — レビュー依頼の組み立て。
-- ~/Develop/AGENTS.md §10 — agent-room 協業の SoT (固定担当廃止・自然文指示の解釈・規律)。
+- `~/Develop/AGENTS.md` — agent-room 協業の必須規約。
+- `~/Develop/docs/collaboration.md` — 固定担当廃止・自然文指示の解釈・routing・レビュー規律。
 - `docs/agent-room-cli.md` — agent-room CLI のコマンド表。

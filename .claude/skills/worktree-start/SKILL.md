@@ -98,4 +98,4 @@ NOTES.md などは作らない (Work 系 skill と違い、開発タスクは gi
 
 - `~/Develop/.claude/rules/worktree.md` — worktree 運用の基底ルール (各プロジェクトに sync 配布)
 - `~/Develop/.claude/rules/commit.md` — commit 規約 (worktree 内の commit にも適用)
-- `~/Develop/CLAUDE.md §1` — Develop 島の構成
+- `~/Develop/docs/develop-operations.md` — worktreeのコマンドと初期化

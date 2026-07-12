@@ -14,5 +14,6 @@ Run a `/grilling` session, using the `/domain-modeling` skill.
 - **語彙は日本語でも研ぐ**: 福祉ドメインの語彙判断は `internal.md` D1 に従い「現場語感」を優先し、2〜4 案 + 根拠を提示して藤井に選定してもらう。グリルの語彙確定は機械的直訳で決め打ちしない。
 - **既存のドメイン doc 名に合わせる**: 上記の `CONTEXT.md` は本 skill のデフォルト名。プロジェクトに既存のドメイン doc (例: asunaro の `docs/domain.md`) があるなら、新規に `CONTEXT.md` を作らず**既存ファイルを SoT として更新**する (二重管理を避ける。internal.md D1 と整合)。どちらを正とするか不明なら藤井に確認する。
 - グリルは応答言語規約に従い**日本語で進行**する (instruction 本体は英語のままで問題ない)。
+- **ADRをemitする直前に対象repoの`docs/adr/README.md`と`docs/adr/adr-template.md`を直接読む**。既存legacy ADRやモデル記憶から形式を再構成せず、テンプレートを複製して最大番号+1・README索引同時更新まで行う。
 
 </fujii-notes>

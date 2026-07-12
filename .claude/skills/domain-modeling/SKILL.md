@@ -72,3 +72,14 @@ Only offer to create an ADR when all three are true:
 3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
 
 If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+
+<fujii-notes>
+
+## 藤井運用メモ（Develop島のADR標準）
+
+- ADRの本質は`architecture-decision-record/architecture-decision-record`、Markdown形式はMADRを基礎とする。
+- ADRを作成する直前に、対象repoの`docs/adr/README.md`と`docs/adr/adr-template.md`を**毎回直接読む**。`ADR-FORMAT.md`のupstream例、モデル記憶、既存legacy ADRから形式を再構成せず、repo内テンプレートを複製する。
+- テンプレートが欠落・driftしている場合は作成を止め、`~/Develop/bin/sync-adr-template`のdry-run結果を報告する。
+- 最大番号+1を使って欠番を再利用せず、同じ変更でREADME索引を更新する。Accepted後の判断変更は新しいADRで行い、旧ADRを`superseded by ADR-NNNN`へ更新する。
+
+</fujii-notes>
