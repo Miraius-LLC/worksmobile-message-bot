@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":timezone(Asia/Tokyo)"],
+  "schedule": ["before 6am on monday"],
+  "labels": ["renovate"],
+  "prConcurrentLimit": 5,
+  "dependencyDashboard": true,
+  "packageRules": [
+    {
+      "description": "minor / patch は週次 1 本の PR にまとめる (PR 洪水を防ぐ)",
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "週次 minor/patch まとめ"
+    },
+    {
+      "description": "major は Dependency Dashboard の承認制 (藤井がチェックを入れたものだけ PR 化)",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
