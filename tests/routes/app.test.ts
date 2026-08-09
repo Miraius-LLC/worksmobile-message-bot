@@ -53,16 +53,14 @@ describe('app: smoke', () => {
     expect(await res.json()).toEqual({ statusCode: 200, message: 'Server is running' })
   })
 
-  test.each([
-    '/healthz',
-    '/health',
-    '/readyz',
-    '/livez',
-  ])('GET %s → 200 + { status: "ok" }', async path => {
-    const res = await app.request(path)
-    expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ status: 'ok' })
-  })
+  test.each(['/healthz', '/health', '/readyz', '/livez'])(
+    'GET %s → 200 + { status: "ok" }',
+    async path => {
+      const res = await app.request(path)
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ status: 'ok' })
+    },
+  )
 
   test('secureHeaders ミドルウェアが X-Frame-Options を付ける', async () => {
     const res = await app.request('/healthz')
@@ -87,15 +85,13 @@ describe('app: BASIC 認証', () => {
     expect(res.status).toBe(200)
   })
 
-  test.each([
-    '/healthz',
-    '/health',
-    '/readyz',
-    '/livez',
-  ])('%s は認証なしで 200 (Docker HEALTHCHECK / liveness / readiness 用)', async path => {
-    const res = await app.request(path)
-    expect(res.status).toBe(200)
-  })
+  test.each(['/healthz', '/health', '/readyz', '/livez'])(
+    '%s は認証なしで 200 (Docker HEALTHCHECK / liveness / readiness 用)',
+    async path => {
+      const res = await app.request(path)
+      expect(res.status).toBe(200)
+    },
+  )
 
   test('webhook ルートは Authorization 無しだと 401 + WWW-Authenticate', async () => {
     const res = await app.request('/channels/C1/messages/type/text', {
