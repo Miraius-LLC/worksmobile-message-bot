@@ -3,6 +3,21 @@ import { logger } from '@/utils/logger'
 
 const CALLER = 'utils/config'
 
+export interface RuntimeEnv {
+  CLIENT_ID: string
+  CLIENT_SECRET: string
+  SERVICE_ACCOUNT: string
+  PRIVATE_KEY: string
+  BOT_ID: string
+  BASIC_ID: string
+  BASIC_PASS: string
+  BOT_SECRET: string
+  FORWARD_501_CALLBACK_URL?: string
+  PORT?: string
+  NODE_ENV?: string
+  LOG_PRETTY?: string
+}
+
 /**
  * デコード済 PEM が `-----BEGIN ... PRIVATE KEY-----` で始まっているか検査。
  * PKCS#8 (`PRIVATE KEY`) / PKCS#1 (`RSA PRIVATE KEY`) のどちらの BEGIN 行にも対応。
@@ -10,6 +25,11 @@ const CALLER = 'utils/config'
  */
 export function isPemPrivateKey(value: string): boolean {
   return /^-----BEGIN [A-Z ]*PRIVATE KEY-----/m.test(value)
+}
+
+export function decodeBase64Utf8(value: string): string {
+  const bytes = Uint8Array.from(atob(value), character => character.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
 }
 
 const configSchema = z
@@ -39,7 +59,7 @@ const configSchema = z
     FORWARD_501_CALLBACK_URL: z.string().url().optional(),
   })
   .transform(env => {
-    const privateKey = Buffer.from(env.PRIVATE_KEY, 'base64').toString('utf-8')
+    const privateKey = decodeBase64Utf8(env.PRIVATE_KEY)
     if (!isPemPrivateKey(privateKey)) {
       throw new Error("'PRIVATE_KEY' が PEM 形式ではない可能性があります (Base64 エンコード前提)")
     }
@@ -59,7 +79,11 @@ const configSchema = z
     }
   })
 
-type Config = z.infer<typeof configSchema>
+export type Config = z.infer<typeof configSchema>
+
+export function parseConfig(env: RuntimeEnv): Config {
+  return configSchema.parse(env)
+}
 
 let cached: Config | null = null
 
@@ -67,9 +91,9 @@ let cached: Config | null = null
  * 必須 env を起動時に検証してメモリへロードする。
  * 失敗時は logger.failure を出して非 0 終了する (fail-fast)。一度成功したら 2 回目以降は no-op
  */
-export function load(): Config {
+export function load(env: RuntimeEnv | NodeJS.ProcessEnv = process.env): Config {
   if (cached) return cached
-  const result = configSchema.safeParse(process.env)
+  const result = configSchema.safeParse(env)
   if (!result.success) {
     logger.failure('環境変数の検証に失敗', {
       caller: `${CALLER}.load`,

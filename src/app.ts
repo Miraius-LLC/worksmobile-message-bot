@@ -12,7 +12,7 @@ import { persistentMenuApp } from '@/routes/menus/persistent'
 import { richMenuApp } from '@/routes/menus/rich'
 import { messagesApp } from '@/routes/messages'
 import { LineWorksApiError } from '@/services/lineworks/api'
-import { config } from '@/utils/config'
+import { config, type RuntimeEnv } from '@/utils/config'
 import { logger } from '@/utils/logger'
 import { requestLogMiddleware } from '@/utils/request-log'
 import { traceContextMiddleware } from '@/utils/trace'
@@ -48,7 +48,7 @@ function getAuthMiddleware(): ReturnType<typeof basicAuth> {
  * 設定済みの Hono アプリ。
  * `src/index.ts` で `serve()` に渡すほか、テストで `app.request(...)` 経由で叩く。
  */
-export const app = new Hono()
+export const app = new Hono<{ Bindings: RuntimeEnv }>()
 
 // `x-cloud-trace-context` を AsyncLocalStorage に保存して以降の logger 呼び出しに自動付与
 app.use('*', traceContextMiddleware)

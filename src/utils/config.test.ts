@@ -1,10 +1,26 @@
 import { describe, expect, test } from 'bun:test'
 import { requireEnv } from '@/test-helpers/utils'
-import { config, isPemPrivateKey, load } from '@/utils/config'
+import { config, isPemPrivateKey, load, parseConfig } from '@/utils/config'
 
 // test-helpers/setup.ts が PRIVATE_KEY (実 RSA 鍵) + CLIENT_ID 等を埋めて load() 済み
 
 describe('utils/config', () => {
+  test('parseConfig() は明示された runtime env を変換する', () => {
+    const validEnv = {
+      CLIENT_ID: requireEnv('CLIENT_ID'),
+      CLIENT_SECRET: requireEnv('CLIENT_SECRET'),
+      SERVICE_ACCOUNT: requireEnv('SERVICE_ACCOUNT'),
+      PRIVATE_KEY: requireEnv('PRIVATE_KEY'),
+      BOT_ID: requireEnv('BOT_ID'),
+      BASIC_ID: requireEnv('BASIC_ID'),
+      BASIC_PASS: requireEnv('BASIC_PASS'),
+      BOT_SECRET: requireEnv('BOT_SECRET'),
+    }
+
+    expect(parseConfig(validEnv).botId).toBe(validEnv.BOT_ID)
+    expect(() => parseConfig({ ...validEnv, BOT_SECRET: '' })).toThrow()
+  })
+
   test('load() は env を camelCase の Config に変換する', () => {
     const cfg = load()
     expect(cfg.clientId).toBe(requireEnv('CLIENT_ID'))
