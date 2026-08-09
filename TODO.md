@@ -17,7 +17,7 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 ### スケーリング
 
-- [ ] **dedup を共有ストア化（Redis 等）** — callback dedup は in-memory Map のため min-instances=1 前提（複数 instance になると instance ごとに別 Map になり dedup が破綻する）。`cloudbuild.yaml` で `--min-instances=1 --max-instances=20` を明示済だが、トラフィック増で 2 instance 目が立ち上がる頻度が上がってきたら Redis 等の共有ストアへ移行する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
+- [ ] **dedup を共有ストア化（Workers KV / Durable Objects 等）** — callback dedup は in-memory Map のため、Cloud Run の複数 instance 間でも Workers の isolate 間でも共有されない。MS-A2 移行時点では 501 側の callback dedup を最終防衛線とし、wmbot 単体でも厳密な一回処理が必要になったら共有ストアへ移す（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
 
 ### コードの整理
 
