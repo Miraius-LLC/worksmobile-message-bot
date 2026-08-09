@@ -29,7 +29,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## CI / CD・基盤
 
-- **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、旧 `secrets:dump` は互換 alias として残す形へ反転した。`secrets:check` の非書き込み契約は維持する。
+- **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は互換 alias として残し、`secrets:check` の非書き込み契約は維持する。
 - **1Password から `.env` を生成する `secrets:dump` を追加**: `.env.tpl` の `op://` 参照を SoT として読み、値を表示せず `.env` へマージ保存するローカル secret dump を追加。最初の 1 件だけ直列で読み、1Password 未サインイン時の認証要求多重起動を避ける。既存 `secrets:inject` は互換 alias として `secrets:dump` に寄せた。
 - **scripts の検証対象化**: pre-commit / CI / package scripts の Biome 対象に `scripts/` を追加し、`run-related-tests.ts` の関連テスト抽出ロジックを unit test 付きで分離。監視設定スクリプトは uptime config の重複取得を削減。
 - **Cloud Build に bun test step を追加**: ビルドパイプラインに `bun test` を組み込み、`--no-verify` での pre-push バイパスを防止（[ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) / [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。`cloudbuild.yaml` が Cloud Run 構成（runtime SA / Secret Manager マウント / scaling / resources / ingress）の SoT。
