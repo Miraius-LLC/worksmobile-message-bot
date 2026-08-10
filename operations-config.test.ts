@@ -70,7 +70,7 @@ describe('operations config', () => {
     expect(plan).toContain("jq -e '.disabled == false'")
   })
 
-  test('現在形の運用docsはWorkers主系と実測したCustom Domain切替を示す', async () => {
+  test('READMEは両基盤のdeploy対応と現在の運用状態を分離する', async () => {
     const [readme, changelog, issueTracker, design, plan, cloudBuild, envTemplate] =
       await Promise.all([
         file(new URL('./README.md', import.meta.url)).text(),
@@ -92,15 +92,23 @@ describe('operations config', () => {
         file(new URL('./.env.tpl', import.meta.url)).text(),
       ])
 
-    expect(readme).toContain('## 本番デプロイ (Cloudflare Workers)')
+    expect(readme).toContain('## Cloud Run へのデプロイ')
+    expect(readme).toContain('## Cloudflare Workers へのデプロイ')
     expect(readme).toContain('![Cloudflare Workers]')
     expect(readme).toContain('![Google Cloud Run]')
+    expect(readme).toContain(
+      '同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。',
+    )
     expect(readme).toContain('**実行基盤**: Cloudflare Workers / Google Cloud Run')
     expect(readme).toContain(
       'GitHub Actions (CI 成功後) → Cloudflare Workers / Cloud Build → Cloud Run',
     )
     expect(readme).toContain('Task 7完了時点では、30分監視後も即時rollbackのためCloud Runを')
     expect(readme).toContain('Task 8の')
+    expect(readme).toContain('これは現在の運用上の選択であり、このリポジトリの')
+    expect(readme).not.toContain(
+      'Cloudflare Workersを通常の本番主系、Cloud Runを障害復旧用の待機系とする。',
+    )
     expect(readme).toContain('default URL の `/health`')
     expect(readme).not.toContain('MS-A2 移行では')
     expect(readme).not.toContain('Cloud Run default URL の `/healthz`')

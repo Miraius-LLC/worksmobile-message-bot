@@ -11,8 +11,8 @@
 
 社内で [LINE WORKS API](https://developers.worksmobile.com/jp/docs/api) を利用して各種メッセージ (テキスト、画像、ファイル、カルーセルなど) を Bot から送信するための Webhook サーバー。[IFTTT](https://ifttt.com/) や [Make](https://www.make.com/) などのノーコードツールから Webhook 経由で手軽に LINE WORKS Bot を叩くために作成。
 
-共通のHono appをCloudflare Workers / Cloud Runの両方へデプロイできる。運用設計では
-Cloudflare Workersを通常の本番主系、Cloud Runを障害復旧用の待機系とする。
+同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。Workers向けの
+Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポジトリで維持している。
 
 ### 技術スタック
 
@@ -116,15 +116,26 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 
 ---
 
-## Cloud Run 待機系・障害復旧
+## Cloud Run へのデプロイ
 
-通常の本番主系は Cloudflare Workers です。GitHub Actions が `main` push の CI 成功後に Workers へ deploy します。Cloud Run の通常時目標は `min-instances=0` / `max-instances=1` / internal ingress の待機系で、Cloud Build trigger は通常自動デプロイに使いません。
+Cloud Runでは、DockerイメージをCloud Buildでビルドし、Secret Managerの値をマウントして
+デプロイする。`cloudbuild.yaml` にruntime SA / scaling / resources / ingressなどを明示し、
+Cloud Runへ単独でデプロイできる構成を維持している。
+
+### 現在の運用構成（2026-08-10）
+
+現在はCloudflare Workersを公開先として利用し、GitHub Actionsが`main` pushのCI成功後に
+Workersへdeployする。Cloud Runは切戻し可能な状態を維持しながら、別途scale-to-zeroへ
+変更する運用計画としている。これは現在の運用上の選択であり、このリポジトリの
+Cloud Runデプロイ機能を障害復旧用途に限定するものではない。
 
 > 2026-08-10 Task 7完了時点では、30分監視後も即時rollbackのためCloud Runを
 > `ingress=all` / `min-instances=1` / `max-instances=20`で公開維持している。待機化はTask 8の
 > 別承認後に実行する。完了後はこの注記を通常時目標の達成記録へ更新する。
 
-Cloud Run を復帰させる場合は、既存 image のまま `gcloud run services update` で ingress と scaling を戻します。Cloud Run 用 Docker / Cloud Build / Secret Manager / Artifact Registry は待機系の再デプロイ・rollback 資産として維持します。
+現在の運用からCloud Runへ切り戻す場合は、既存imageのまま`gcloud run services update`で
+ingressとscalingを戻す。Cloud Run用のDocker / Cloud Build / Secret Manager /
+Artifact Registryは、独立したデプロイ経路として維持する。
 
 `cloudbuild.yaml` には **runtime SA / Secret Manager マウント / scaling / resources / ingress** 等を全て明示してあり、Cloud Run の構成 drift を防止します。
 
@@ -157,7 +168,7 @@ done
 #      _BOT_ID               = LINE WORKS の bot ID
 
 # 5. Cloud Build trigger を無効化
-#    Workers が主系の間は Cloud Run の自動デプロイを行わない。
+#    現在の運用で Workers を公開先とする間は Cloud Run の自動デプロイを行わない。
 #    既存 trigger は GCP Console で Disabled にする（再有効化しない）。
 gcloud builds triggers describe <TRIGGER_NAME> --format='value(disabled)'
 # `True` であることを確認する。cloudbuild.yaml は必要時の手動実行だけに使う。
@@ -396,9 +407,10 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 - タグ無しイメージは 7 日後に自動削除
 - タグ付きイメージは最新 10 件を保持
 
-## 本番デプロイ (Cloudflare Workers)
+## Cloudflare Workers へのデプロイ
 
-通常の本番では、Node server と共通の Hono app を Worker `worksmobile-message-bot` から配信する。`nodejs_compat` は `wrangler.jsonc` で明示している。
+Cloudflare Workersでは、Cloud RunのNode serverと共通のHono appをWorker
+`worksmobile-message-bot`から配信する。`nodejs_compat`は`wrangler.jsonc`で明示している。
 
 初回または値の更新時は、次の binding 名を `wrangler secret put` で登録する。コマンドは値を対話入力し、README や shell history に値を残さない。
 
@@ -559,7 +571,7 @@ exact-matchのCustom Domainを解除してfallback CNAMEを復元する。
 
 ### 観測
 
-- Workers主系のlive logは`bunx wrangler tail worksmobile-message-bot`で確認する。
+- Workersへデプロイした場合のlive logは`bunx wrangler tail worksmobile-message-bot`で確認する。
 - 各log entryには`severity`（`INFO` / `ERROR`等）が付く。
 - Cloud Run復帰時はCloud Loggingで確認する。`x-cloud-trace-context`ヘッダがあれば
   `logging.googleapis.com/trace`フィールドが付き、Traceタブで1 requestのlogをグループ化できる。
@@ -1180,7 +1192,9 @@ LINE WORKS が同一 event を再送した場合に副作用が二重実行さ�
 - **失敗時 retry**: 501 への転送が throw した場合 (= 501 が 5xx / network error) は dedup key を `unregister` して LINE WORKS の再送を許可する。`unregister` を呼ばないと転送失敗の event が再送されても skip されて喪失する
 - **検証順序**: 署名検証 → dedup → JSON parse → Zod 検証 → 501 へ転送
 
-⚠️ **Workers isolate 間で wmbot 内の Map は共有されない**ため、callback dedup は best effort です。501 側の callback dedup を最終防衛線とします。Cloud Run は通常時だけ `min-instances=0` / `max-instances=1` / internal ingress の待機設定を維持し、障害復旧中は公開設定へ一時変更します。wmbot 単体で厳密な一回処理が必要になった時だけ Workers KV / Durable Objects 等の共有ストア化を検討します。
+⚠️ **Workersのisolate間、およびCloud Runのinstance間でwmbot内のMapは共有されない**ため、
+callback dedupはどちらの基盤でもbest effortです。501側のcallback dedupを最終防衛線とします。
+wmbot単体で厳密な一回処理が必要になった時だけ、基盤間で共有できる永続ストア化を検討します。
 
 #### 受信できる event 種別
 
@@ -1217,7 +1231,7 @@ LINE WORKS が同一 event を再送した場合に副作用が二重実行さ�
      --member=serviceAccount:worksmobile-message-bot-sa@<PROJECT_ID>.iam.gserviceaccount.com \
      --role=roles/secretmanager.secretAccessor
    ```
-3. Workers の本番 deploy 済み状態を確認する（Cloud Run 復帰時は待機系の再デプロイ後に Secret Manager マウントを確認する）
+3. 利用する基盤へのdeploy済み状態を確認する（Workersはbinding、Cloud RunはSecret Managerのマウントを確認する）
 4. Bot 編集画面の **Callback URL** を `On` にして:
    - URL: `https://<本番ドメイン>/callback` (例: `https://line-works.api.miraius.co.jp/callback`)
    - 受信する Callback Event を必要なものだけ ON (`Message Event` / `Postback Event` / `Join` / `Leave` / `Joined` / `Left` / `Begin` / `End`)
