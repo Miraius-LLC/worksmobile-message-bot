@@ -1,9 +1,15 @@
 import { describe, expect, test } from 'bun:test'
 
+interface WranglerRoute {
+  pattern?: string
+  custom_domain?: boolean
+}
+
 interface WranglerConfig {
   name?: string
   main?: string
   compatibility_flags?: string[]
+  routes?: WranglerRoute[]
 }
 
 describe('wrangler config', () => {
@@ -14,5 +20,11 @@ describe('wrangler config', () => {
     expect(config.name).toBe('worksmobile-message-bot')
     expect(config.main).toBe('src/worker.ts')
     expect(config.compatibility_flags).toContain('nodejs_compat')
+    expect(config.routes).toEqual([
+      {
+        pattern: 'line-works.api.miraius.co.jp',
+        custom_domain: true,
+      },
+    ])
   })
 })
