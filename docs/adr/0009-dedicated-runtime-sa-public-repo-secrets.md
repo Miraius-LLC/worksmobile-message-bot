@@ -25,6 +25,8 @@ date: 2026-05-23
 Chosen option: 「原文を完全保存したまま標準構造を付加する」
 
 移行前のADRに記録された判断を維持する。判断の詳細・理由・比較した選択肢は「Original Record」を正とする。
+現在のCloud Build経路では、公開repositoryに残さない値をtrigger設定またはmanual buildの
+substitutionで渡す。Original Recordのtrigger限定記述は作成当時の記録として保存する。
 
 ### Consequences
 
