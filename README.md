@@ -146,17 +146,16 @@ done
 #      _SERVICE_ACCOUNT_LW   = LINE WORKS の service account (例: lrpkq.serviceaccount@xxx)
 #      _BOT_ID               = LINE WORKS の bot ID
 
-# 5. Cloud Build trigger を cloudbuild.yaml ベースへ切替
-gcloud builds triggers describe <TRIGGER_NAME> --format=yaml > trigger.yaml
-# trigger.yaml の `build:` を削除し `filename: cloudbuild.yaml` を追加
-gcloud builds triggers import --source=trigger.yaml
+# 5. Cloud Build trigger を無効化
+#    Workers が主系の間は Cloud Run の自動デプロイを行わない。
+#    既存 trigger は GCP Console で Disabled にする（再有効化しない）。
+gcloud builds triggers describe <TRIGGER_NAME> --format='value(disabled)'
+# `True` であることを確認する。cloudbuild.yaml は必要時の手動実行だけに使う。
 ```
 
-### 待機系の再デプロイ
+### Workers 障害時の即時復帰（既存 image）
 
-Cloud Run を待機系から復帰させる必要がある場合だけ、既存の `cloudbuild.yaml` を手動実行します。通常の `main` push では Cloud Run を自動デプロイしません。
-
-復帰後に scale-to-zero / internal ingress へ戻す場合は次のように更新します:
+Workers の重大障害時は、再ビルドせず Cloud Run に残っている既存 image を公開して復帰します。これは一時的な failover 設定であり、待機系の通常状態ではありません。
 
 ```sh
 gcloud run services update worksmobile-message-bot \
@@ -166,7 +165,20 @@ gcloud run services update worksmobile-message-bot \
   --max-instances=20
 ```
 
-手動で `cloudbuild.yaml` を実行する場合の処理は次の通りです:
+### 待機系への復帰
+
+障害対応が終わったら、Cloud Run を scale-to-zero / internal ingress の待機系へ戻します:
+
+```sh
+gcloud run services update worksmobile-message-bot \
+  --region=asia-northeast1 \
+  --ingress=internal \
+  --min-instances=0 \
+  --max-instances=1
+```
+
+既存 image ではなくコード変更を Cloud Run に反映する必要がある場合だけ、無効化済み trigger を再有効化せず、`cloudbuild.yaml` を手動実行して待機系の再デプロイを行います:
+
 1. Docker build → Artifact Registry へ push (タグ: `$SHORT_SHA`)
 2. `gcloud run services update` で SA / secrets / scaling / resources を一括適用
 
