@@ -16,7 +16,10 @@
 - Cloud Run待機設定は`min-instances=0`、`max-instances=1`、`ingress=internal`とする。
 - Cloud Build triggerは`main`反映前に停止し、Workers疎通後までCloud Run本体は公開状態を維持する。
 - GitHub ActionsはCI成功済みの`main` commitだけをWorkersへdeployする。
-- `cloudflare/wrangler-action`は`v4`相当のcommit `ebbaa1584979971c8614a24965b4405ff95890e0`へSHA pinする。
+- production deploy jobのexternal actionは全てcommit SHAへpinする（`actions/checkout`
+  `d23441a48e516b6c34aea4fa41551a30e30af803`、`oven-sh/setup-bun`
+  `0c5077e51419868618aeaa5fe8019c62421857d6`、`cloudflare/wrangler-action`
+  `ebbaa1584979971c8614a24965b4405ff95890e0`）。
 - Wrangler 4.120.0 bundled workerd対応上限の実測により`compatibility_date`は`2026-08-08`へ固定する。
 - Custom Domainは`wrangler.jsonc`がSoT。Terraform DNS stackから二重管理しない。
 - token/secrets/private keyはstdout、ログ、commitへ出さない。
@@ -235,9 +238,9 @@ jobs:
       group: cloudflare-workers-production
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: .tool-versions
 
@@ -384,11 +387,16 @@ date: 2026-05-11
 - 通常CD: GitHub ActionsのCI成功後にCloudflare Workersへdeploy
 - 本番hostname: `line-works.api.miraius.co.jp`（Workers Custom Domain）
 - Cloud Run: `min-instances=0` / `max-instances=1` / internal ingressの待機系
-- Cloud Run復帰: 既存imageのまま`gcloud run services update`でingress/scalingを戻す
+- Cloud Run復帰: 既存imageのまま`gcloud run services update`でingress/scalingを戻し、
+  Workers Domain解除→snapshot CNAME復元→DNS/health確認まで実行する
 - callback dedup: wmbot内Mapはbest effort、501側Mapを最終防衛線とする
 ```
 
-Cloud Runの手動deploy手順は削除せず、「待機系の再deploy」に見出しと説明を変更する。
+Cloud Runの手動deploy手順は削除せず、無効化済みtriggerを再有効化しない公開failover
+deployとして記録する。`gcloud builds submit`ではtrigger専用の`REPO_NAME` / `COMMIT_SHA` /
+`SHORT_SHA`をgitから実測し、必須の`_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID`は
+`secrets:inject`で生成した`.env`から値を履歴やlogへ表示せず渡す。この3値はCloud Build
+metadataを閲覧できる利用者には見える低機密substitutionであり、Secret Manager値は渡さない。
 
 - [ ] **Step 4: TODOのdedup記述を現行構成へ同期する**
 
@@ -637,7 +645,7 @@ Expected: `0 0`。CI成功後にinfra worktreeを削除する。
 
 ```bash
 bunx tsc --noEmit
-bunx biome check ./src ./tests ./scripts
+bunx biome check ./src ./tests ./scripts ci-config.test.ts wrangler-config.test.ts
 bun test
 bunx wrangler deploy --dry-run
 mise x actionlint@1.7.12 -- actionlint .github/workflows/ci.yml

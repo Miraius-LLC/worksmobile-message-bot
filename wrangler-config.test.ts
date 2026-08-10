@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { file, JSONC } from 'bun'
 
 interface WranglerRoute {
   pattern?: string
@@ -15,8 +16,8 @@ interface WranglerConfig {
 
 describe('wrangler config', () => {
   test('Worker entry と Node compatibility を固定する', async () => {
-    const source = await Bun.file(new URL('./wrangler.jsonc', import.meta.url)).text()
-    const config = Bun.JSONC.parse(source) as WranglerConfig
+    const source = await file(new URL('./wrangler.jsonc', import.meta.url)).text()
+    const config = JSONC.parse(source) as WranglerConfig
 
     expect(config.name).toBe('worksmobile-message-bot')
     expect(config.main).toBe('src/worker.ts')

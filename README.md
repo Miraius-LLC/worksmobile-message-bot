@@ -157,13 +157,89 @@ gcloud builds triggers describe <TRIGGER_NAME> --format='value(disabled)'
 
 Workers の重大障害時は、再ビルドせず Cloud Run に残っている既存 image を公開して復帰します。これは一時的な failover 設定であり、待機系の通常状態ではありません。
 
+1. 切替時に保存した CNAME snapshot の実ファイルパスが、同じ shell の
+   `$wmbot_dns_snapshot` に残っていることを確認する。パスや record ID は推測しない。
+2. 藤井の明示承認後、Cloud Run を公開状態に戻し、default URL の `/healthz` を
+   確認する。
+3. Workers Domain API から hostname に一致する domain ID を取得する。削除と
+   DNS 更新の実行直前にも承認を確認する。
+4. Custom Domain を解除し、snapshot の CNAME を復元する。
+5. DNS と TLS の反映を最大 10 分待ち、本番 hostname の `/healthz`、BASIC 認証、
+   Callback 転送を確認してから failover 完了とする。
+
+まず読み取りだけで snapshot を検査し、Cloud Run を復帰する。
+
 ```sh
+test -n "${wmbot_dns_snapshot:-}"
+test -s "$wmbot_dns_snapshot"
+jq -e '
+  [.result[] | select(
+    .name == "line-works.api.miraius.co.jp" and
+    .type == "CNAME" and
+    .content == "ghs.googlehosted.com" and
+    .ttl == 300 and
+    .proxied == false
+  )] | length == 1
+' "$wmbot_dns_snapshot"
+
 gcloud run services update worksmobile-message-bot \
+  --project=office-381404 \
   --region=asia-northeast1 \
   --ingress=all \
   --min-instances=1 \
   --max-instances=20
+
+wmbot_cloud_run_url="$(gcloud run services describe worksmobile-message-bot \
+  --project=office-381404 \
+  --region=asia-northeast1 \
+  --format='value(status.url)')"
+test -n "$wmbot_cloud_run_url"
+curl -fsS "$wmbot_cloud_run_url/healthz"
 ```
+
+次の更新操作は、上の確認が成功し、藤井が削除と DNS 復元を明示承認した後だけ
+実行する。token 値と domain ID は表示せず、domain ID が hostname に一意に一致し
+なければ停止する。
+
+```sh
+cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
+wmbot_domain_id="$(xh GET \
+  'https://api.cloudflare.com/client/v4/accounts/91583d32ef3c554d0b22855c9167752f/workers/domains' \
+  "Authorization:Bearer $cf_wmbot_deploy_token" | \
+  jq -er '[.result[] | select(.hostname == "line-works.api.miraius.co.jp")] |
+    if length == 1 then .[0].id else error("Custom Domain must match exactly once") end')"
+
+xh DELETE \
+  "https://api.cloudflare.com/client/v4/accounts/91583d32ef3c554d0b22855c9167752f/workers/domains/$wmbot_domain_id" \
+  "Authorization:Bearer $cf_wmbot_deploy_token" | jq -e '.success == true'
+unset cf_wmbot_deploy_token wmbot_domain_id
+
+wmbot_cname="$(jq -er '.result[] | select(.name == "line-works.api.miraius.co.jp") | .content' \
+  "$wmbot_dns_snapshot")"
+wmbot_ttl="$(jq -er '.result[] | select(.name == "line-works.api.miraius.co.jp") | .ttl' \
+  "$wmbot_dns_snapshot")"
+wmbot_proxied="$(jq -er '.result[] | select(.name == "line-works.api.miraius.co.jp") | .proxied' \
+  "$wmbot_dns_snapshot")"
+cf_wmbot_zone_token="$(op read 'op://miraius.co.jp/Cloudflare/zone_admin_api_token')"
+xh POST \
+  'https://api.cloudflare.com/client/v4/zones/5811b0a77c84211a69f3a48e4443ce03/dns_records' \
+  "Authorization:Bearer $cf_wmbot_zone_token" \
+  type=CNAME \
+  name=line-works.api.miraius.co.jp \
+  content="$wmbot_cname" \
+  ttl:="$wmbot_ttl" \
+  proxied:="$wmbot_proxied" | jq -e '.success == true'
+unset cf_wmbot_zone_token wmbot_cname wmbot_ttl wmbot_proxied
+
+dig +noall +answer line-works.api.miraius.co.jp CNAME
+curl -fsS https://line-works.api.miraius.co.jp/healthz
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  https://line-works.api.miraius.co.jp/channels/invalid/messages/type/text
+```
+
+Expected: CNAME が snapshot どおり、`/healthz` が 200、未認証の保護 route が 401。
+Callback は LINE WORKS self channel から `/status` を 1 件送り、応答 1 件・重複なしを
+確認する。
 
 ### 待機系への復帰
 
@@ -177,10 +253,40 @@ gcloud run services update worksmobile-message-bot \
   --max-instances=1
 ```
 
-既存 image ではなくコード変更を Cloud Run に反映する必要がある場合だけ、無効化済み trigger を再有効化せず、`cloudbuild.yaml` を手動実行して待機系の再デプロイを行います:
+既存 image ではなくコード変更を Cloud Run に反映する必要がある場合だけ、無効化済み trigger を再有効化せず、`cloudbuild.yaml` を手動実行する。この yaml は Cloud Run を
+`ingress=all` / `min-instances=1` / `max-instances=20` で deploy するため、待機系更新ではなく
+failover 用の公開再 deploy である。藤井の明示承認後だけ実行する。
 
-1. Docker build → Artifact Registry へ push (タグ: `$SHORT_SHA`)
-2. `gcloud run services update` で SA / secrets / scaling / resources を一括適用
+`gcloud builds submit` では trigger 由来の `REPO_NAME` / `COMMIT_SHA` / `SHORT_SHA` が空に
+なるため、git から実測して明示的に渡す。必須の低機密 substitution 3 値は
+`secrets:inject` で生成した `.env` から読み、実値を shell history に貼らない。
+
+```sh
+bun run secrets:inject
+test -f .env
+
+. ./.env
+wmbot_repo_name="$(basename "$(git remote get-url origin)" .git)"
+wmbot_commit_sha="$(git rev-parse HEAD)"
+wmbot_short_sha="$(git rev-parse --short=7 HEAD)"
+
+gcloud builds submit . \
+  --project=office-381404 \
+  --config=cloudbuild.yaml \
+  --substitutions="REPO_NAME=${wmbot_repo_name},COMMIT_SHA=${wmbot_commit_sha},SHORT_SHA=${wmbot_short_sha},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID}"
+
+unset CLIENT_ID CLIENT_SECRET SERVICE_ACCOUNT PRIVATE_KEY BOT_ID BOT_SECRET BASIC_ID BASIC_PASS
+unset wmbot_repo_name wmbot_commit_sha wmbot_short_sha
+```
+
+このコマンド文字列には変数参照だけが残り、実値を履歴へ貼らない。一方、
+`_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` は実行中のプロセス引数と Cloud Build の
+build metadata には保持され、GCP の閲覧権限を持つ利用者から見える。この 3 値は既存方針どおり
+低機密値として substitution で扱い、Secret Manager の機密値は渡さない。build log は
+`validate-substitutions` が未設の変数名だけを出力し、実値は出力しない。
+
+Expected: Docker build → Artifact Registry push → Cloud Run 公開 revision deploy。終了後は
+Cloud Run default URL の `/healthz` を確認し、上の hostname failover 手順で DNS を戻す。
 
 ### Secret のローテーション
 

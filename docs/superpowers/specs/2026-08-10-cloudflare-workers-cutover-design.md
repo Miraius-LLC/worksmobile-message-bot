@@ -42,7 +42,8 @@ Cloud Run には停止状態がないため、`min-instances=0` と外部 ingres
 ### 3.2 GitHub Actions
 
 `main` push では既存 `.github/workflows/ci.yml` の `check` job 成功後に、同じ workflow 内の
-`deploy` job を実行する。deploy は commit SHA で固定した `cloudflare/wrangler-action` を用い、
+`deploy` job を実行する。deploy の `actions/checkout` / `oven-sh/setup-bun` /
+`cloudflare/wrangler-action` は全て commit SHA で固定し、
 GitHub Secret `CLOUDFLARE_API_TOKEN` と GitHub Variable `CLOUDFLARE_ACCOUNT_ID` を渡す。
 
 deploy workflow は次を満たす。
@@ -57,6 +58,10 @@ deploy workflow は次を満たす。
 
 Cloud Run の Cloud Build trigger は無効化し、次の push で Cloud Run が自動復帰する事故を
 防ぐ。`cloudbuild.yaml` は手動実行時に待機設定を公開設定へ戻せる既存構成のまま残す。
+手動実行では trigger 専用の `REPO_NAME` / `COMMIT_SHA` / `SHORT_SHA` を git から
+実測し、`_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` は `secrets:inject` で生成した
+`.env` から値を表示せず substitution へ渡す。実値は shell history や build log へ出さないが、
+Cloud Build の build metadata には保持される低機密値として扱う。
 
 ## 4. Custom Domain と DNS
 
@@ -186,11 +191,12 @@ Cloud Run service と Cloud Run domain mapping は今回削除しないため、
 ### 静的・自動検証
 
 - `bunx tsc --noEmit`
-- `bunx biome check ./src ./tests ./scripts`
+- `bunx biome check ./src ./tests ./scripts ci-config.test.ts wrangler-config.test.ts`
 - `bun test`
 - `bunx wrangler deploy --dry-run`
 - `wrangler-config.test.ts` で Worker name、entrypoint、compatibility、Custom Domain を固定する。
 - GitHub Actions を actionlint で検査する。
+- production deploy job の `checkout` / `setup-bun` / `wrangler-action` を全て 40 桁 commit SHA へ固定する。
 - `check-infra-ownership`、registry schema test、registry doctor を実行する。
 
 ### 本番検証
