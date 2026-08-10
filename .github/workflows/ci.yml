@@ -4,6 +4,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -47,3 +51,60 @@ jobs:
 
       - name: Tests
         run: bun test
+
+  deploy:
+    name: Deploy to Cloudflare Workers
+    needs: check
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    concurrency:
+      group: cloudflare-workers-production
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .tool-versions
+
+      - name: Install dependencies
+        run: |
+          set +e
+          installOutput="$(bun install --frozen-lockfile 2>&1)"
+          installStatus=$?
+          set -e
+          printf '%s\n' "$installOutput"
+          if [ "$installStatus" -eq 0 ]; then
+            exit 0
+          fi
+          if printf '%s\n' "$installOutput" | grep -q 'Socket Security Scanner: Received 429 from server'; then
+            echo "::warning::Socket authenticated scan hit 429; retrying bun install without SOCKET_API_KEY."
+            unset SOCKET_API_KEY
+            bun install --frozen-lockfile
+          else
+            exit "$installStatus"
+          fi
+        env:
+          SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
+
+      - name: Deploy Worker
+        id: deploy
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.120.0'
+          packageManager: bun
+          command: deploy --message "GitHub Actions ${{ github.sha }}"
+
+      - name: Add deployment summary
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          {
+            echo '### Cloudflare Workers deployment'
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- URL: $DEPLOYMENT_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
