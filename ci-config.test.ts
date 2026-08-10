@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 interface WorkflowStep {
   id?: string
   uses?: string
+  run?: string
   with?: Record<string, string>
 }
 
@@ -22,6 +23,14 @@ interface WorkflowConfig {
 }
 
 describe('CI workflow', () => {
+  test('check job は token 不要の Wrangler dry-run を実行する', async () => {
+    const source = await Bun.file(new URL('./.github/workflows/ci.yml', import.meta.url)).text()
+    const workflow = Bun.YAML.parse(source) as WorkflowConfig
+    const dryRunStep = workflow.jobs?.check?.steps?.find(step => step.id === 'wrangler-dry-run')
+
+    expect(dryRunStep?.run).toBe('bunx wrangler deploy --dry-run')
+  })
+
   test('CI成功済みmainだけをSHA pinしたWrangler actionでdeployする', async () => {
     const source = await Bun.file(new URL('./.github/workflows/ci.yml', import.meta.url)).text()
     const workflow = Bun.YAML.parse(source) as WorkflowConfig

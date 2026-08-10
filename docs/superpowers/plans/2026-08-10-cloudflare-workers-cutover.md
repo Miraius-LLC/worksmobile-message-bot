@@ -17,6 +17,7 @@
 - Cloud Build triggerは`main`反映前に停止し、Workers疎通後までCloud Run本体は公開状態を維持する。
 - GitHub ActionsはCI成功済みの`main` commitだけをWorkersへdeployする。
 - `cloudflare/wrangler-action`は`v4`相当のcommit `ebbaa1584979971c8614a24965b4405ff95890e0`へSHA pinする。
+- Wrangler 4.120.0 bundled workerd対応上限の実測により`compatibility_date`は`2026-08-08`へ固定する。
 - Custom Domainは`wrangler.jsonc`がSoT。Terraform DNS stackから二重管理しない。
 - token/secrets/private keyはstdout、ログ、commitへ出さない。
 - Workers deploy tokenは `workers-script-deploy` の最小権限（account: `Workers Scripts Write`、zone: `Workers Routes Write` / `DNS Write` / `Zone Read`）に限定する。`D1 Write` と `Workers R2 Storage Read` は付与しない。
@@ -100,7 +101,7 @@ Expected: `config.routes`が`undefined`のためFAIL。
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "worksmobile-message-bot",
   "main": "src/worker.ts",
-  "compatibility_date": "2026-08-10",
+  "compatibility_date": "2026-08-08",
   "compatibility_flags": ["nodejs_compat"],
   "routes": [
     {
@@ -451,7 +452,7 @@ cloudflare:
     - name: worksmobile-message-bot
       routes:
         - line-works.api.miraius.co.jp
-      compatibility_date: '2026-08-10'
+      compatibility_date: '2026-08-08'
       r2_buckets: []
       kv_namespaces: []
       d1_databases: []

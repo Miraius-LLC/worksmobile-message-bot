@@ -78,6 +78,8 @@ type、content、TTL、proxied を記録する。Wrangler 4.120.0 は非TTY depl
 `wrangler deploy` によって Custom Domain record と TLS certificate へ切り替える。通常の DNS
 record と Custom Domain record を Terraform から二重管理しない。
 
+Wrangler 4.120.0 bundled workerd対応上限の実測により、`wrangler.jsonc`の`compatibility_date`は`2026-08-08`へ固定する。移行目標日のメタ日付（2026-08-10）は変更しない。
+
 `develop-meta/infra` は次の責務を持つ。
 
 - `infra/registry/worksmobile-message-bot.yaml` に Cloudflare account、Worker、Custom Domain、
