@@ -1,0 +1,17 @@
+# Cloud Build source upload exclusions
+.gcloudignore
+.git
+.git/**
+
+# Local credentials and generated env files
+.env
+.env.*
+private_*.key
+*.pem
+
+# Local-only artifacts
+node_modules
+build
+coverage
+.claude
+.superpowers

@@ -47,7 +47,9 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Biome lint / format check
-        run: bunx biome check ./src ./tests ./scripts ci-config.test.ts wrangler-config.test.ts
+        run: >-
+          bunx biome check ./src ./tests ./scripts
+          ci-config.test.ts wrangler-config.test.ts operations-config.test.ts
 
       - name: Tests
         run: bun test

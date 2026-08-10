@@ -70,5 +70,6 @@ describe('CI workflow', () => {
 
     expect(biomeStep?.run).toContain('ci-config.test.ts')
     expect(biomeStep?.run).toContain('wrangler-config.test.ts')
+    expect(biomeStep?.run).toContain('operations-config.test.ts')
   })
 })

@@ -388,7 +388,7 @@ date: 2026-05-11
 - 本番hostname: `line-works.api.miraius.co.jp`（Workers Custom Domain）
 - Cloud Run: `min-instances=0` / `max-instances=1` / internal ingressの待機系
 - Cloud Run復帰: 既存imageのまま`gcloud run services update`でingress/scalingを戻し、
-  Workers Domain解除→snapshot CNAME復元→DNS/health確認まで実行する
+  Workers Domain解除→永続fallback profileのCNAME復元→DNS/health確認まで実行する
 - callback dedup: wmbot内Mapはbest effort、501側Mapを最終防衛線とする
 ```
 
@@ -397,6 +397,8 @@ deployとして記録する。`gcloud builds submit`ではtrigger専用の`REPO_
 `SHORT_SHA`をgitから実測し、必須の`_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID`は
 `secrets:inject`で生成した`.env`から値を履歴やlogへ表示せず渡す。この3値はCloud Build
 metadataを閲覧できる利用者には見える低機密substitutionであり、Secret Manager値は渡さない。
+`.gcloudignore`で`.git`と`.env` / `.env.*`をsource uploadから除外し、手動buildは
+`set -euo pipefail`のsubshell内で実行して親shellへenvを残さない。
 
 - [ ] **Step 4: TODOのdedup記述を現行構成へ同期する**
 
@@ -645,7 +647,7 @@ Expected: `0 0`。CI成功後にinfra worktreeを削除する。
 
 ```bash
 bunx tsc --noEmit
-bunx biome check ./src ./tests ./scripts ci-config.test.ts wrangler-config.test.ts
+bunx biome check ./src ./tests ./scripts ci-config.test.ts wrangler-config.test.ts operations-config.test.ts
 bun test
 bunx wrangler deploy --dry-run
 mise x actionlint@1.7.12 -- actionlint .github/workflows/ci.yml
@@ -693,6 +695,13 @@ git rev-list --left-right --count HEAD...origin/worktree-cloudflare-workers-cuto
 
 Expected: clean、`0 0`。
 
+2026-08-10 live evidence: 最小権陙tokenのWorkers Domains Listは`success=true`、対象は
+切替前のため0件。同tokenのDNS GETはCNAME `ghs.googlehosted.com`、TTL `1`（Auto）、
+proxied falseを返した。Cloudflare公式仕様でListは`Workers Scripts Write`またはRead、
+Detachは`Workers Scripts Write`。既存tokenはWriteを持つが、DetachはTask 7の承認後まで実行しない。
+参照: [List Domains](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/list/)、
+[Detach Domain](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/delete/)。
+
 ---
 
 ### Task 7: Cloud Build自動deployを停止し、Workersへ切り替える
@@ -710,7 +719,7 @@ Expected: clean、`0 0`。
 
 ```text
 変更: Cloud Build trigger disabled、org repo mainへff-only反映、GitHub ActionsからWorkers deploy、CNAMEをWrangler Custom Domainへ置換
-現在: CNAME ghs.googlehosted.com TTL 300 / Cloud Run min=1 / Worker secrets 9件
+現在: CNAME ghs.googlehosted.com TTL 1 (Cloudflare Auto) / Cloud Run min=1 / Worker secrets 9件
 NO-GO: Custom Domain/TLS/health/BASIC/Callbackのいずれかが10分以内に成立しない
 rollback: Workers Domain解除→CNAME復元。Cloud Runはこの時点では公開状態のまま
 ```
@@ -728,7 +737,7 @@ bunx wrangler versions list --name worksmobile-message-bot
 dig +noall +answer line-works.api.miraius.co.jp CNAME
 ```
 
-Expected: trigger enabled、Cloud Run ready、Workers current version、CNAME/TTL 300を再確認。表示された最新version IDをWorker code regression時のrollback基準として記録する（secret値は表示しない）。
+Expected: trigger enabled、Cloud Run ready、Workers current version、CNAME TTL `1`（Auto）を再確認。表示された最新version IDをWorker code regression時のrollback基準として記録する（secret値は表示しない）。
 
 - [ ] **Step 3: Cloud Build triggerをdisabledにする**
 
@@ -743,21 +752,34 @@ unset gcp_wmbot_token
 
 Expected: `disabled: true`。Cloud Run本体/DNSはまだ変更しない。
 
-- [ ] **Step 4: CNAME snapshotを値非表示tokenで保存する**
+- [ ] **Step 4: live CNAMEを永続fallback profileと比較する**
 
 ```bash
-cf_wmbot_zone_token="$(op read 'op://miraius.co.jp/Cloudflare/zone_admin_api_token')"
-wmbot_dns_snapshot="$(mktemp /tmp/wmbot-dns-before.XXXXXX.json)"
-xh GET \
-  'https://api.cloudflare.com/client/v4/zones/5811b0a77c84211a69f3a48e4443ce03/dns_records' \
-  "Authorization:Bearer $cf_wmbot_zone_token" \
-  name==line-works.api.miraius.co.jp type==CNAME | \
-  tee "$wmbot_dns_snapshot" | \
-  jq '.result[] | {id,name,type,content,ttl,proxied}'
-unset cf_wmbot_zone_token
+(
+  set -euo pipefail
+  readonly wmbot_fallback_profile='docs/operations/cloud-run-dns-fallback.json'
+  cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
+  wmbot_dns_live="$(xh GET \
+    'https://api.cloudflare.com/client/v4/zones/5811b0a77c84211a69f3a48e4443ce03/dns_records' \
+    "Authorization:Bearer $cf_wmbot_deploy_token" \
+    name==line-works.api.miraius.co.jp)"
+
+  jq -e \
+    --arg hostname "$(jq -er '.hostname' "$wmbot_fallback_profile")" \
+    --arg type "$(jq -er '.type' "$wmbot_fallback_profile")" \
+    --arg content "$(jq -er '.content' "$wmbot_fallback_profile")" \
+    --argjson ttl "$(jq -er '.ttl' "$wmbot_fallback_profile")" \
+    --argjson proxied "$(jq -r '.proxied | tostring' "$wmbot_fallback_profile")" '
+      .success == true and
+      (.result | length == 1) and
+      (.result[0] | .name == $hostname and .type == $type and .content == $content and
+        .ttl == $ttl and .proxied == $proxied)
+    ' <<<"$wmbot_dns_live" >/dev/null
+)
 ```
 
-Expected: 1件、content=`ghs.googlehosted.com`、ttl=`300`、proxied=`false`。CNAMEは手動削除しない。
+Expected: 1件、content=`ghs.googlehosted.com`、ttl=`1`（Auto）、proxied=`false`でprofileと
+完全一致。不一致なら切替を停止し、profileを勝手に上書きしない。CNAMEは手動削除しない。
 
 - [ ] **Step 5: org repo main反映の確認後にff-only merge/pushする**
 
@@ -788,8 +810,8 @@ Expected: CI/deploy success、production version更新、`{"status":"ok"}`。Wra
 - [ ] **Step 7: BASIC認証とCallbackを確認する**
 
 ```bash
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  https://line-works.api.miraius.co.jp/channels/invalid/messages/type/text
+test "$(curl -sS -o /dev/null -w '%{http_code}' \
+  https://line-works.api.miraius.co.jp/channels/invalid/messages/type/text)" = '401'
 ```
 
 Expected: `401`。
@@ -800,29 +822,14 @@ Expected: `401`。
 
 10分以内にTLS/health/BASIC/Callbackのいずれかが成立しない場合のみ実行する。
 
-```bash
-cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
-wmbot_domain_id="$(xh GET \
-  'https://api.cloudflare.com/client/v4/accounts/91583d32ef3c554d0b22855c9167752f/workers/domains' \
-  "Authorization:Bearer $cf_wmbot_deploy_token" | \
-  jq -r '.result[] | select(.hostname == "line-works.api.miraius.co.jp") | .id')"
-test -n "$wmbot_domain_id"
-xh DELETE \
-  "https://api.cloudflare.com/client/v4/accounts/91583d32ef3c554d0b22855c9167752f/workers/domains/$wmbot_domain_id" \
-  "Authorization:Bearer $cf_wmbot_deploy_token"
-unset cf_wmbot_deploy_token wmbot_domain_id
+README「Workers障害時の即時復帰（既存 image）」のfail-closed blockを、藤井の明示承認後に
+そのまま実行する。このblockは次を強制する。
 
-cf_wmbot_zone_token="$(op read 'op://miraius.co.jp/Cloudflare/zone_admin_api_token')"
-xh POST \
-  'https://api.cloudflare.com/client/v4/zones/5811b0a77c84211a69f3a48e4443ce03/dns_records' \
-  "Authorization:Bearer $cf_wmbot_zone_token" \
-  type=CNAME \
-  name=line-works.api.miraius.co.jp \
-  content=ghs.googlehosted.com \
-  ttl:=300 \
-  proxied:=false | jq '.result | {id,name,type,content,ttl,proxied}'
-unset cf_wmbot_zone_token
-```
+- Workers Domainのhostname完全一致1件、Detach応答の`success=true`
+- DNS record 0件ならPOST、1件なら実測IDへPATCH、2件以上は停止
+- `docs/operations/cloud-run-dns-fallback.json`のCNAME / TTL `1`（Auto）/ proxiedと更新後GETの完全一致
+- `/healthz` 200と未認証route 401の厳密一致
+- `set -euo pipefail`のsubshellによるtokenと一時envの破棄
 
 Expected: Cloud Run CNAME復元。main差分は`git revert`で新規commitとして戻し、force/rebase/amendは使わない。Cloud Build trigger再有効化は同じPATCHへ`disabled:=false`を送る。
 

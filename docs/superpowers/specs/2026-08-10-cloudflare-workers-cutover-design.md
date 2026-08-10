@@ -77,8 +77,11 @@ Cloud Build の build metadata には保持される低機密値として扱う�
 ```
 
 Custom Domain は Worker と hostname の対応を `wrangler.jsonc` の deploy 設定として管理する。
-既存の Cloud Run 向け CNAME は `ghs.googlehosted.com`、TTL は 300 秒である。切替時は record ID、
-type、content、TTL、proxied を記録する。Wrangler 4.120.0 は非TTY deployで既存DNS競合を
+既存の Cloud Run 向け CNAME は `ghs.googlehosted.com`、TTL は `1`（Cloudflare Auto）である。
+`docs/operations/cloud-run-dns-fallback.json`を2026-08-10のlive DNS API実測値の永続fallback
+profileとし、切替直前の live recordと完全一致することを確認する。不一致なら
+停止し、profileを自動または手動で勝手に上書きしない。Wrangler 4.120.0 は非TTY
+deployで既存DNS競合を
 `override_existing_dns_record=true` として処理するため、CNAMEを事前削除せず、GitHub Actionsの
 `wrangler deploy` によって Custom Domain record と TLS certificate へ切り替える。通常の DNS
 record と Custom Domain record を Terraform から二重管理しない。
@@ -92,6 +95,9 @@ Wrangler 4.120.0 bundled workerd対応上限の実測により、`wrangler.jsonc
 - `provision-cf-api-token --kind=workers-script-deploy` で account の `Workers Scripts Write` と
   `miraius.co.jp` zone の `Workers Routes Write` / `DNS Write` / `Zone Read` に限定した token を
   発行し、1Password へ値を表示せず保存する。`D1 Write` と `Workers R2 Storage Read` は付与しない。
+- Workers Domains APIのList/Detach権限は公式仕様どおり`Workers Scripts Write`で担保する。
+  `Workers Routes Write`はzone route用であり、Custom Domain管理権限の根拠にはしない。
+  2026-08-10に現行tokenのList Domainsが`success=true`となることをlive確認した。
 - `check-infra-ownership` と registry doctor で台帳と実物の drift を検出する。
 
 Terraform の `miraius.co.jp/cloudflare-dns` stack は、Custom Domain 自動生成 record を管理対象に
@@ -163,8 +169,8 @@ Workers の切替確認後に、別の本番操作ゲートとして次を行う
      --max-instances=20
    ```
 
-3. `line-works.api.miraius.co.jp` の Custom Domain record を解除し、スナップショット済みの
-   `CNAME ghs.googlehosted.com`（TTL 300、proxied false）を復元する。解除は Workers Domains API
+3. `line-works.api.miraius.co.jp` の Custom Domain record を解除し、永続fallback profileの
+   `CNAME ghs.googlehosted.com`（TTL `1` = Auto、proxied false）を復元する。解除は Workers Domains API
    で hostname に一致する domain ID を取得してから行い、IDを推測しない。
 4. `/healthz`、BASIC 認証、Callback 転送を確認してからロールバック完了とする。
 
@@ -191,10 +197,11 @@ Cloud Run service と Cloud Run domain mapping は今回削除しないため、
 ### 静的・自動検証
 
 - `bunx tsc --noEmit`
-- `bunx biome check ./src ./tests ./scripts ci-config.test.ts wrangler-config.test.ts`
+- `bunx biome check ./src ./tests ./scripts ci-config.test.ts wrangler-config.test.ts operations-config.test.ts`
 - `bun test`
 - `bunx wrangler deploy --dry-run`
 - `wrangler-config.test.ts` で Worker name、entrypoint、compatibility、Custom Domain を固定する。
+- `operations-config.test.ts`でfallback profileと`.gcloudignore`のenv upload除外を固定する。
 - GitHub Actions を actionlint で検査する。
 - production deploy job の `checkout` / `setup-bun` / `wrangler-action` を全て 40 桁 commit SHA へ固定する。
 - `check-infra-ownership`、registry schema test、registry doctor を実行する。

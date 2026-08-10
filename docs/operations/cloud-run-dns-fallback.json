@@ -1,0 +1,9 @@
+{
+  "hostname": "line-works.api.miraius.co.jp",
+  "type": "CNAME",
+  "content": "ghs.googlehosted.com",
+  "ttl": 1,
+  "proxied": false,
+  "verifiedAt": "2026-08-10",
+  "verifiedSource": "Cloudflare DNS API live GET for the miraius.co.jp zone"
+}

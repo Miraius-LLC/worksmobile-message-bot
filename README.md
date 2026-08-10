@@ -157,89 +157,158 @@ gcloud builds triggers describe <TRIGGER_NAME> --format='value(disabled)'
 
 Workers の重大障害時は、再ビルドせず Cloud Run に残っている既存 image を公開して復帰します。これは一時的な failover 設定であり、待機系の通常状態ではありません。
 
-1. 切替時に保存した CNAME snapshot の実ファイルパスが、同じ shell の
-   `$wmbot_dns_snapshot` に残っていることを確認する。パスや record ID は推測しない。
+1. 永続fallback profile `docs/operations/cloud-run-dns-fallback.json` を検証する。これは
+   2026-08-10 の Cloudflare DNS API live GETで確認した非機密CNAMEである。
 2. 藤井の明示承認後、Cloud Run を公開状態に戻し、default URL の `/healthz` を
    確認する。
 3. Workers Domain API から hostname に一致する domain ID を取得する。削除と
    DNS 更新の実行直前にも承認を確認する。
-4. Custom Domain を解除し、snapshot の CNAME を復元する。
+4. Custom Domain を解除し、fallback profile の CNAME を復元する。
 5. DNS と TLS の反映を最大 10 分待ち、本番 hostname の `/healthz`、BASIC 認証、
    Callback 転送を確認してから failover 完了とする。
 
-まず読み取りだけで snapshot を検査し、Cloud Run を復帰する。
+まず profile を読み取りで検査し、Cloud Run を復帰する。profile の差分を見つけても
+障害対応中に勝手に更新せず、停止してSoTを確認する。
 
-```sh
-test -n "${wmbot_dns_snapshot:-}"
-test -s "$wmbot_dns_snapshot"
-jq -e '
-  [.result[] | select(
-    .name == "line-works.api.miraius.co.jp" and
+```zsh
+(
+  set -euo pipefail
+  readonly wmbot_fallback_profile='docs/operations/cloud-run-dns-fallback.json'
+  jq -e '
+    .hostname == "line-works.api.miraius.co.jp" and
     .type == "CNAME" and
     .content == "ghs.googlehosted.com" and
-    .ttl == 300 and
-    .proxied == false
-  )] | length == 1
-' "$wmbot_dns_snapshot"
+    .ttl == 1 and
+    .proxied == false and
+    (.verifiedAt | type == "string" and length > 0) and
+    (.verifiedSource | type == "string" and length > 0)
+  ' "$wmbot_fallback_profile"
 
-gcloud run services update worksmobile-message-bot \
-  --project=office-381404 \
-  --region=asia-northeast1 \
-  --ingress=all \
-  --min-instances=1 \
-  --max-instances=20
+  gcloud run services update worksmobile-message-bot \
+    --project=office-381404 \
+    --region=asia-northeast1 \
+    --ingress=all \
+    --min-instances=1 \
+    --max-instances=20
 
-wmbot_cloud_run_url="$(gcloud run services describe worksmobile-message-bot \
-  --project=office-381404 \
-  --region=asia-northeast1 \
-  --format='value(status.url)')"
-test -n "$wmbot_cloud_run_url"
-curl -fsS "$wmbot_cloud_run_url/healthz"
+  wmbot_cloud_run_url="$(gcloud run services describe worksmobile-message-bot \
+    --project=office-381404 \
+    --region=asia-northeast1 \
+    --format='value(status.url)')"
+  test -n "$wmbot_cloud_run_url"
+  curl -fsS "$wmbot_cloud_run_url/healthz"
+)
 ```
 
 次の更新操作は、上の確認が成功し、藤井が削除と DNS 復元を明示承認した後だけ
 実行する。token 値と domain ID は表示せず、domain ID が hostname に一意に一致し
 なければ停止する。
 
-```sh
-cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
-wmbot_domain_id="$(xh GET \
-  'https://api.cloudflare.com/client/v4/accounts/91583d32ef3c554d0b22855c9167752f/workers/domains' \
-  "Authorization:Bearer $cf_wmbot_deploy_token" | \
-  jq -er '[.result[] | select(.hostname == "line-works.api.miraius.co.jp")] |
-    if length == 1 then .[0].id else error("Custom Domain must match exactly once") end')"
+```zsh
+(
+  set -euo pipefail
+  readonly wmbot_fallback_profile='docs/operations/cloud-run-dns-fallback.json'
+  readonly wmbot_account_id='91583d32ef3c554d0b22855c9167752f'
+  readonly wmbot_zone_id='5811b0a77c84211a69f3a48e4443ce03'
 
-xh DELETE \
-  "https://api.cloudflare.com/client/v4/accounts/91583d32ef3c554d0b22855c9167752f/workers/domains/$wmbot_domain_id" \
-  "Authorization:Bearer $cf_wmbot_deploy_token" | jq -e '.success == true'
-unset cf_wmbot_deploy_token wmbot_domain_id
+  wmbot_hostname="$(jq -er '.hostname' "$wmbot_fallback_profile")"
+  wmbot_type="$(jq -er '.type' "$wmbot_fallback_profile")"
+  wmbot_content="$(jq -er '.content' "$wmbot_fallback_profile")"
+  wmbot_ttl="$(jq -er '.ttl' "$wmbot_fallback_profile")"
+  wmbot_proxied="$(jq -r '.proxied | tostring' "$wmbot_fallback_profile")"
+  test "$wmbot_hostname" = 'line-works.api.miraius.co.jp'
+  test "$wmbot_type" = 'CNAME'
+  test "$wmbot_content" = 'ghs.googlehosted.com'
+  test "$wmbot_ttl" = '1'
+  test "$wmbot_proxied" = 'false'
 
-wmbot_cname="$(jq -er '.result[] | select(.name == "line-works.api.miraius.co.jp") | .content' \
-  "$wmbot_dns_snapshot")"
-wmbot_ttl="$(jq -er '.result[] | select(.name == "line-works.api.miraius.co.jp") | .ttl' \
-  "$wmbot_dns_snapshot")"
-wmbot_proxied="$(jq -er '.result[] | select(.name == "line-works.api.miraius.co.jp") | .proxied' \
-  "$wmbot_dns_snapshot")"
-cf_wmbot_zone_token="$(op read 'op://miraius.co.jp/Cloudflare/zone_admin_api_token')"
-xh POST \
-  'https://api.cloudflare.com/client/v4/zones/5811b0a77c84211a69f3a48e4443ce03/dns_records' \
-  "Authorization:Bearer $cf_wmbot_zone_token" \
-  type=CNAME \
-  name=line-works.api.miraius.co.jp \
-  content="$wmbot_cname" \
-  ttl:="$wmbot_ttl" \
-  proxied:="$wmbot_proxied" | jq -e '.success == true'
-unset cf_wmbot_zone_token wmbot_cname wmbot_ttl wmbot_proxied
+  cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
+  wmbot_domains="$(xh GET \
+    "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains" \
+    "Authorization:Bearer $cf_wmbot_deploy_token")"
+  jq -e '.success == true' <<<"$wmbot_domains" >/dev/null
+  wmbot_domain_id="$(jq -er --arg hostname "$wmbot_hostname" '
+    [.result[] | select(.hostname == $hostname)] |
+    if length == 1 then .[0].id else error("Custom Domain must match exactly once") end
+  ' <<<"$wmbot_domains")"
 
-dig +noall +answer line-works.api.miraius.co.jp CNAME
-curl -fsS https://line-works.api.miraius.co.jp/healthz
-curl -sS -o /dev/null -w '%{http_code}\n' \
-  https://line-works.api.miraius.co.jp/channels/invalid/messages/type/text
+  wmbot_dns_before="$(xh GET \
+    "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    "Authorization:Bearer $cf_wmbot_deploy_token" \
+    name=="$wmbot_hostname")"
+  jq -e '.success == true and (.result | length <= 1)' <<<"$wmbot_dns_before" >/dev/null
+
+  xh DELETE \
+    "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains/$wmbot_domain_id" \
+    "Authorization:Bearer $cf_wmbot_deploy_token" | \
+    jq -e '.success == true and (.errors | length == 0)' >/dev/null
+
+  wmbot_dns_current="$(xh GET \
+    "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    "Authorization:Bearer $cf_wmbot_deploy_token" \
+    name=="$wmbot_hostname")"
+  jq -e '.success == true' <<<"$wmbot_dns_current" >/dev/null
+  wmbot_dns_count="$(jq -er '.result | length' <<<"$wmbot_dns_current")"
+
+  case "$wmbot_dns_count" in
+    0)
+      xh POST \
+        "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+        "Authorization:Bearer $cf_wmbot_deploy_token" \
+        type="$wmbot_type" name="$wmbot_hostname" content="$wmbot_content" \
+        ttl:="$wmbot_ttl" proxied:="$wmbot_proxied" | \
+        jq -e '.success == true and (.errors | length == 0)' >/dev/null
+      ;;
+    1)
+      wmbot_dns_id="$(jq -er '.result[0].id' <<<"$wmbot_dns_current")"
+      xh PATCH \
+        "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records/$wmbot_dns_id" \
+        "Authorization:Bearer $cf_wmbot_deploy_token" \
+        type="$wmbot_type" name="$wmbot_hostname" content="$wmbot_content" \
+        ttl:="$wmbot_ttl" proxied:="$wmbot_proxied" | \
+        jq -e '.success == true and (.errors | length == 0)' >/dev/null
+      ;;
+    *)
+      echo 'ERROR: DNS record count changed to an unsafe value' >&2
+      exit 1
+      ;;
+  esac
+
+  wmbot_dns_after="$(xh GET \
+    "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    "Authorization:Bearer $cf_wmbot_deploy_token" \
+    name=="$wmbot_hostname")"
+  jq -e \
+    --arg hostname "$wmbot_hostname" \
+    --arg type "$wmbot_type" \
+    --arg content "$wmbot_content" \
+    --argjson ttl "$wmbot_ttl" \
+    --argjson proxied "$wmbot_proxied" '
+      .success == true and
+      (.result | length == 1) and
+      (.result[0] | .name == $hostname and .type == $type and .content == $content and
+        .ttl == $ttl and .proxied == $proxied)
+    ' <<<"$wmbot_dns_after" >/dev/null
+
+  dig +noall +answer "$wmbot_hostname" CNAME
+  curl -fsS "https://$wmbot_hostname/healthz"
+  wmbot_auth_status="$(curl -sS -o /dev/null -w '%{http_code}' \
+    "https://$wmbot_hostname/channels/invalid/messages/type/text")"
+  test "$wmbot_auth_status" = '401'
+)
 ```
 
-Expected: CNAME が snapshot どおり、`/healthz` が 200、未認証の保護 route が 401。
+Expected: CNAME がfallback profileどおり（TTL `1` = Cloudflare Auto）、`/healthz` が
+200、未認証の保護 route が 401。subshell終了時にtokenと一時変数は破棄される。
 Callback は LINE WORKS self channel から `/status` を 1 件送り、応答 1 件・重複なしを
 確認する。
+
+Workers Domains APIの公式仕様では、List Domainsは`Workers Scripts Write`またはRead、
+Detach Domainは`Workers Scripts Write`を要求する。現行deploy tokenは`Workers Scripts Write`を
+持ち、2026-08-10にList Domainsの`success=true`をlive確認済み。`Workers Routes Write`は
+zone route用であり、Custom Domain解除権限の根拠にはしない。Detachは本番承認時まで
+実行しない。参照: [List Domains](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/list/)、
+[Detach Domain](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/delete/)。
 
 ### 待機系への復帰
 
@@ -261,29 +330,31 @@ failover 用の公開再 deploy である。藤井の明示承認後だけ実行
 なるため、git から実測して明示的に渡す。必須の低機密 substitution 3 値は
 `secrets:inject` で生成した `.env` から読み、実値を shell history に貼らない。
 
-```sh
-bun run secrets:inject
-test -f .env
+```zsh
+(
+  set -euo pipefail
+  bun run secrets:inject
+  test -f .env
 
-. ./.env
-wmbot_repo_name="$(basename "$(git remote get-url origin)" .git)"
-wmbot_commit_sha="$(git rev-parse HEAD)"
-wmbot_short_sha="$(git rev-parse --short=7 HEAD)"
+  . ./.env
+  wmbot_repo_name="$(basename "$(git remote get-url origin)" .git)"
+  wmbot_commit_sha="$(git rev-parse HEAD)"
+  wmbot_short_sha="$(git rev-parse --short=7 HEAD)"
 
-gcloud builds submit . \
-  --project=office-381404 \
-  --config=cloudbuild.yaml \
-  --substitutions="REPO_NAME=${wmbot_repo_name},COMMIT_SHA=${wmbot_commit_sha},SHORT_SHA=${wmbot_short_sha},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID}"
-
-unset CLIENT_ID CLIENT_SECRET SERVICE_ACCOUNT PRIVATE_KEY BOT_ID BOT_SECRET BASIC_ID BASIC_PASS
-unset wmbot_repo_name wmbot_commit_sha wmbot_short_sha
+  gcloud builds submit . \
+    --project=office-381404 \
+    --config=cloudbuild.yaml \
+    --substitutions="REPO_NAME=${wmbot_repo_name},COMMIT_SHA=${wmbot_commit_sha},SHORT_SHA=${wmbot_short_sha},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID}"
+)
 ```
 
 このコマンド文字列には変数参照だけが残り、実値を履歴へ貼らない。一方、
 `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` は実行中のプロセス引数と Cloud Build の
 build metadata には保持され、GCP の閲覧権限を持つ利用者から見える。この 3 値は既存方針どおり
 低機密値として substitution で扱い、Secret Manager の機密値は渡さない。build log は
-`validate-substitutions` が未設の変数名だけを出力し、実値は出力しない。
+`validate-substitutions` が未設の変数名だけを出力し、実値は出力しない。`.gcloudignore`
+は`.git`と`.env` / `.env.*`（`.env.tpl`を含む）をsource uploadから除外する。subshellの
+成否にかかわらず、読み込んだenvは親shellに残らない。
 
 Expected: Docker build → Artifact Registry push → Cloud Run 公開 revision deploy。終了後は
 Cloud Run default URL の `/healthz` を確認し、上の hostname failover 手順で DNS を戻す。
