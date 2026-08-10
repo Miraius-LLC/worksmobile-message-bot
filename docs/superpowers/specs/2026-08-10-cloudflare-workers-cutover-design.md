@@ -73,9 +73,10 @@ Cloud Run の Cloud Build trigger は無効化し、次の push で Cloud Run �
 
 Custom Domain は Worker と hostname の対応を `wrangler.jsonc` の deploy 設定として管理する。
 既存の Cloud Run 向け CNAME は `ghs.googlehosted.com`、TTL は 300 秒である。切替時は record ID、
-type、content、TTL、proxied を記録してから CNAME を削除し、その直後に `wrangler deploy` で
-Custom Domain record と TLS certificate を作成する。通常の DNS record と Custom Domain record
-を Terraform から二重管理しない。
+type、content、TTL、proxied を記録する。Wrangler 4.120.0 は非TTY deployで既存DNS競合を
+`override_existing_dns_record=true` として処理するため、CNAMEを事前削除せず、GitHub Actionsの
+`wrangler deploy` によって Custom Domain record と TLS certificate へ切り替える。通常の DNS
+record と Custom Domain record を Terraform から二重管理しない。
 
 `develop-meta/infra` は次の責務を持つ。
 
@@ -106,8 +107,9 @@ Terraform の `miraius.co.jp/cloudflare-dns` stack は、Custom Domain 自動生
 ### 5.2 切替
 
 1. Worker の既存 deployment と secrets 9 件を再確認する。
-2. 既存 CNAME のスナップショットを保存してから、zone 管理 token で CNAME を削除する。
-3. `main` へ反映し、CI 成功後の Workers deploy を監視する。
+2. 既存 CNAME のスナップショットを保存する。CNAME は手動削除しない。
+3. `main` へ反映し、CI 成功後の Workers deployと既存CNAMEのCustom Domain recordへの置換を
+   監視する。
 4. Custom Domain の certificate と DNS activation を最大 10 分待つ。
 5. `https://line-works.api.miraius.co.jp/healthz` が 200 を返すことを確認する。
 6. BASIC 認証なしの保護対象 request が 401、正しい認証付き request が期待応答になることを
@@ -154,7 +156,8 @@ Workers の切替確認後に、別の本番操作ゲートとして次を行う
    ```
 
 3. `line-works.api.miraius.co.jp` の Custom Domain record を解除し、スナップショット済みの
-   `CNAME ghs.googlehosted.com`（TTL 300、proxied false）を復元する。
+   `CNAME ghs.googlehosted.com`（TTL 300、proxied false）を復元する。解除は Workers Domains API
+   で hostname に一致する domain ID を取得してから行い、IDを推測しない。
 4. `/healthz`、BASIC 認証、Callback 転送を確認してからロールバック完了とする。
 
 DNS は権威 DNS が同じ Cloudflare 内でもキャッシュの影響を受けるため、復元後最大 10 分を
@@ -170,6 +173,7 @@ Cloud Run service と Cloud Run domain mapping は今回削除しないため、
 - GitHub deploy token は account 全体ではなく対象 account と `miraius.co.jp` zone に限定する。
 - token 値、Workers secrets、1Password の値をログや設計書へ出さない。
 - DNS 切替前に既存 record の type、content、record ID を読み取り、推測で削除しない。
+- WranglerがCustom Domainへ置換する前に既存CNAMEを手動削除しない。
 - Cloud Build trigger は切替前に無効化し、Cloud Run 待機化は Workers の本番疎通後に実行する。
 - callback dedup は isolate 間で共有されないため、移行時点では 501 側 dedup を最終防衛線とする。
 - Workers deploy と Cloud Run 復旧操作を同時に行わない。
