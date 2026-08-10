@@ -41,4 +41,18 @@ describe('operations config', () => {
     expect(patterns).toContain('.env.*')
     expect(patterns.some(pattern => pattern === '!.env.tpl')).toBe(false)
   })
+
+  test('本番runbookはtokenをargvへ展開せず想定外DNSを上書きしない', async () => {
+    const readme = await file(new URL('./README.md', import.meta.url)).text()
+    const plan = await file(
+      new URL('./docs/superpowers/plans/2026-08-10-cloudflare-workers-cutover.md', import.meta.url),
+    ).text()
+    const runbooks = `${readme}\n${plan}`
+
+    expect(runbooks).not.toMatch(/Authorization:\s*Bearer\s+\$[A-Za-z_]/)
+    expect(runbooks).not.toContain('Authorization:Bearer $')
+    expect(runbooks).toContain('curl --config - --fail-with-body --silent --show-error')
+    expect(readme).not.toContain('wmbot_dns_id=')
+    expect(readme).toContain('assert_dns_profile <<<"$wmbot_dns_current"')
+  })
 })

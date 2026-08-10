@@ -211,6 +211,28 @@ Workers の重大障害時は、再ビルドせず Cloud Run に残っている�
   readonly wmbot_account_id='91583d32ef3c554d0b22855c9167752f'
   readonly wmbot_zone_id='5811b0a77c84211a69f3a48e4443ce03'
 
+  bearer_api() {
+    local method="$1"
+    shift
+    printf 'header = "Authorization: Bearer %s"\n' "$cf_wmbot_deploy_token" | \
+      curl --config - --fail-with-body --silent --show-error \
+        --request "$method" "$@"
+  }
+
+  assert_dns_profile() {
+    jq -e \
+      --arg hostname "$wmbot_hostname" \
+      --arg type "$wmbot_type" \
+      --arg content "$wmbot_content" \
+      --argjson ttl "$wmbot_ttl" \
+      --argjson proxied "$wmbot_proxied" '
+        .success == true and
+        (.result | length == 1) and
+        (.result[0] | .name == $hostname and .type == $type and .content == $content and
+          .ttl == $ttl and .proxied == $proxied)
+      '
+  }
+
   wmbot_hostname="$(jq -er '.hostname' "$wmbot_fallback_profile")"
   wmbot_type="$(jq -er '.type' "$wmbot_fallback_profile")"
   wmbot_content="$(jq -er '.content' "$wmbot_fallback_profile")"
@@ -222,51 +244,48 @@ Workers の重大障害時は、再ビルドせず Cloud Run に残っている�
   test "$wmbot_ttl" = '1'
   test "$wmbot_proxied" = 'false'
 
+  unset cf_wmbot_deploy_token
   cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
-  wmbot_domains="$(xh GET \
-    "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains" \
-    "Authorization:Bearer $cf_wmbot_deploy_token")"
+  wmbot_domains="$(bearer_api GET \
+    --url "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains")"
   jq -e '.success == true' <<<"$wmbot_domains" >/dev/null
   wmbot_domain_id="$(jq -er --arg hostname "$wmbot_hostname" '
     [.result[] | select(.hostname == $hostname)] |
     if length == 1 then .[0].id else error("Custom Domain must match exactly once") end
   ' <<<"$wmbot_domains")"
 
-  wmbot_dns_before="$(xh GET \
-    "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
-    "Authorization:Bearer $cf_wmbot_deploy_token" \
-    name=="$wmbot_hostname")"
+  wmbot_dns_before="$(bearer_api GET \
+    --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    --get --data-urlencode "name=$wmbot_hostname")"
   jq -e '.success == true and (.result | length <= 1)' <<<"$wmbot_dns_before" >/dev/null
 
-  xh DELETE \
-    "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains/$wmbot_domain_id" \
-    "Authorization:Bearer $cf_wmbot_deploy_token" | \
+  bearer_api DELETE \
+    --url "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains/$wmbot_domain_id" | \
     jq -e '.success == true and (.errors | length == 0)' >/dev/null
 
-  wmbot_dns_current="$(xh GET \
-    "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
-    "Authorization:Bearer $cf_wmbot_deploy_token" \
-    name=="$wmbot_hostname")"
+  wmbot_dns_current="$(bearer_api GET \
+    --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    --get --data-urlencode "name=$wmbot_hostname")"
   jq -e '.success == true' <<<"$wmbot_dns_current" >/dev/null
   wmbot_dns_count="$(jq -er '.result | length' <<<"$wmbot_dns_current")"
 
   case "$wmbot_dns_count" in
     0)
-      xh POST \
-        "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
-        "Authorization:Bearer $cf_wmbot_deploy_token" \
-        type="$wmbot_type" name="$wmbot_hostname" content="$wmbot_content" \
-        ttl:="$wmbot_ttl" proxied:="$wmbot_proxied" | \
+      wmbot_dns_payload="$(jq -cn \
+        --arg type "$wmbot_type" \
+        --arg name "$wmbot_hostname" \
+        --arg content "$wmbot_content" \
+        --argjson ttl "$wmbot_ttl" \
+        --argjson proxied "$wmbot_proxied" \
+        '{type: $type, name: $name, content: $content, ttl: $ttl, proxied: $proxied}')"
+      bearer_api POST \
+        --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+        --header 'Content-Type: application/json' \
+        --data "$wmbot_dns_payload" | \
         jq -e '.success == true and (.errors | length == 0)' >/dev/null
       ;;
     1)
-      wmbot_dns_id="$(jq -er '.result[0].id' <<<"$wmbot_dns_current")"
-      xh PATCH \
-        "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records/$wmbot_dns_id" \
-        "Authorization:Bearer $cf_wmbot_deploy_token" \
-        type="$wmbot_type" name="$wmbot_hostname" content="$wmbot_content" \
-        ttl:="$wmbot_ttl" proxied:="$wmbot_proxied" | \
-        jq -e '.success == true and (.errors | length == 0)' >/dev/null
+      assert_dns_profile <<<"$wmbot_dns_current" >/dev/null
       ;;
     *)
       echo 'ERROR: DNS record count changed to an unsafe value' >&2
@@ -274,21 +293,10 @@ Workers の重大障害時は、再ビルドせず Cloud Run に残っている�
       ;;
   esac
 
-  wmbot_dns_after="$(xh GET \
-    "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
-    "Authorization:Bearer $cf_wmbot_deploy_token" \
-    name=="$wmbot_hostname")"
-  jq -e \
-    --arg hostname "$wmbot_hostname" \
-    --arg type "$wmbot_type" \
-    --arg content "$wmbot_content" \
-    --argjson ttl "$wmbot_ttl" \
-    --argjson proxied "$wmbot_proxied" '
-      .success == true and
-      (.result | length == 1) and
-      (.result[0] | .name == $hostname and .type == $type and .content == $content and
-        .ttl == $ttl and .proxied == $proxied)
-    ' <<<"$wmbot_dns_after" >/dev/null
+  wmbot_dns_after="$(bearer_api GET \
+    --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    --get --data-urlencode "name=$wmbot_hostname")"
+  assert_dns_profile <<<"$wmbot_dns_after" >/dev/null
 
   dig +noall +answer "$wmbot_hostname" CNAME
   curl -fsS "https://$wmbot_hostname/healthz"
@@ -299,7 +307,8 @@ Workers の重大障害時は、再ビルドせず Cloud Run に残っている�
 ```
 
 Expected: CNAME がfallback profileどおり（TTL `1` = Cloudflare Auto）、`/healthz` が
-200、未認証の保護 route が 401。subshell終了時にtokenと一時変数は破棄される。
+200、未認証の保護 route が 401。tokenはshell local変数からstdinのcurl configへのみ
+渡し、子processのargv/environmentには載せない。subshell終了時にtokenと一時変数は破棄される。
 Callback は LINE WORKS self channel から `/status` を 1 件送り、応答 1 件・重複なしを
 確認する。
 

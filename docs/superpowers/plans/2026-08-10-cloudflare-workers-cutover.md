@@ -742,12 +742,24 @@ Expected: trigger enabled、Cloud Run ready、Workers current version、CNAME TT
 - [ ] **Step 3: Cloud Build triggerをdisabledにする**
 
 ```bash
-gcp_wmbot_token="$(gcloud auth print-access-token)"
-xh PATCH \
-  'https://cloudbuild.googleapis.com/v1/projects/office-381404/locations/global/triggers/6f86686c-3e42-440d-aaf3-26a17c397620?updateMask=disabled' \
-  "Authorization:Bearer $gcp_wmbot_token" \
-  disabled:=true | jq '{id,name,disabled}'
-unset gcp_wmbot_token
+(
+  set -euo pipefail
+  bearer_api() {
+    local method="$1"
+    shift
+    printf 'header = "Authorization: Bearer %s"\n' "$api_bearer_token" | \
+      curl --config - --fail-with-body --silent --show-error \
+        --request "$method" "$@"
+  }
+
+  unset api_bearer_token
+  api_bearer_token="$(gcloud auth print-access-token)"
+  bearer_api PATCH \
+    --url 'https://cloudbuild.googleapis.com/v1/projects/office-381404/locations/global/triggers/6f86686c-3e42-440d-aaf3-26a17c397620?updateMask=disabled' \
+    --header 'Content-Type: application/json' \
+    --data '{"disabled":true}' | \
+    jq -e '.id == "6f86686c-3e42-440d-aaf3-26a17c397620" and .disabled == true'
+)
 ```
 
 Expected: `disabled: true`。Cloud Run本体/DNSはまだ変更しない。
@@ -758,11 +770,19 @@ Expected: `disabled: true`。Cloud Run本体/DNSはまだ変更しない。
 (
   set -euo pipefail
   readonly wmbot_fallback_profile='docs/operations/cloud-run-dns-fallback.json'
-  cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
-  wmbot_dns_live="$(xh GET \
-    'https://api.cloudflare.com/client/v4/zones/5811b0a77c84211a69f3a48e4443ce03/dns_records' \
-    "Authorization:Bearer $cf_wmbot_deploy_token" \
-    name==line-works.api.miraius.co.jp)"
+  bearer_api() {
+    local method="$1"
+    shift
+    printf 'header = "Authorization: Bearer %s"\n' "$api_bearer_token" | \
+      curl --config - --fail-with-body --silent --show-error \
+        --request "$method" "$@"
+  }
+
+  unset api_bearer_token
+  api_bearer_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
+  wmbot_dns_live="$(bearer_api GET \
+    --url 'https://api.cloudflare.com/client/v4/zones/5811b0a77c84211a69f3a48e4443ce03/dns_records' \
+    --get --data-urlencode 'name=line-works.api.miraius.co.jp')"
 
   jq -e \
     --arg hostname "$(jq -er '.hostname' "$wmbot_fallback_profile")" \
@@ -826,9 +846,10 @@ README「Workers障害時の即時復帰（既存 image）」のfail-closed bloc
 そのまま実行する。このblockは次を強制する。
 
 - Workers Domainのhostname完全一致1件、Detach応答の`success=true`
-- DNS record 0件ならPOST、1件なら実測IDへPATCH、2件以上は停止
+- DNS record 0件ならPOST、1件ならprofile完全一致時だけno-op、不一致または2件以上は停止
 - `docs/operations/cloud-run-dns-fallback.json`のCNAME / TTL `1`（Auto）/ proxiedと更新後GETの完全一致
 - `/healthz` 200と未認証route 401の厳密一致
+- tokenをstdinのcurl configへのみ渡し、子processのargv/environmentに載せない
 - `set -euo pipefail`のsubshellによるtokenと一時envの破棄
 
 Expected: Cloud Run CNAME復元。main差分は`git revert`で新規commitとして戻し、force/rebase/amendは使わない。Cloud Build trigger再有効化は同じPATCHへ`disabled:=false`を送る。

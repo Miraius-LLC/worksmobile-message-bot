@@ -172,6 +172,8 @@ Workers の切替確認後に、別の本番操作ゲートとして次を行う
 3. `line-works.api.miraius.co.jp` の Custom Domain record を解除し、永続fallback profileの
    `CNAME ghs.googlehosted.com`（TTL `1` = Auto、proxied false）を復元する。解除は Workers Domains API
    で hostname に一致する domain ID を取得してから行い、IDを推測しない。
+   解除後のDNS recordが0件ならprofileからPOST、1件ならprofile完全一致時のみno-opとし、
+   1件不一致または2件以上は停止する。想定外recordをPATCHで上書きしない。
 4. `/healthz`、BASIC 認証、Callback 転送を確認してからロールバック完了とする。
 
 DNS は権威 DNS が同じ Cloudflare 内でもキャッシュの影響を受けるため、復元後最大 10 分を
@@ -186,6 +188,8 @@ Cloud Run service と Cloud Run domain mapping は今回削除しないため、
 - CI が失敗した commit はデプロイしない。
 - GitHub deploy token は account 全体ではなく対象 account と `miraius.co.jp` zone に限定する。
 - token 値、Workers secrets、1Password の値をログや設計書へ出さない。
+- Cloudflare/GCP access tokenはshell local変数からstdinのcurl configへのみ渡し、
+  子processのargv/environmentに展開しない。
 - DNS 切替前に既存 record の type、content、record ID を読み取り、推測で削除しない。
 - WranglerがCustom Domainへ置換する前に既存CNAMEを手動削除しない。
 - Cloud Build trigger は切替前に無効化し、Cloud Run 待機化は Workers の本番疎通後に実行する。
