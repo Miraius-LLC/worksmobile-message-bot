@@ -82,8 +82,9 @@ record と Custom Domain record を Terraform から二重管理しない。
 
 - `infra/registry/worksmobile-message-bot.yaml` に Cloudflare account、Worker、Custom Domain、
   deploy token、zone を記録する。
-- `provision-cf-api-token --kind=workers-deploy` で `miraius.co.jp` zone に限定した token を
-  発行し、1Password へ値を表示せず保存する。
+- `provision-cf-api-token --kind=workers-script-deploy` で account の `Workers Scripts Write` と
+  `miraius.co.jp` zone の `Workers Routes Write` / `DNS Write` / `Zone Read` に限定した token を
+  発行し、1Password へ値を表示せず保存する。`D1 Write` と `Workers R2 Storage Read` は付与しない。
 - `check-infra-ownership` と registry doctor で台帳と実物の drift を検出する。
 
 Terraform の `miraius.co.jp/cloudflare-dns` stack は、Custom Domain 自動生成 record を管理対象に

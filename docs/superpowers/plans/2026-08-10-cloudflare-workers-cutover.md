@@ -19,6 +19,7 @@
 - `cloudflare/wrangler-action`は`v4`相当のcommit `ebbaa1584979971c8614a24965b4405ff95890e0`へSHA pinする。
 - Custom Domainは`wrangler.jsonc`がSoT。Terraform DNS stackから二重管理しない。
 - token/secrets/private keyはstdout、ログ、commitへ出さない。
+- Workers deploy tokenは `workers-script-deploy` の最小権限（account: `Workers Scripts Write`、zone: `Workers Routes Write` / `DNS Write` / `Zone Read`）に限定する。`D1 Write` と `Workers R2 Storage Read` は付与しない。
 - callbackの最終dedup防衛線は501側とし、切替前に既存テストで裏取りする。
 - 外部書き込み、DNS切替、Cloud Build停止、Cloud Run更新、org repoの`main`反映は実行直前に藤井の承認を得る。
 - unrelated dirty/untracked stateはstage・変更・削除しない。
@@ -468,8 +469,6 @@ cloudflare:
       usage: GitHub Actions deploy (Workers + Custom Domain)
       policies:
         - 'account: Workers Scripts Write'
-        - 'account: D1 Write'
-        - 'account: Workers R2 Storage Read'
         - 'zone: Workers Routes Write'
         - 'zone: DNS Write'
         - 'zone: Zone Read'
@@ -525,7 +524,7 @@ git commit -m '🔧 wmbotのWorkers運用をinfra台帳化'
 
 ---
 
-### Task 5: zone限定deploy tokenとGitHub credentialを準備する
+### Task 5: 最小権限のzone限定deploy tokenとGitHub credentialを準備する
 
 **Files:**
 - Modify: `~/Develop/infra/registry/worksmobile-message-bot.yaml`（実token IDのみ追記）
@@ -540,7 +539,8 @@ git commit -m '🔧 wmbotのWorkers運用をinfra台帳化'
 
 ```text
 Cloudflare: account 91583... に worksmobile-message-bot-deploy tokenを1件作成
-scope: Workers Scripts Write / D1 Write / R2 Read、miraius.co.jp zoneのWorkers Routes/DNS Write/Zone Read
+scope: accountのWorkers Scripts Writeのみ、miraius.co.jp zoneのWorkers Routes/DNS Write/Zone Read
+除外: D1 Write / Workers R2 Storage Read（このWorkerでは不要）
 1Password: Worksmobile/Cloudflareへtoken metadataとconcealed api_tokenを保存
 GitHub: Miraius-LLC/worksmobile-message-botへCLOUDFLARE_API_TOKEN secretとCLOUDFLARE_ACCOUNT_ID variableを設定
 rollback: GitHub secret/variable削除、Cloudflare token revoke、registry entry削除
@@ -554,7 +554,7 @@ Run from infra worktree:
 op signin
 bun run provision:cf-api-token -- \
   --project=worksmobile-message-bot \
-  --kind=workers-deploy \
+  --kind=workers-script-deploy \
   --zone-id=5811b0a77c84211a69f3a48e4443ce03 \
   --op-vault=Worksmobile \
   --op-item=Cloudflare \
@@ -568,7 +568,7 @@ Expected: API/op writeなし。token name、account、zone、permissionだけを
 ```bash
 bun run provision:cf-api-token -- \
   --project=worksmobile-message-bot \
-  --kind=workers-deploy \
+  --kind=workers-script-deploy \
   --zone-id=5811b0a77c84211a69f3a48e4443ce03 \
   --op-vault=Worksmobile \
   --op-item=Cloudflare
