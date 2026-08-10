@@ -16,6 +16,7 @@
 
 ### 基盤 / 実行環境
 - [0001](./0001-cloud-run-hono-bun.md) — webhook サーバは Cloud Run + Hono + Bun
+- [0010](./0010-cloudflare-workers-primary-cloud-run-standby.md) — Cloudflare Workersを主系、Cloud Runを待機系とする（0001をsupersede）
 - [0002](./0002-container-http1-only-no-h2c.md) — コンテナは HTTP/1.1 のみ、end-to-end h2c 不採用
 
 ### 認証 / 認可

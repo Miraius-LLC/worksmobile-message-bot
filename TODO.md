@@ -17,7 +17,7 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 ### スケーリング
 
-- [ ] **dedup を共有ストア化（Workers KV / Durable Objects 等）** — callback dedup は in-memory Map のため、Cloud Run の複数 instance 間でも Workers の isolate 間でも共有されない。MS-A2 移行時点では 501 側の callback dedup を最終防衛線とし、wmbot 単体でも厳密な一回処理が必要になったら共有ストアへ移す（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
+- [ ] **dedup を共有ストア化（Workers KV / Durable Objects 等）** — Workers isolate間でwmbot内Mapは共有されない。現状は501側dedupを最終防衛線とし、gateway単体で厳密な一回処理が必要になった時だけ共有ストア化する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
 
 ### コードの整理
 

@@ -1,6 +1,6 @@
 ---
-status: accepted
-date: 2026-05-23
+status: superseded by ADR-0010
+date: 2026-05-11
 ---
 
 # ADR-0001: webhook サーバは Cloud Run + Hono + Bun

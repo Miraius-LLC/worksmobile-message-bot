@@ -82,7 +82,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
 - **BASIC 認証は `app.ts` で `/` と health probe / `/callback` 以外に強制** ([ADR-0006](./docs/adr/0006-basic-auth-except-health-and-callback.md))。`hono/basic-auth` を lazy 初期化 + `PUBLIC_PATHS` で除外。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換エイリアスで同じハンドラを共有 (`HEALTH_PATHS` 配列で集中管理)
 - **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
-- **callback dedup は in-memory Map で 5 分 window** ([ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md))。`callback/dedup.ts` が raw body の SHA-256 を key に再送を検出。**min-instances=1** 前提。501 転送 (`forward.ts`) が throw したら `unregister` で再送許可 (喪失防止)
+- **callback dedup は in-memory Map で 5 分 window の best effort** ([ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md))。Workers isolate 間で Map は共有されないため、501 側 callback dedup を最終防衛線とする。501 転送 (`forward.ts`) が throw したら `unregister` で再送許可 (喪失防止)。
 - **callback は 501 に転送する (案 B)** ([ADR-0005](./docs/adr/0005-forward-callback-to-501.md))。`callback/forward.ts` が env `FORWARD_501_CALLBACK_URL` へ raw body + `X-WORKS-Signature` を素通し。応答コマンドの handler は 501 側にあり、wmbot 内の `dispatch.ts` / `handlers/` は現在呼ばれない (雛形として残置)
 
 ### Docker / デプロイ
@@ -95,6 +95,11 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入
 - **機密 env を Cloud Run の env に直書きしない** ([ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md))。`gcloud secrets versions add` で値を更新すると Cloud Run は `:latest` を参照するため再 deploy 不要で差し替えできる。機密度の低い env も substitution variable 経由で yaml には値を残さない
 - **Artifact Registry の cleanup policy 設定済**: タグ無しイメージは 7 日後削除、タグ付きは最新 10 件保持 (`cloud-run-source-deploy` リポジトリ)
+
+### 現行 runtime / CD
+
+- **通常の主系は Cloudflare Workers**。GitHub Actions が `main` push の CI 成功後に Workers へ deploy する。hostname は `line-works.api.miraius.co.jp`（Workers Custom Domain）。
+- **Cloud Run は待機系**: `min-instances=0` / `max-instances=1` / internal ingress。復帰時は既存 image のまま `gcloud run services update` で ingress と scaling を戻す。
 
 ### 命名・配置の慣習
 

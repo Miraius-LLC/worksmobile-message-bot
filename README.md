@@ -13,13 +13,13 @@
 
 - **ランタイム**: [Bun](https://bun.sh/) 1.3.x
 - **言語**: TypeScript (ESM, strict)
-- **HTTP フレームワーク**: [Hono](https://hono.dev/) + [@hono/node-server](https://github.com/honojs/node-server)
+- **HTTP フレームワーク**: [Hono](https://hono.dev/)（Workers と Cloud Run で共通 app を実行）
 - **検証**: [Zod](https://zod.dev/) + [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
 - **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
 - **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Cloud Logging severity / trace 連携付き
 - **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
 - **CI**: GitHub Actions (PR + `main` への push で `tsc --noEmit` + `biome check` + `bun test`)
-- **CD**: Cloud Build (`cloudbuild.yaml`) → Cloud Run (asia-northeast1)
+- **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers
 
 ### 参考にさせていただいた記事
 
@@ -110,9 +110,11 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 
 ---
 
-## デプロイ (Cloud Run)
+## デプロイ (Cloud Run 待機系)
 
-GitHub `main` への push を Cloud Build trigger が拾い、`cloudbuild.yaml` のパイプライン (build → push → deploy) を実行する設計です。
+通常の本番主系は Cloudflare Workers です。GitHub Actions が `main` push の CI 成功後に Workers へ deploy します。Cloud Run は `min-instances=0` / `max-instances=1` / internal ingress の待機系として残し、Cloud Build trigger は通常自動デプロイに使いません。
+
+Cloud Run を復帰させる場合は、既存 image のまま `gcloud run services update` で ingress と scaling を戻します。Cloud Run 用 Docker / Cloud Build / Secret Manager / Artifact Registry は待機系の再デプロイ・rollback 資産として維持します。
 
 `cloudbuild.yaml` には **runtime SA / Secret Manager マウント / scaling / resources / ingress** 等を全て明示してあり、Cloud Run の構成 drift を防止します。
 
@@ -150,9 +152,21 @@ gcloud builds triggers describe <TRIGGER_NAME> --format=yaml > trigger.yaml
 gcloud builds triggers import --source=trigger.yaml
 ```
 
-### 通常のデプロイ
+### 待機系の再デプロイ
 
-`main` に push するだけ。Cloud Build が `cloudbuild.yaml` の通り走ります:
+Cloud Run を待機系から復帰させる必要がある場合だけ、既存の `cloudbuild.yaml` を手動実行します。通常の `main` push では Cloud Run を自動デプロイしません。
+
+復帰後に scale-to-zero / internal ingress へ戻す場合は次のように更新します:
+
+```sh
+gcloud run services update worksmobile-message-bot \
+  --region=asia-northeast1 \
+  --ingress=all \
+  --min-instances=1 \
+  --max-instances=20
+```
+
+手動で `cloudbuild.yaml` を実行する場合の処理は次の通りです:
 1. Docker build → Artifact Registry へ push (タグ: `$SHORT_SHA`)
 2. `gcloud run services update` で SA / secrets / scaling / resources を一括適用
 
@@ -829,7 +843,7 @@ LINE WORKS が同一 event を再送した場合に副作用が二重実行さ�
 - **失敗時 retry**: 501 への転送が throw した場合 (= 501 が 5xx / network error) は dedup key を `unregister` して LINE WORKS の再送を許可する。`unregister` を呼ばないと転送失敗の event が再送されても skip されて喪失する
 - **検証順序**: 署名検証 → dedup → JSON parse → Zod 検証 → 501 へ転送
 
-⚠️ **Cloud Run の min-instances=1 / max-instances=20 制約と一緒に運用**する設計。Map は in-memory なので instance が複数走ると instance ごとに別 Map になり dedup が破綻する。`cloudbuild.yaml` で `--min-instances=1 --max-instances=20` を明示済だが、トラフィックが増えて auto-scale で 2 instance 目が立ち上がる頻度が上がってきたら、Redis 等の共有ストアへ移行する必要がある (現状は 1 instance に張り付き、min-instances=1 なので問題なし)。
+⚠️ **Workers isolate 間で wmbot 内の Map は共有されない**ため、callback dedup は best effort です。501 側の callback dedup を最終防衛線とします。Cloud Run 復帰時も `min-instances=0` / `max-instances=1` / internal ingress の待機設定を維持し、wmbot 単体で厳密な一回処理が必要になった時だけ Workers KV / Durable Objects 等の共有ストア化を検討します。
 
 #### 受信できる event 種別
 
@@ -866,14 +880,14 @@ LINE WORKS が同一 event を再送した場合に副作用が二重実行さ�
      --member=serviceAccount:worksmobile-message-bot-sa@<PROJECT_ID>.iam.gserviceaccount.com \
      --role=roles/secretmanager.secretAccessor
    ```
-3. Cloud Run へ再デプロイ (Secret Manager マウントを反映するため。`main` への push でも可)
+3. Workers の本番 deploy 済み状態を確認する（Cloud Run 復帰時は待機系の再デプロイ後に Secret Manager マウントを確認する）
 4. Bot 編集画面の **Callback URL** を `On` にして:
    - URL: `https://<本番ドメイン>/callback` (例: `https://line-works.api.miraius.co.jp/callback`)
    - 受信する Callback Event を必要なものだけ ON (`Message Event` / `Postback Event` / `Join` / `Leave` / `Joined` / `Left` / `Begin` / `End`)
 5. Bot ポリシーで「1:1 トーク」「複数人トーク」を許可 (受信するイベントに応じて)
 6. **保存** → LINE WORKS の自分宛 Bot にメッセージ `/help` を送って、ヘルプ文が返信されることを確認
 
-> ⚠️ Callback URL を On にする前に、Cloud Run 側に `/callback` ルートがデプロイ済であることを必ず確認する。デプロイ前に On にすると LINE WORKS の callback が 404 を返し、イベントが失われる (LINE WORKS は再送しない)。
+> ⚠️ Callback URL を On にする前に、Workers の本番 hostname に `/callback` ルートがデプロイ済みであることを必ず確認する。Workers が利用できない場合に Cloud Run へ復帰するときは、Cloud Run 側にも `/callback` ルートがデプロイ済みであることを確認する。デプロイ前に On にすると LINE WORKS の callback が 404 を返し、イベントが失われる (LINE WORKS は再送しない)。
 
 ***
 
