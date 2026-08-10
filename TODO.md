@@ -9,7 +9,11 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 ## 進行中
 
-現状なし。
+- [ ] **Cloud Run を待機化する** — Workers 切替後30分監視の完了と藤井の別承認後、Cloud Runを
+  `min-instances=0` / `max-instances=1` / internal ingressへ変更する。Workers主系と
+  Cloud Build trigger disabledは維持する。
+- [ ] **Workers 移行24時間後を確認する** — Workers logs / Callback error、Cloud Run instance 0、
+  GitHub Actions deploy、重複応答なしを2026-08-11に確認し、問題がなければCHANGELOGへ移す。
 
 ---
 

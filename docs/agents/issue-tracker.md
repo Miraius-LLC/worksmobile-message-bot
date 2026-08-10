@@ -1,9 +1,10 @@
 # Issue tracker
 
-このリポジトリは **専用の issue tracker（GitHub Issues / `.scratch/` 等）を使っていない**。`TODO.md` も無い。作業は以下で追跡する。
+このリポジトリは **専用の issue tracker（GitHub Issues / `.scratch/` 等）を使っていない**。進行中・未着手の作業はrootの`TODO.md`で追跡する。
 
 | 対象 | 役割 |
 |---|---|
+| [`TODO.md`](../../TODO.md) | 進行中・未着手の作業。完了後はCHANGELOGとgit logへ移す |
 | [`README.md`](../../README.md) | エンドポイント仕様（全 HTTP ルート + リクエスト本文の制約 + callback 受信仕様）。実質の機能仕様書 |
 | [`CLAUDE.md`](../../CLAUDE.md) | コードから読めない規約・運用ゴッチャ |
 | git commits | 完了した変更履歴（gitmoji + 日本語 subject）|

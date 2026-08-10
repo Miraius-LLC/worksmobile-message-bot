@@ -69,4 +69,55 @@ describe('operations config', () => {
     expect(plan).toContain("jq -e '.disabled == true'")
     expect(plan).toContain("jq -e '.disabled == false'")
   })
+
+  test('現在形の運用docsはWorkers主系と実測したCustom Domain切替を示す', async () => {
+    const [readme, changelog, issueTracker, design, plan, cloudBuild, envTemplate] =
+      await Promise.all([
+        file(new URL('./README.md', import.meta.url)).text(),
+        file(new URL('./CHANGELOG.md', import.meta.url)).text(),
+        file(new URL('./docs/agents/issue-tracker.md', import.meta.url)).text(),
+        file(
+          new URL(
+            './docs/superpowers/specs/2026-08-10-cloudflare-workers-cutover-design.md',
+            import.meta.url,
+          ),
+        ).text(),
+        file(
+          new URL(
+            './docs/superpowers/plans/2026-08-10-cloudflare-workers-cutover.md',
+            import.meta.url,
+          ),
+        ).text(),
+        file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
+        file(new URL('./.env.tpl', import.meta.url)).text(),
+      ])
+
+    expect(readme).toContain('## 本番デプロイ (Cloudflare Workers)')
+    expect(readme).toContain('![Cloudflare Workers]')
+    expect(readme).toContain('![Google Cloud Run]')
+    expect(readme).toContain('**実行基盤**: Cloudflare Workers / Google Cloud Run')
+    expect(readme).toContain(
+      'GitHub Actions (CI 成功後) → Cloudflare Workers / Cloud Build → Cloud Run',
+    )
+    expect(readme).toContain('Task 7完了時点では、30分監視後も即時rollbackのためCloud Runを')
+    expect(readme).toContain('Task 8の')
+    expect(readme).toContain('default URL の `/health`')
+    expect(readme).not.toContain('MS-A2 移行では')
+    expect(readme).not.toContain('Cloud Run default URL の `/healthz`')
+    expect(changelog).toContain('Cloudflare Workersを本番主系化')
+    expect(changelog).toContain('GitHub Actions（CI成功後にWorkers deploy）')
+    expect(issueTracker).toContain('[`TODO.md`](../../TODO.md)')
+    expect(issueTracker).not.toContain('`TODO.md` も無い')
+    expect(design).toContain('Cloudflare code `100117`')
+    expect(design).not.toContain('override_existing_dns_record=true')
+    expect(plan).toContain('run `31391499733`')
+    expect(plan).not.toContain('Wrangler非TTY deployが既存CNAMEをCustom Domain recordへ置換する')
+    expect(readme).toContain('restore_fallback()')
+    expect(readme).toContain('wmbot_cutover_record_id=')
+    expect(readme).toContain('gh run rerun "$WMBOT_FAILED_RUN_ID"')
+    expect(readme).toContain('gh run watch "$WMBOT_FAILED_RUN_ID"')
+    expect(cloudBuild).toContain('通常の本番CDはGitHub Actions → Cloudflare Workers')
+    expect(cloudBuild).not.toContain('GitHub push → build → push → Cloud Run')
+    expect(envTemplate).toContain('本番主系のWorkersはWrangler secret')
+  })
 })

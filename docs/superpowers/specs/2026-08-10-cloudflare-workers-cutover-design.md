@@ -4,6 +4,7 @@
 - 対象: `worksmobile-message-bot` / `develop-meta/infra`
 - 移行目標: 2026-08-10 深夜
 - 本番ドメイン: `line-works.api.miraius.co.jp`
+- 状態: Task 7（Workers切替・30分監視）完了、Task 8（Cloud Run待機化）は別承認待ち
 
 ## 1. 目的
 
@@ -12,7 +13,7 @@
 移す。一方で、Docker・Cloud Build・Node/Bun entrypoint は削除せず、必要時に Cloud Run へ
 手動デプロイできる状態を維持する。
 
-## 2. 現状
+## 2. 移行前ベースライン
 
 - Hono app は `src/app.ts` に共通化済み。
 - Cloud Run entrypoint は `src/index.ts`、Workers entrypoint は `src/worker.ts`。
@@ -22,6 +23,15 @@
 - Cloud Build trigger は `main` push で Cloud Run を自動デプロイする設定。
 - Cloud Run は `min-instances=1`、`max-instances=20`、公開 ingress で稼働中。
 - GitHub Actions は CI のみで、Workers deploy job と Cloudflare credential は未設定。
+
+### 2.1 Task 7実績（2026-08-10）
+
+- Cloud Build triggerをdisabledにし、`main` commit `42ae313`のCIとWorkers deployを完了した。
+- 初回deployは既存の外部管理CNAMEとの競合（Cloudflare code `100117`）で停止した。
+- fallback profileと完全一致したCNAME 1件だけを削除し、failed jobの再実行（run
+  `31391499733`、attempt 2）でCustom Domain登録に成功した。
+- Cloudflare公開DNS、TLS、`/healthz` 200、未認証route 401、501 self送信と`/status` callback往復を
+  実測し、30分超の監視を正常終了した。Cloud Runは公開状態を維持し、Task 8の別承認を待つ。
 
 ## 3. 採用方式
 
@@ -80,11 +90,11 @@ Custom Domain は Worker と hostname の対応を `wrangler.jsonc` の deploy �
 既存の Cloud Run 向け CNAME は `ghs.googlehosted.com`、TTL は `1`（Cloudflare Auto）である。
 `docs/operations/cloud-run-dns-fallback.json`を2026-08-10のlive DNS API実測値の永続fallback
 profileとし、切替直前の live recordと完全一致することを確認する。不一致なら
-停止し、profileを自動または手動で勝手に上書きしない。Wrangler 4.120.0 は非TTY
-deployで既存DNS競合を
-`override_existing_dns_record=true` として処理するため、CNAMEを事前削除せず、GitHub Actionsの
-`wrangler deploy` によって Custom Domain record と TLS certificate へ切り替える。通常の DNS
-record と Custom Domain record を Terraform から二重管理しない。
+停止し、profileを自動または手動で勝手に上書きしない。Wrangler 4.120.0の実測では、外部管理の
+既存CNAMEがある状態のCustom Domain deployはCloudflare code `100117`で停止し、自動置換しない。
+承認された切替窓で、profileと完全一致するCNAME 1件だけを削除してdeployを再実行する。
+失敗時はprofileから即時復元する。通常の DNS record と Custom Domain record をTerraformから
+二重管理しない。
 
 Wrangler 4.120.0 bundled workerd対応上限の実測により、`wrangler.jsonc`の`compatibility_date`は`2026-08-08`へ固定する。移行目標日のメタ日付（2026-08-10）は変更しない。
 
@@ -121,9 +131,9 @@ Terraform の `miraius.co.jp/cloudflare-dns` stack は、Custom Domain 自動生
 ### 5.2 切替
 
 1. Worker の既存 deployment と secrets 9 件を再確認する。
-2. 既存 CNAME のスナップショットを保存する。CNAME は手動削除しない。
-3. `main` へ反映し、CI 成功後の Workers deployと既存CNAMEのCustom Domain recordへの置換を
-   監視する。
+2. 既存 CNAME が永続fallback profileと完全一致することを確認し、record IDを内部変数に保持する。
+3. 承認された切替窓でそのCNAME 1件だけを削除し、`main` のCI成功後にWorkers deployを実行する。
+   deploy失敗時は直ちにfallback profileを復元する。
 4. Custom Domain の certificate と DNS activation を最大 10 分待つ。
 5. `https://line-works.api.miraius.co.jp/healthz` が 200 を返すことを確認する。
 6. BASIC 認証なしの保護対象 request が 401、正しい認証付き request が期待応答になることを
@@ -174,7 +184,8 @@ Workers の切替確認後に、別の本番操作ゲートとして次を行う
    で hostname に一致する domain ID を取得してから行い、IDを推測しない。
    解除後のDNS recordが0件ならprofileからPOST、1件ならprofile完全一致時のみno-opとし、
    1件不一致または2件以上は停止する。想定外recordをPATCHで上書きしない。
-4. `/healthz`、BASIC 認証、Callback 転送を確認してからロールバック完了とする。
+4. Cloud Run default URLは既存revisionでも利用できる`/health`、本番hostnameは`/healthz`を使い、
+   BASIC 認証、Callback 転送も確認してからロールバック完了とする。
 
 DNS は権威 DNS が同じ Cloudflare 内でもキャッシュの影響を受けるため、復元後最大 10 分を
 回復待ち時間として扱う。10 分を超えて Cloud Run へ戻らなければ Cloudflare DNS と Cloud Run
@@ -191,7 +202,8 @@ Cloud Run service と Cloud Run domain mapping は今回削除しないため、
 - Cloudflare/GCP access tokenはshell local変数からstdinのcurl configへのみ渡し、
   子processのargv/environmentに展開しない。
 - DNS 切替前に既存 record の type、content、record ID を読み取り、推測で削除しない。
-- WranglerがCustom Domainへ置換する前に既存CNAMEを手動削除しない。
+- CNAME削除はlive recordがfallback profileと完全一致する1件の場合に限り、承認された切替窓で
+  実行する。deploy失敗時は同profileから即時復元する。
 - Cloud Build trigger は切替前に無効化し、Cloud Run 待機化は Workers の本番疎通後に実行する。
 - callback dedup は isolate 間で共有されないため、移行時点では 501 側 dedup を最終防衛線とする。
 - Workers deploy と Cloud Run 復旧操作を同時に行わない。

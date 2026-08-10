@@ -1,5 +1,7 @@
 # =============================================================================
-# Cloud Build パイプライン: GitHub push → build → push → Cloud Run へ deploy
+# Cloud Run障害復旧用パイプライン: build → push → Cloud Runへ公開deploy
+# 通常の本番CDはGitHub Actions → Cloudflare Workers。Cloud Build triggerはdisabledを維持し、
+# 本ファイルは藤井の明示承認後の手動復旧時だけ実行する。
 #
 # トリガー側で `filename: cloudbuild.yaml` を指定すること。inline build を
 # 残したままだとこのファイルは読まれない。

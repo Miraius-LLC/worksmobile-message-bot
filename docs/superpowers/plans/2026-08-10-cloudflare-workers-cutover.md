@@ -713,7 +713,7 @@ Detachは`Workers Scripts Write`。既存tokenはWriteを持つが、DetachはTa
 - Consumes: approved app branch、GitHub credential、現行CNAME/Cloud Run
 - Produces: Workers Custom Domain production traffic
 
-- [ ] **Step 1: 本番変更の最終承認を得る**
+- [x] **Step 1: 本番変更の最終承認を得る**
 
 提示内容:
 
@@ -724,7 +724,7 @@ NO-GO: Custom Domain/TLS/health/BASIC/Callbackのいずれかが10分以内に�
 rollback: Workers Domain解除→CNAME復元。Cloud Runはこの時点では公開状態のまま
 ```
 
-- [ ] **Step 2: 現行resourceを再取得する**
+- [x] **Step 2: 現行resourceを再取得する**
 
 ```bash
 gcloud builds triggers describe 6f86686c-3e42-440d-aaf3-26a17c397620 \
@@ -739,7 +739,7 @@ dig +noall +answer line-works.api.miraius.co.jp CNAME
 
 Expected: trigger enabled、Cloud Run ready、Workers current version、CNAME TTL `1`（Auto）を再確認。表示された最新version IDをWorker code regression時のrollback基準として記録する（secret値は表示しない）。
 
-- [ ] **Step 3: Cloud Build triggerをdisabledにする**
+- [x] **Step 3: Cloud Build triggerをdisabledにする**
 
 ```bash
 (
@@ -777,7 +777,7 @@ HTTP 400 `INVALID_ARGUMENT`。trigger未変更を確認後、既存trigger JSON�
 full bodyでPATCHし、再GETで`disabled=true`を確認済み。substitution値とaccess tokenは
 stdout・log・argv/environmentへ出していない。
 
-- [ ] **Step 4: live CNAMEを永続fallback profileと比較する**
+- [x] **Step 4: live CNAMEを永続fallback profileと比較する**
 
 ```bash
 (
@@ -812,9 +812,10 @@ stdout・log・argv/environmentへ出していない。
 ```
 
 Expected: 1件、content=`ghs.googlehosted.com`、ttl=`1`（Auto）、proxied=`false`でprofileと
-完全一致。不一致なら切替を停止し、profileを勝手に上書きしない。CNAMEは手動削除しない。
+完全一致。不一致なら切替を停止し、profileを勝手に上書きしない。削除は承認された切替窓で、
+この完全一致1件だけを対象にする。
 
-- [ ] **Step 5: org repo main反映の確認後にff-only merge/pushする**
+- [x] **Step 5: org repo main反映の確認後にff-only merge/pushする**
 
 Run from main worktree after藤井の明示確認:
 
@@ -827,7 +828,7 @@ git push origin main
 
 Expected: pre-push PASS。Cloud BuildはdisabledのためCloud Run deployは起動せず、GitHub Actionsの`check`→`deploy`だけが進む。
 
-- [ ] **Step 6: GitHub ActionsとWorkers deployを監視する**
+- [x] **Step 6: GitHub ActionsとWorkers deployを監視する**
 
 ```bash
 gh run list --workflow CI --branch main --limit 3 \
@@ -838,9 +839,16 @@ dig +noall +answer line-works.api.miraius.co.jp
 curl -fsS https://line-works.api.miraius.co.jp/healthz
 ```
 
-Expected: CI/deploy success、production version更新、`{"status":"ok"}`。Wrangler非TTY deployが既存CNAMEをCustom Domain recordへ置換する。
+Expected: CI/deploy success、production version更新、`{"status":"ok"}`。Custom Domainと既存DNSが
+競合した場合は、profile完全一致を再確認して対象CNAME 1件だけを削除し、failed jobを再実行する。
 
-- [ ] **Step 7: BASIC認証とCallbackを確認する**
+2026-08-10 live evidence: run `31391499733`の初回deployはWorker upload後、外部管理CNAMEとの
+競合（Cloudflare code `100117`）で停止した。Cloud Run `/health` 200とfallback profile完全一致を
+再確認し、対象CNAME 1件だけを削除。failed jobを再実行したattempt 2でCustom Domain登録と
+Workers version `d468c1ea-0169-4ce9-981d-3625e002a63f`のdeployに成功した。公開DNS/TLS反映後、
+`/healthz` 200と未認証route 401を確認した。
+
+- [x] **Step 7: BASIC認証とCallbackを確認する**
 
 ```bash
 test "$(curl -sS -o /dev/null -w '%{http_code}' \
@@ -850,6 +858,9 @@ test "$(curl -sS -o /dev/null -w '%{http_code}' \
 Expected: `401`。
 
 認証付き代表requestは既存BASIC credentialを値非表示で読み、破壊操作を行わないGET routeへ送る。藤井がLINE WORKS self channelから`/status`を1件送信し、応答1件・重複なしを確認する。
+
+2026-08-10 live evidence: `501 notify self`は本番hostname経由でHTTP 200。藤井が22:38に
+`/status`を1件送信し、501稼働状況の応答が1件だけ返ることを確認した。
 
 - [ ] **Step 8: NO-GOなら即時rollbackする**
 
@@ -909,7 +920,7 @@ git push origin main
 
 Expected: revert commitのCIがPASSし、Cloud Build triggerを再有効化した後はCloud Run通常deploy経路へ戻る。
 
-- [ ] **Step 9: GOなら30分監視する**
+- [x] **Step 9: GOなら30分監視する**
 
 30分間、5分以下の間隔で次を再確認する。長いblocking sleepは使わない。
 
@@ -921,6 +932,10 @@ gh run list --workflow CI --branch main --limit 1 \
 ```
 
 Expected: health 200、deployment不変、追加error/duplicate callbackなし。Cloud Runはこの監視終了まで公開状態を維持。
+
+2026-08-10 live evidence: 22:18から22:48まで約1分間隔で34回確認し、全回
+`/healthz=200`、未認証route `401`。途中で501 self送信と`/status` callback往復も成功し、
+重複応答はなかった。Cloud Runは`ingress=all` / `min=1` / `max=20`のまま維持した。
 
 ---
 

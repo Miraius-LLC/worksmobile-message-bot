@@ -13,7 +13,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 ## 受信（Callback）系
 
 - **Callback を 501（scheduler-501）へ転送（案 B）**: 検証を通った callback を raw body + 署名のまま 501 の `/callback` へ素通し転送する gateway 方式に一本化（`callback/forward.ts`、env `FORWARD_501_CALLBACK_URL`、[ADR-0005](./docs/adr/0005-forward-callback-to-501.md)）。応答コマンドの判断は 501 側に置き、本サーバ内のローカル handler 雛形（`callback/{dispatch,handlers,reply}.ts`）は二重応答を避けるため呼ばれない（雛形として残置）。デプロイ env も `cloudbuild.yaml` に明示。
-- **Callback dedup（5 分 window）**: LINE WORKS の再送による副作用二重実行を防ぐため、raw body の SHA-256 を key にした in-memory Map で直近 5 分の重複を検出し、ヒットしたら skip して 200 を返す（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。Cloud Run の min-instances=1 前提。501 転送が throw したら dedup key を `unregister` して再送を許可（転送失敗イベントの喪失防止）。
+- **Callback dedup（5 分 window）**: LINE WORKS の再送による副作用二重実行を防ぐため、raw body の SHA-256 を key にした in-memory Map で直近 5 分の重複を検出し、ヒットしたら skip して 200 を返す（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。Cloud Run 1 instance時の厳密性から、Workersではisolate内best effortへ運用を変更し、501側dedupを最終防衛線とする。501 転送が throw したら dedup key を `unregister` して再送を許可（転送失敗イベントの喪失防止）。
 - **Callback 受信エンドポイント（`POST /callback`）+ event dispatcher**: LINE WORKS からの Bot Callback を受信。`X-WORKS-Signature`（raw body の HMAC-SHA256 を Bot Secret 鍵で計算し Base64 化した値）で真正性を検証し、`discriminatedUnion('type', …)` で event 8 種（`message` / `postback` / `join` / `leave` / `joined` / `left` / `begin` / `end`）を網羅。reply ヘルパ（source → MessageTarget）も追加。
 
 ## 送信（Bot API ラッパ）系
@@ -33,6 +33,11 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## CI / CD・基盤
 
+- **Cloudflare Workersを本番主系化**: `main` pushのGitHub Actions CI成功後にWranglerで
+  `worksmobile-message-bot`を自動deployし、`line-works.api.miraius.co.jp`をCustom Domainとして
+  配信する。Cloud Build triggerは停止し、Cloud Run用Docker / Cloud Build / Secret Manager /
+  Artifact Registryはscale-to-zero待機系とrollback資産として維持する
+  （[ADR-0010](./docs/adr/0010-cloudflare-workers-primary-cloud-run-standby.md)）。
 - **secret 注入 contract v1 の conformance 固定**: `template` adapter と共通 scenario ID を追加し、managed block の置換・quote、env 優先 / 強制再取得、未サインイン時の直列停止、並列数上限、check の決定順・値非表示・非書き込み、取得失敗時 no-write、package scripts、tracked template の key / `op://` 参照一致をテストで固定。runner は I/O と `op read` を注入可能にし、実 secret や `.env` を使わず安全性を検証する。
 - **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は互換 alias として残し、`secrets:check` の非書き込み契約は維持する。
 - **1Password から `.env` を生成する `secrets:dump` を追加**: `.env.tpl` の `op://` 参照を SoT として読み、値を表示せず `.env` へマージ保存するローカル secret dump を追加。最初の 1 件だけ直列で読み、1Password 未サインイン時の認証要求多重起動を避ける。既存 `secrets:inject` は互換 alias として `secrets:dump` に寄せた。
@@ -46,10 +51,10 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 | 層 | 採用 |
 |---|---|
-| ランタイム / 実行 | Bun 1.3.x / Cloud Run（asia-northeast1） |
-| HTTP フレームワーク | Hono + @hono/node-server |
+| ランタイム / 実行 | Cloudflare Workers（本番主系）/ Bun 1.3.x + Cloud Run（待機系） |
+| HTTP フレームワーク | Hono（Workers）+ @hono/node-server（Cloud Run待機系） |
 | Validation | Zod + @hono/zod-validator |
 | Linter / Formatter | Biome 2.x |
-| Logger | pino（+ pino-pretty in dev）、Cloud Logging severity / trace 連携 |
-| CI / CD | GitHub Actions（PR で tsc + biome）/ Cloud Build → Cloud Run |
+| Logger | pino（+ pino-pretty in dev）、Cloud Run時はCloud Logging severity / trace連携 |
+| CI / CD | GitHub Actions（CI成功後にWorkers deploy）/ Cloud Build（Cloud Run手動復旧用） |
 | pre-commit / pre-push | lefthook（biome auto-fix + tsc + 関連テスト / 全件テスト） |

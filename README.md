@@ -3,23 +3,29 @@
 ![Bun](https://img.shields.io/badge/-Bun-000000.svg?logo=bun&logoColor=white&style=flat-square)
 ![TypeScript](https://img.shields.io/badge/-TypeScript-3178C6.svg?logo=typescript&logoColor=white&style=flat-square)
 ![Hono](https://img.shields.io/badge/-Hono-E36002.svg?logo=hono&logoColor=white&style=flat-square)
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare_Workers-F38020.svg?logo=cloudflareworkers&logoColor=white&style=flat-square)
+![Google Cloud Run](https://img.shields.io/badge/Cloud_Run-4285F4.svg?logo=googlecloud&logoColor=white&style=flat-square)
 ![Biome](https://img.shields.io/badge/-Biome-60A5FA.svg?logo=biome&logoColor=white&style=flat-square)
 ![LINE WORKS](https://img.shields.io/badge/-LINE_WORKS-00C300.svg?logo=line&logoColor=white&style=flat-square)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 
 社内で [LINE WORKS API](https://developers.worksmobile.com/jp/docs/api) を利用して各種メッセージ (テキスト、画像、ファイル、カルーセルなど) を Bot から送信するための Webhook サーバー。[IFTTT](https://ifttt.com/) や [Make](https://www.make.com/) などのノーコードツールから Webhook 経由で手軽に LINE WORKS Bot を叩くために作成。
 
+共通のHono appをCloudflare Workers / Cloud Runの両方へデプロイできる。運用設計では
+Cloudflare Workersを通常の本番主系、Cloud Runを障害復旧用の待機系とする。
+
 ### 技術スタック
 
-- **ランタイム**: [Bun](https://bun.sh/) 1.3.x
+- **実行基盤**: Cloudflare Workers / Google Cloud Run
+- **ランタイム**: Workers runtime / [Bun](https://bun.sh/) 1.3.x（Cloud Run・ローカル）
 - **言語**: TypeScript (ESM, strict)
 - **HTTP フレームワーク**: [Hono](https://hono.dev/)（Workers と Cloud Run で共通 app を実行）
 - **検証**: [Zod](https://zod.dev/) + [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
 - **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
-- **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Cloud Logging severity / trace 連携付き
+- **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Workers logs / Cloud Run時のCloud Logging severity・trace連携
 - **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
 - **CI**: GitHub Actions (PR + `main` への push で `tsc --noEmit` + `biome check` + `bun test`)
-- **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers
+- **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers / Cloud Build → Cloud Run
 
 ### 参考にさせていただいた記事
 
@@ -110,9 +116,13 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 
 ---
 
-## デプロイ (Cloud Run 待機系)
+## Cloud Run 待機系・障害復旧
 
-通常の本番主系は Cloudflare Workers です。GitHub Actions が `main` push の CI 成功後に Workers へ deploy します。Cloud Run は `min-instances=0` / `max-instances=1` / internal ingress の待機系として残し、Cloud Build trigger は通常自動デプロイに使いません。
+通常の本番主系は Cloudflare Workers です。GitHub Actions が `main` push の CI 成功後に Workers へ deploy します。Cloud Run の通常時目標は `min-instances=0` / `max-instances=1` / internal ingress の待機系で、Cloud Build trigger は通常自動デプロイに使いません。
+
+> 2026-08-10 Task 7完了時点では、30分監視後も即時rollbackのためCloud Runを
+> `ingress=all` / `min-instances=1` / `max-instances=20`で公開維持している。待機化はTask 8の
+> 別承認後に実行する。完了後はこの注記を通常時目標の達成記録へ更新する。
 
 Cloud Run を復帰させる場合は、既存 image のまま `gcloud run services update` で ingress と scaling を戻します。Cloud Run 用 Docker / Cloud Build / Secret Manager / Artifact Registry は待機系の再デプロイ・rollback 資産として維持します。
 
@@ -159,8 +169,8 @@ Workers の重大障害時は、再ビルドせず Cloud Run に残っている�
 
 1. 永続fallback profile `docs/operations/cloud-run-dns-fallback.json` を検証する。これは
    2026-08-10 の Cloudflare DNS API live GETで確認した非機密CNAMEである。
-2. 藤井の明示承認後、Cloud Run を公開状態に戻し、default URL の `/healthz` を
-   確認する。
+2. 藤井の明示承認後、Cloud Run を公開状態に戻し、既存 revision でも利用できる
+   default URL の `/health` を確認する。
 3. Workers Domain API から hostname に一致する domain ID を取得する。削除と
    DNS 更新の実行直前にも承認を確認する。
 4. Custom Domain を解除し、fallback profile の CNAME を復元する。
@@ -196,7 +206,7 @@ Workers の重大障害時は、再ビルドせず Cloud Run に残っている�
     --region=asia-northeast1 \
     --format='value(status.url)')"
   test -n "$wmbot_cloud_run_url"
-  curl -fsS "$wmbot_cloud_run_url/healthz"
+  curl -fsS "$wmbot_cloud_run_url/health"
 )
 ```
 
@@ -366,9 +376,9 @@ build metadata には保持され、GCP の閲覧権限を持つ利用者から�
 成否にかかわらず、読み込んだenvは親shellに残らない。
 
 Expected: Docker build → Artifact Registry push → Cloud Run 公開 revision deploy。終了後は
-Cloud Run default URL の `/healthz` を確認し、上の hostname failover 手順で DNS を戻す。
+Cloud Run default URL の `/health` を確認し、上の hostname failover 手順で DNS を戻す。
 
-### Secret のローテーション
+### Cloud Run Secret Manager のローテーション
 
 Cloud Run は `:latest` を参照しているので、**再デプロイ無し**で値だけ更新可能:
 ```sh
@@ -386,9 +396,9 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 - タグ無しイメージは 7 日後に自動削除
 - タグ付きイメージは最新 10 件を保持
 
-## デプロイ (Cloudflare Workers)
+## 本番デプロイ (Cloudflare Workers)
 
-MS-A2 移行では、Node server と共通の Hono app を Worker `worksmobile-message-bot` から配信する。`nodejs_compat` は `wrangler.jsonc` で明示している。
+通常の本番では、Node server と共通の Hono app を Worker `worksmobile-message-bot` から配信する。`nodejs_compat` は `wrangler.jsonc` で明示している。
 
 初回または値の更新時は、次の binding 名を `wrangler secret put` で登録する。コマンドは値を対話入力し、README や shell history に値を残さない。
 
@@ -420,10 +430,139 @@ bunx wrangler rollback "$VERSION_ID"
 
 本番 deploy と rollback は、対象 version と callback 疎通手順を確認してから実行する。
 
-### 観測 (Cloud Logging)
+初回 Custom Domain 切替時、Wrangler 4.120.0 は外部管理の既存 CNAME があると
+Cloudflare code `100117` で停止し、自動置換しなかった。既存 CNAME は
+`docs/operations/cloud-run-dns-fallback.json` と完全一致することを確認し、承認された切替窓で
+その1件だけを削除してから deploy を再実行する。deploy が失敗した場合は同profileから即時復元する。
 
-- 各 log エントリには `severity` (`INFO`/`ERROR` 等) が付与され、Console の severity フィルタで絞れる
-- `x-cloud-trace-context` ヘッダがあれば `logging.googleapis.com/trace` フィールドが自動で乗り、Trace タブで 1 リクエストの全ログがグループ化される
+次のblockはcode `100117`で停止したrunだけに使う。`WMBOT_FAILED_RUN_ID`にはGitHubで実測した
+run IDを設定する。DNS削除とfailed job再実行の明示承認後に実行し、再実行が失敗した場合は
+exact-matchのCustom Domainを解除してfallback CNAMEを復元する。
+
+```zsh
+(
+  set -euo pipefail
+  readonly wmbot_fallback_profile='docs/operations/cloud-run-dns-fallback.json'
+  readonly wmbot_account_id='91583d32ef3c554d0b22855c9167752f'
+  readonly wmbot_zone_id='5811b0a77c84211a69f3a48e4443ce03'
+  readonly wmbot_repo='Miraius-LLC/worksmobile-message-bot'
+  test -n "${WMBOT_FAILED_RUN_ID:-}"
+
+  bearer_api() {
+    local method="$1"
+    shift
+    printf 'header = "Authorization: Bearer %s"\n' "$cf_wmbot_deploy_token" | \
+      curl --config - --fail-with-body --silent --show-error \
+        --request "$method" "$@"
+  }
+
+  assert_dns_profile() {
+    jq -e \
+      --arg hostname "$wmbot_hostname" \
+      --arg type "$wmbot_type" \
+      --arg content "$wmbot_content" \
+      --argjson ttl "$wmbot_ttl" \
+      --argjson proxied "$wmbot_proxied" '
+        .success == true and
+        (.result | length == 1) and
+        (.result[0] | .name == $hostname and .type == $type and .content == $content and
+          .ttl == $ttl and .proxied == $proxied)
+      '
+  }
+
+  restore_fallback() {
+    local domains matching_count domain_id dns_current dns_count dns_payload
+    domains="$(bearer_api GET \
+      --url "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains")"
+    matching_count="$(jq -er --arg hostname "$wmbot_hostname" \
+      '[.result[] | select(.hostname == $hostname)] | length' <<<"$domains")"
+    case "$matching_count" in
+      0) ;;
+      1)
+        domain_id="$(jq -er --arg hostname "$wmbot_hostname" \
+          '[.result[] | select(.hostname == $hostname)][0].id' <<<"$domains")"
+        bearer_api DELETE \
+          --url "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains/$domain_id" | \
+          jq -e '.success == true and (.errors | length == 0)' >/dev/null
+        ;;
+      *) echo 'ERROR: Custom Domain must match zero or one record' >&2; return 1 ;;
+    esac
+
+    dns_current="$(bearer_api GET \
+      --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+      --get --data-urlencode "name=$wmbot_hostname")"
+    dns_count="$(jq -er '.result | length' <<<"$dns_current")"
+    case "$dns_count" in
+      0)
+        dns_payload="$(jq -cn \
+          --arg type "$wmbot_type" --arg name "$wmbot_hostname" \
+          --arg content "$wmbot_content" --argjson ttl "$wmbot_ttl" \
+          --argjson proxied "$wmbot_proxied" \
+          '{type: $type, name: $name, content: $content, ttl: $ttl, proxied: $proxied}')"
+        bearer_api POST \
+          --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+          --header 'Content-Type: application/json' --data "$dns_payload" | \
+          jq -e '.success == true and (.errors | length == 0)' >/dev/null
+        ;;
+      1) assert_dns_profile <<<"$dns_current" >/dev/null ;;
+      *) echo 'ERROR: DNS record count is unsafe for fallback' >&2; return 1 ;;
+    esac
+
+    dns_current="$(bearer_api GET \
+      --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+      --get --data-urlencode "name=$wmbot_hostname")"
+    assert_dns_profile <<<"$dns_current" >/dev/null
+  }
+
+  wmbot_hostname="$(jq -er '.hostname' "$wmbot_fallback_profile")"
+  wmbot_type="$(jq -er '.type' "$wmbot_fallback_profile")"
+  wmbot_content="$(jq -er '.content' "$wmbot_fallback_profile")"
+  wmbot_ttl="$(jq -er '.ttl' "$wmbot_fallback_profile")"
+  wmbot_proxied="$(jq -r '.proxied | tostring' "$wmbot_fallback_profile")"
+  unset cf_wmbot_deploy_token
+  cf_wmbot_deploy_token="$(op read 'op://Worksmobile/Cloudflare/api_token')"
+
+  wmbot_domains_before="$(bearer_api GET \
+    --url "https://api.cloudflare.com/client/v4/accounts/$wmbot_account_id/workers/domains")"
+  jq -e --arg hostname "$wmbot_hostname" '
+    .success == true and ([.result[] | select(.hostname == $hostname)] | length == 0)
+  ' <<<"$wmbot_domains_before" >/dev/null
+
+  wmbot_dns_before="$(bearer_api GET \
+    --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    --get --data-urlencode "name=$wmbot_hostname")"
+  assert_dns_profile <<<"$wmbot_dns_before" >/dev/null
+  wmbot_cutover_record_id="$(jq -er '.result[0].id' <<<"$wmbot_dns_before")"
+
+  bearer_api DELETE \
+    --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records/$wmbot_cutover_record_id" | \
+    jq -e '.success == true and (.errors | length == 0)' >/dev/null
+  bearer_api GET \
+    --url "https://api.cloudflare.com/client/v4/zones/$wmbot_zone_id/dns_records" \
+    --get --data-urlencode "name=$wmbot_hostname" | \
+    jq -e '.success == true and (.result | length == 0)' >/dev/null
+
+  if ! (gh run rerun "$WMBOT_FAILED_RUN_ID" --repo "$wmbot_repo" --failed && \
+    gh run watch "$WMBOT_FAILED_RUN_ID" --repo "$wmbot_repo" --exit-status); then
+    restore_fallback
+    exit 1
+  fi
+
+  unset cf_wmbot_deploy_token
+)
+```
+
+成功後はWorkers Domains APIのhostname完全一致1件、公開DNS/TLS、`/healthz` 200、未認証route
+401を確認する。実測手順と証跡は
+[`Cloudflare Workers 主系化・Cloud Run 待機化 設計`](./docs/superpowers/specs/2026-08-10-cloudflare-workers-cutover-design.md)
+を参照する。
+
+### 観測
+
+- Workers主系のlive logは`bunx wrangler tail worksmobile-message-bot`で確認する。
+- 各log entryには`severity`（`INFO` / `ERROR`等）が付く。
+- Cloud Run復帰時はCloud Loggingで確認する。`x-cloud-trace-context`ヘッダがあれば
+  `logging.googleapis.com/trace`フィールドが付き、Traceタブで1 requestのlogをグループ化できる。
 
 ---
 
@@ -1041,7 +1180,7 @@ LINE WORKS が同一 event を再送した場合に副作用が二重実行さ�
 - **失敗時 retry**: 501 への転送が throw した場合 (= 501 が 5xx / network error) は dedup key を `unregister` して LINE WORKS の再送を許可する。`unregister` を呼ばないと転送失敗の event が再送されても skip されて喪失する
 - **検証順序**: 署名検証 → dedup → JSON parse → Zod 検証 → 501 へ転送
 
-⚠️ **Workers isolate 間で wmbot 内の Map は共有されない**ため、callback dedup は best effort です。501 側の callback dedup を最終防衛線とします。Cloud Run 復帰時も `min-instances=0` / `max-instances=1` / internal ingress の待機設定を維持し、wmbot 単体で厳密な一回処理が必要になった時だけ Workers KV / Durable Objects 等の共有ストア化を検討します。
+⚠️ **Workers isolate 間で wmbot 内の Map は共有されない**ため、callback dedup は best effort です。501 側の callback dedup を最終防衛線とします。Cloud Run は通常時だけ `min-instances=0` / `max-instances=1` / internal ingress の待機設定を維持し、障害復旧中は公開設定へ一時変更します。wmbot 単体で厳密な一回処理が必要になった時だけ Workers KV / Durable Objects 等の共有ストア化を検討します。
 
 #### 受信できる event 種別
 

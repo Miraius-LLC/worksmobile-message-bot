@@ -36,6 +36,13 @@ Chosen option: 「原文を完全保存したまま標準構造を付加する�
 
 移行前原文のSHA-256を照合し、Git差分とproject横断ADR監査で欠落・改変がないことを確認する。
 
+## 現行運用（ADR-0010適用後）
+
+2026-08-10に本番主系をCloudflare Workersへ移したため、isolate間で共有されないin-memory Mapは
+Worker isolate内のbest effort dedupとして扱う。副作用の最終防衛線は501側callback dedupとし、
+gateway単体で厳密な一回処理が必要になった場合だけWorkers KV / Durable Objects等の共有ストアへ
+移行する。末尾のOriginal RecordはCloud Run主系当時の判断記録として改変しない。
+
 <!-- Legacy source SHA-256: 304365cc61b03ce93a470909945c11499f891cdb9ff86f5512b46ff71801e144 -->
 
 ## Original Record

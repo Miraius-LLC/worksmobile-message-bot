@@ -24,7 +24,7 @@
 - [0006](./0006-basic-auth-except-health-and-callback.md) — BASIC 認証を `/` と health probe / callback 以外に強制
 
 ### Callback（受信）
-- [0004](./0004-callback-dedup-in-memory-5min.md) — callback dedup は in-memory Map・5 分 window
+- [0004](./0004-callback-dedup-in-memory-5min.md) — callback dedup は in-memory Map・5 分 window（Workersではbest effort、501側を最終防衛線）
 - [0005](./0005-forward-callback-to-501.md) — callback を 501 に転送する（案 B）
 
 ### メッセージ送信（outbound）
