@@ -174,6 +174,40 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 - タグ無しイメージは 7 日後に自動削除
 - タグ付きイメージは最新 10 件を保持
 
+## デプロイ (Cloudflare Workers)
+
+MS-A2 移行では、Node server と共通の Hono app を Worker `worksmobile-message-bot` から配信する。`nodejs_compat` は `wrangler.jsonc` で明示している。
+
+初回または値の更新時は、次の binding 名を `wrangler secret put` で登録する。コマンドは値を対話入力し、README や shell history に値を残さない。
+
+```sh
+bunx wrangler secret put CLIENT_ID
+bunx wrangler secret put CLIENT_SECRET
+bunx wrangler secret put SERVICE_ACCOUNT
+bunx wrangler secret put PRIVATE_KEY
+bunx wrangler secret put BOT_ID
+bunx wrangler secret put BASIC_ID
+bunx wrangler secret put BASIC_PASS
+bunx wrangler secret put BOT_SECRET
+bunx wrangler secret put FORWARD_501_CALLBACK_URL
+```
+
+`PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_501_CALLBACK_URL` は callback 転送を使う場合だけ登録する。
+
+```sh
+# bundle 生成まで。外部へ deploy しない
+bunx wrangler deploy --dry-run
+
+# 本番 deploy
+bunx wrangler deploy
+
+# 直前の安定版へ rollback。特定版へ戻す場合は version ID を引数にする
+bunx wrangler rollback
+bunx wrangler rollback "$VERSION_ID"
+```
+
+本番 deploy と rollback は、対象 version と callback 疎通手順を確認してから実行する。
+
 ### 観測 (Cloud Logging)
 
 - 各 log エントリには `severity` (`INFO`/`ERROR` 等) が付与され、Console の severity フィルタで絞れる

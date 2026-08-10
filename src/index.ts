@@ -10,7 +10,7 @@ const CALLER = 'index'
 installJapaneseErrorMap()
 
 // 必須 env を起動時に検証 (失敗すれば即 exit)。以降は config() で同期取得できる
-const cfg = config.load()
+const cfg = config.load(process.env)
 
 // HTTP/1.1 で listen する。
 // Cloud Run のフロントエンド (Envoy) が公開側の HTTP/2 を終端し、コンテナへは
