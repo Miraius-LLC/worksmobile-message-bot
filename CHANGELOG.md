@@ -33,6 +33,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## CI / CD・基盤
 
+- **基盤共通uptime監視とCloud Runログ監視を分離**: `setup-monitoring.sh`はHTTPS uptime監視だけを扱い、Cloud Run固有のログ指標・通知は明示実行する別scriptへ分離。Cloud Buildの環境固有値はtriggerまたはmanual buildのsubstitutionで渡せることを明文化した。
 - **Workers / Cloud Runの両deploy経路**: 共通Hono appをWorkersはWrangler + GitHub Actions、Cloud RunはDocker + Cloud Buildでデプロイできる構成にした（[ADR-0010](./docs/adr/0010-dual-cloud-deployment.md)）。Custom Domainは公開設定に固定せずGitHub Variableから生成する。
 - **secret 注入 contract v1 の conformance 固定**: `template` adapter と共通 scenario ID を追加し、managed block の置換・quote、env 優先 / 強制再取得、未サインイン時の直列停止、並列数上限、check の決定順・値非表示・非書き込み、取得失敗時 no-write、package scripts、tracked template の key / `op://` 参照一致をテストで固定。runner は I/O と `op read` を注入可能にし、実 secret や `.env` を使わず安全性を検証する。
 - **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は互換 alias として残し、`secrets:check` の非書き込み契約は維持する。

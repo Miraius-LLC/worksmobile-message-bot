@@ -145,9 +145,9 @@ for s in lineworks-client-secret lineworks-private-key lineworks-basic-id linewo
     --role=roles/secretmanager.secretAccessor
 done
 
-# 4. 機密度の低い env は Cloud Build trigger の substitution variable に設定
-#    (公開リポに値を残さないため。GCP Console: Cloud Build → Triggers → 該当 trigger 編集 →
-#    "Substitution variables" セクションに以下を追加)
+# 4. 機密度の低い env は Cloud Build の substitution variable として渡す
+#    (公開リポに値を残さないため。triggerなら設定画面、manual buildなら
+#    gcloud builds submitの--substitutionsを使用する)
 #      _SERVICE_ACCOUNT      = Cloud Run runtime service account
 #      _CLIENT_ID            = LINE WORKS の client ID
 #      _SERVICE_ACCOUNT_LW   = LINE WORKS の service account (例: lrpkq.serviceaccount@xxx)
@@ -156,7 +156,26 @@ done
 
 # 5. Cloud Build trigger を作成する場合は cloudbuild.yaml を指定し、
 #    main などデプロイ対象の branch と substitution variables を設定する。
+
+# 6. triggerを使わないmanual buildでは、Gitの実値と必須substitutionを明示する
+(
+  set -euo pipefail
+  if ! git diff --quiet || ! git diff --cached --quiet || \
+    [ -n "$(git ls-files --others --exclude-standard)" ]; then
+    echo "ERROR: manual buildはclean working treeから実行してください" >&2
+    exit 1
+  fi
+  REPO_NAME="$(basename "$(git rev-parse --show-toplevel)")"
+  COMMIT_SHA="$(git rev-parse HEAD)"
+  SHORT_SHA="$(git rev-parse --short=7 HEAD)"
+  gcloud builds submit . --config=cloudbuild.yaml \
+    --substitutions="REPO_NAME=${REPO_NAME},COMMIT_SHA=${COMMIT_SHA},SHORT_SHA=${SHORT_SHA},_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SA},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID},_FORWARD_CALLBACK_URL=${FORWARD_CALLBACK_URL:-}"
+)
 ```
+
+`_SERVICE_ACCOUNT` / `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID`はsecretではないが、
+manual buildではprocess argvとCloud Build metadataから、その環境の権限者に見える。secret値は
+`--substitutions`へ渡さず、Secret Manager参照を使う。
 
 ### Cloud Run Secret Manager のローテーション
 
@@ -226,6 +245,11 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 - 各log entryには`severity`（`INFO` / `ERROR`等）が付く。
 - Cloud Runへデプロイした場合はCloud Loggingで確認する。`x-cloud-trace-context`ヘッダがあれば
   `logging.googleapis.com/trace`フィールドが付き、Traceタブで1 requestのlogをグループ化できる。
+- `scripts/setup-monitoring.sh`は実行基盤に依存しないHTTPS uptime監視だけを設定する。
+  事前に作成したCloud Monitoring Notification Channelのresource nameを
+  `NOTIFICATION_CHANNEL_ID`で渡す。
+- Cloud Run固有のログベース指標と通知が必要な場合だけ、
+  `scripts/setup-cloud-run-log-monitoring.sh`を追加で実行する。
 
 ---
 

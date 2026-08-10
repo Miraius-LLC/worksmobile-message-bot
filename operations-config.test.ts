@@ -31,9 +31,10 @@ describe('public repository contract', () => {
   })
 
   test('公開設定は環境固有の転送先とidentityをsubstitutionに要求する', async () => {
-    const [cloudBuild, monitoring] = await Promise.all([
+    const [cloudBuild, monitoring, cloudRunMonitoring] = await Promise.all([
       file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
       file(new URL('./scripts/setup-monitoring.sh', import.meta.url)).text(),
+      file(new URL('./scripts/setup-cloud-run-log-monitoring.sh', import.meta.url)).text(),
     ])
 
     for (const name of ['_SERVICE_ACCOUNT', '_CLIENT_ID', '_SERVICE_ACCOUNT_LW', '_BOT_ID']) {
@@ -42,8 +43,37 @@ describe('public repository contract', () => {
     expect(cloudBuild).toContain("_FORWARD_CALLBACK_URL: ''")
     expect(cloudBuild).not.toMatch(/scheduler-[0-9]+|@[^\s]+\.iam\.gserviceaccount\.com/)
     expect(monitoring).toContain('PROJECT_ID="$' + '{PROJECT_ID:?Set PROJECT_ID}"')
-    expect(monitoring).toContain('ALERT_EMAIL="$' + '{ALERT_EMAIL:?Set ALERT_EMAIL}"')
     expect(monitoring).toContain('SERVICE_HOST="$' + '{SERVICE_HOST:?Set SERVICE_HOST}"')
+    expect(monitoring).toContain(
+      'NOTIFICATION_CHANNEL_ID="$' + '{NOTIFICATION_CHANNEL_ID:?Set NOTIFICATION_CHANNEL_ID}"',
+    )
+    expect(monitoring).toContain('gcloud monitoring policies create')
+    expect(monitoring).not.toContain('cloud_run_revision')
+    expect(monitoring).not.toContain('worksmobile_message_bot_errors')
+    expect(monitoring).not.toContain('gcloud alpha')
+    expect(monitoring).not.toContain('gcloud beta')
+    expect(cloudRunMonitoring).toContain('cloud_run_revision')
+    expect(cloudRunMonitoring).toContain('worksmobile_message_bot_errors')
+    expect(cloudRunMonitoring).toContain('gcloud monitoring policies create')
+    expect(cloudRunMonitoring).not.toContain('gcloud alpha')
+    expect(cloudRunMonitoring).not.toContain('gcloud beta')
+  })
+
+  test('Cloud Buildはtriggerとmanual buildの両方からsubstitutionを受け取る', async () => {
+    const [readme, cloudBuild] = await Promise.all([
+      file(new URL('./README.md', import.meta.url)).text(),
+      file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
+    ])
+
+    expect(readme).toContain('gcloud builds submit . --config=cloudbuild.yaml')
+    expect(readme).toContain('git diff --quiet')
+    expect(readme).toContain('git diff --cached --quiet')
+    expect(readme).toContain('git ls-files --others --exclude-standard')
+    expect(readme).toContain('REPO_NAME=$' + '{REPO_NAME}')
+    expect(readme).toContain('COMMIT_SHA=$' + '{COMMIT_SHA}')
+    expect(readme).toContain('SHORT_SHA=$' + '{SHORT_SHA}')
+    expect(cloudBuild).toContain('triggerの設定またはmanual buildの`--substitutions`')
+    expect(cloudBuild).not.toContain('Cloud Build trigger substitution(s) missing')
   })
 
   test('公開docsとdeploy設定は移行時の実測runbookを含まない', async () => {
@@ -57,6 +87,7 @@ describe('public repository contract', () => {
       'cloudbuild.yaml',
       'wrangler.jsonc',
       'scripts/setup-monitoring.sh',
+      'scripts/setup-cloud-run-log-monitoring.sh',
     )
     const source = (
       await Promise.all(paths.map(path => file(new URL(`./${path}`, import.meta.url)).text()))
