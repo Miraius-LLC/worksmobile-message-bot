@@ -28,7 +28,7 @@ const ERROR_HINTS = new Map<string, string>([
   ],
   [
     'CALLBACK_URL_NOT_REGISTERED',
-    'Bot 設定で Callback URL が登録されていません。Developer Console > Bot > 該当 Bot > Callback URL に本番 URL (https://line-works.api.miraius.co.jp/callback) を登録してください。',
+    'Bot 設定で Callback URL が登録されていません。Developer Console > Bot > 該当 Bot > Callback URL に公開URL（例: https://bot.example.com/callback）を登録してください。',
   ],
   [
     'EVENT_NOT_ALLOWED',

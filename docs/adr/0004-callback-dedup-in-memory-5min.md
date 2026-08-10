@@ -3,57 +3,40 @@ status: accepted
 date: 2026-05-23
 ---
 
-# ADR-0004: callback dedup は in-memory Map・5 分 window
+# ADR-0004: callback dedupはin-memory Map・5分window
 
 ## Context and Problem Statement
 
-このADRは共通テンプレート導入前に作成された。移行前の判断記録は末尾の「Original Record」に内容を変更せず保存する。
+LINE WORKSのcallback再送による副作用の二重実行を、外部ストアを必須にせず軽減したい。callback payloadには一意なevent IDがない。
 
 ## Decision Drivers
 
-- 移行前の判断内容と履歴を変更しない
-- 全ADRを共通のfitness functionで監査可能にする
+- 小規模な構成で追加インフラを要求しない
+- 同一runtime内の短時間の再送を除外する
+- 転送失敗時には再送を受け入れられること
 
 ## Considered Options
 
-- 既存ADRをlegacyとして監査対象外のまま維持する
-- 原文を現在形で要約し直す
-- 原文を完全保存したまま標準構造を付加する
+- dedupを行わない
+- raw bodyのhashをin-memoryで保持する
+- 共有永続ストアでdedupする
 
 ## Decision Outcome
 
-Chosen option: 「原文を完全保存したまま標準構造を付加する」
+Chosen option: 「raw bodyのhashをin-memoryで保持する」
 
-移行前のADRに記録された判断を維持する。判断の詳細・理由・比較した選択肢は「Original Record」を正とする。
+`callback/dedup.ts`でraw bodyのSHA-256をkeyに、直近5分windowの重複を検出する。転送に失敗した場合はkeyを解除し、LINE WORKSからの再送を許可する。
 
 ### Consequences
 
-- Good: 移行前の記録を失わず、全ADRを同じ構造で検索・監査できる
-- Bad: 移行済みADRには標準構造と移行前原文が併存する
-- Neutral: この形式移行は既存の判断、status、相対リンクの意味を変更しない
+- Good: 外部依存なしで典型的な短時間再送を抑止できる
+- Bad: Workersのisolate間やCloud Runのinstance間ではMapが共有されず、dedupはbest effortになる
+- Neutral: 厳密な一回処理が必要な場合は、共有永続ストアまたはupstream側のidempotencyを追加する
 
 ### Confirmation
 
-移行前原文のSHA-256を照合し、Git差分とproject横断ADR監査で欠落・改変がないことを確認する。
+dedup単体testとcallback route testで、重複skip、5分後の再受付、転送失敗時の解除を確認する。
 
-## 現行運用（ADR-0010適用後）
+## Sanitized Original Record
 
-2026-08-10に本番主系をCloudflare Workersへ移したため、isolate間で共有されないin-memory Mapは
-Worker isolate内のbest effort dedupとして扱う。副作用の最終防衛線は501側callback dedupとし、
-gateway単体で厳密な一回処理が必要になった場合だけWorkers KV / Durable Objects等の共有ストアへ
-移行する。末尾のOriginal RecordはCloud Run主系当時の判断記録として改変しない。
-
-<!-- Legacy source SHA-256: 304365cc61b03ce93a470909945c11499f891cdb9ff86f5512b46ff71801e144 -->
-
-## Original Record
-
-~~~~markdown
-# callback dedup は in-memory Map・5 分 window
-
-LINE WORKS の callback 再送による副作用二重実行を防ぐため、`callback/dedup.ts` で **raw body の SHA-256** を key にした in-memory Map で **直近 5 分 window** の重複を検出し、ヒットしたら skip して 200 を返す。callback payload には event ID 相当のフィールドが無いため payload 全体のハッシュを key にする。**Cloud Run の min-instances=1 前提**（複数 instance になると instance ごとに別 Map になり dedup が破綻する。`cloudbuild.yaml` で `--min-instances=1` を明示）。501 への転送（[ADR-0005](./0005-forward-callback-to-501.md)）が throw した場合は dedup key を `unregister` して LINE WORKS の再送を許可する（転送失敗 event の喪失防止）。
-
-## 検討した代替
-- **Redis 等の共有ストア**: 現規模（1 instance 張り付き）では過剰。max-instances を増やして 2 instance 目が立つ頻度が上がったら共有ストアへ移行する前提。
-
-_出典: CLAUDE.md 注意点（よくあるハマり）/ README.md Callback（受信側）, commit 4254e35 / 4784cca_
-~~~~
+callback payloadにevent IDがないため、raw bodyのSHA-256をkeyとする5分間のin-memory dedupを採用した。複数isolate / instance間では共有されない制約は当初からあり、厳密性が必要になった時点で共有storeへ移す方針とした。特定の転送先service名と実instance構成はprivate infra SoTへ移した。

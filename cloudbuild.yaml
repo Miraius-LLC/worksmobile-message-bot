@@ -1,7 +1,5 @@
 # =============================================================================
-# Cloud Run障害復旧用パイプライン: build → push → Cloud Runへ公開deploy
-# 通常の本番CDはGitHub Actions → Cloudflare Workers。Cloud Build triggerはdisabledを維持し、
-# 本ファイルは藤井の明示承認後の手動復旧時だけ実行する。
+# Cloud Run deployment pipeline: build → push → deploy
 #
 # トリガー側で `filename: cloudbuild.yaml` を指定すること。inline build を
 # 残したままだとこのファイルは読まれない。
@@ -12,16 +10,17 @@ substitutions:
   _AR_REPOSITORY: cloud-run-source-deploy
   _SERVICE_NAME: worksmobile-message-bot
   _DEPLOY_REGION: asia-northeast1
-  _SERVICE_ACCOUNT: worksmobile-message-bot-sa@office-381404.iam.gserviceaccount.com
+  _INGRESS: all
+  _MIN_INSTANCES: '0'
+  _MAX_INSTANCES: '10'
+  _FORWARD_CALLBACK_URL: ''
   _SECRET_CLIENT_SECRET: lineworks-client-secret
   _SECRET_PRIVATE_KEY: lineworks-private-key
   _SECRET_BASIC_ID: lineworks-basic-id
   _SECRET_BASIC_PASS: lineworks-basic-pass
   _SECRET_BOT_SECRET: lineworks-bot-secret
-  # 受信 callback の転送先 (= 501 / scheduler-501 の /callback)。非機密なのでデフォルト値を直書き。
-  # 501 の Cloud Run default URL (project hash 由来で安定)
-  _FORWARD_501_CALLBACK_URL: https://scheduler-501-6dkxmuzina-an.a.run.app/callback
-  # `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` は **公開リポに値を残さない**ため、
+  # `_SERVICE_ACCOUNT` / `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID` は
+  # **公開リポに値を残さない**ため、
   # Cloud Build トリガーのサブスティテューション設定で注入する (GCP Console: Cloud Build →
   # Triggers → 該当トリガー編集 → "Substitution variables" セクション)。
   # トリガー側で未設定だと deploy step で `${_CLIENT_ID}` 等が空文字に展開され、
@@ -46,6 +45,7 @@ steps:
       - |
         set -eu
         missing=()
+        [ -n "${_SERVICE_ACCOUNT}" ] || missing+=("_SERVICE_ACCOUNT")
         [ -n "${_CLIENT_ID}" ]         || missing+=("_CLIENT_ID")
         [ -n "${_SERVICE_ACCOUNT_LW}" ] || missing+=("_SERVICE_ACCOUNT_LW")
         [ -n "${_BOT_ID}" ]            || missing+=("_BOT_ID")
@@ -111,20 +111,19 @@ steps:
       - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest,BASIC_ID=${_SECRET_BASIC_ID}:latest,BASIC_PASS=${_SECRET_BASIC_PASS}:latest,BOT_SECRET=${_SECRET_BOT_SECRET}:latest
 
       # --- 通常 env (機密度の低い設定値) ---
-      #     FORWARD_501_CALLBACK_URL: 受信 callback を 501 (scheduler-501) に転送する先 (案 B)
-      - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLIENT_ID=${_CLIENT_ID},SERVICE_ACCOUNT=${_SERVICE_ACCOUNT_LW},BOT_ID=${_BOT_ID},FORWARD_501_CALLBACK_URL=${_FORWARD_501_CALLBACK_URL}
+      - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLIENT_ID=${_CLIENT_ID},SERVICE_ACCOUNT=${_SERVICE_ACCOUNT_LW},BOT_ID=${_BOT_ID},FORWARD_CALLBACK_URL=${_FORWARD_CALLBACK_URL}
 
       # --- ネットワーク ---
       - --no-use-http2  # コンテナは HTTP/1.1、Cloud Run frontend が HTTP/2 終端
       - --port=8080
-      - --ingress=all
+      - --ingress=${_INGRESS}
       # 公開設定 (allUsers の roles/run.invoker) は service の IAM ポリシーとして
       # 別途管理する。`gcloud run services update` は --allow-unauthenticated を
       # 受け付けないため、このパイプラインでは触らない
 
       # --- スケーリング / 並行性 ---
-      - --min-instances=1
-      - --max-instances=20
+      - --min-instances=${_MIN_INSTANCES}
+      - --max-instances=${_MAX_INSTANCES}
       - --concurrency=80
       - --timeout=300s
 

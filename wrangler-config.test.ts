@@ -1,17 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { file, JSONC } from 'bun'
 
-interface WranglerRoute {
-  pattern?: string
-  custom_domain?: boolean
-}
-
 interface WranglerConfig {
   name?: string
   main?: string
   compatibility_date?: string
   compatibility_flags?: string[]
-  routes?: WranglerRoute[]
+  routes?: unknown[]
 }
 
 describe('wrangler config', () => {
@@ -23,11 +18,6 @@ describe('wrangler config', () => {
     expect(config.main).toBe('src/worker.ts')
     expect(config.compatibility_date).toBe('2026-08-08')
     expect(config.compatibility_flags).toContain('nodejs_compat')
-    expect(config.routes).toEqual([
-      {
-        pattern: 'line-works.api.miraius.co.jp',
-        custom_domain: true,
-      },
-    ])
+    expect(config.routes).toBeUndefined()
   })
 })

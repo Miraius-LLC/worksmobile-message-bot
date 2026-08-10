@@ -18,6 +18,13 @@ describe('utils/config', () => {
     }
 
     expect(parseConfig(validEnv).botId).toBe(validEnv.BOT_ID)
+    expect(
+      parseConfig({ ...validEnv, FORWARD_CALLBACK_URL: 'https://upstream.example.test/callback' })
+        .forwardCallbackUrl,
+    ).toBe('https://upstream.example.test/callback')
+    expect(
+      parseConfig({ ...validEnv, FORWARD_CALLBACK_URL: '' }).forwardCallbackUrl,
+    ).toBeUndefined()
     expect(() => parseConfig({ ...validEnv, BOT_SECRET: '' })).toThrow()
   })
 

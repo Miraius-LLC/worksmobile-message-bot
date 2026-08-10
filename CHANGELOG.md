@@ -12,8 +12,8 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## 受信（Callback）系
 
-- **Callback を 501（scheduler-501）へ転送（案 B）**: 検証を通った callback を raw body + 署名のまま 501 の `/callback` へ素通し転送する gateway 方式に一本化（`callback/forward.ts`、env `FORWARD_501_CALLBACK_URL`、[ADR-0005](./docs/adr/0005-forward-callback-to-501.md)）。応答コマンドの判断は 501 側に置き、本サーバ内のローカル handler 雛形（`callback/{dispatch,handlers,reply}.ts`）は二重応答を避けるため呼ばれない（雛形として残置）。デプロイ env も `cloudbuild.yaml` に明示。
-- **Callback dedup（5 分 window）**: LINE WORKS の再送による副作用二重実行を防ぐため、raw body の SHA-256 を key にした in-memory Map で直近 5 分の重複を検出し、ヒットしたら skip して 200 を返す（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。Cloud Run 1 instance時の厳密性から、Workersではisolate内best effortへ運用を変更し、501側dedupを最終防衛線とする。501 転送が throw したら dedup key を `unregister` して再送を許可（転送失敗イベントの喪失防止）。
+- **Callbackを設定可能なupstreamへ転送**: 検証済みcallbackをraw bodyと署名を保ったまま`FORWARD_CALLBACK_URL`へ転送するgateway方式を採用（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）。未設定時は転送せず`200`を返す。
+- **Callback dedup（5分window）**: raw bodyのSHA-256をkeyにしたin-memory Mapで再送を抑止する。Workers isolate間やCloud Run instance間ではbest effortであり、厳密な一回処理は共有ストアまたはupstream側idempotencyで担保する（[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。転送失敗時はkeyを解除して再送を許可する。
 - **Callback 受信エンドポイント（`POST /callback`）+ event dispatcher**: LINE WORKS からの Bot Callback を受信。`X-WORKS-Signature`（raw body の HMAC-SHA256 を Bot Secret 鍵で計算し Base64 化した値）で真正性を検証し、`discriminatedUnion('type', …)` で event 8 種（`message` / `postback` / `join` / `leave` / `joined` / `left` / `begin` / `end`）を網羅。reply ヘルパ（source → MessageTarget）も追加。
 
 ## 送信（Bot API ラッパ）系
@@ -33,28 +33,24 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## CI / CD・基盤
 
-- **Cloudflare Workersを本番主系化**: `main` pushのGitHub Actions CI成功後にWranglerで
-  `worksmobile-message-bot`を自動deployし、`line-works.api.miraius.co.jp`をCustom Domainとして
-  配信する。Cloud Build triggerは停止し、Cloud Run用Docker / Cloud Build / Secret Manager /
-  Artifact Registryはscale-to-zero待機系とrollback資産として維持する
-  （[ADR-0010](./docs/adr/0010-cloudflare-workers-primary-cloud-run-standby.md)）。
+- **Workers / Cloud Runの両deploy経路**: 共通Hono appをWorkersはWrangler + GitHub Actions、Cloud RunはDocker + Cloud Buildでデプロイできる構成にした（[ADR-0010](./docs/adr/0010-dual-cloud-deployment.md)）。Custom Domainは公開設定に固定せずGitHub Variableから生成する。
 - **secret 注入 contract v1 の conformance 固定**: `template` adapter と共通 scenario ID を追加し、managed block の置換・quote、env 優先 / 強制再取得、未サインイン時の直列停止、並列数上限、check の決定順・値非表示・非書き込み、取得失敗時 no-write、package scripts、tracked template の key / `op://` 参照一致をテストで固定。runner は I/O と `op read` を注入可能にし、実 secret や `.env` を使わず安全性を検証する。
 - **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は互換 alias として残し、`secrets:check` の非書き込み契約は維持する。
 - **1Password から `.env` を生成する `secrets:dump` を追加**: `.env.tpl` の `op://` 参照を SoT として読み、値を表示せず `.env` へマージ保存するローカル secret dump を追加。最初の 1 件だけ直列で読み、1Password 未サインイン時の認証要求多重起動を避ける。既存 `secrets:inject` は互換 alias として `secrets:dump` に寄せた。
 - **scripts の検証対象化**: pre-commit / CI / package scripts の Biome 対象に `scripts/` を追加し、`run-related-tests.ts` の関連テスト抽出ロジックを unit test 付きで分離。監視設定スクリプトは uptime config の重複取得を削減。
 - **Cloud Build に bun test step を追加**: ビルドパイプラインに `bun test` を組み込み、`--no-verify` での pre-push バイパスを防止（[ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) / [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。`cloudbuild.yaml` が Cloud Run 構成（runtime SA / Secret Manager マウント / scaling / resources / ingress）の SoT。
 - **HTTP/1.1-only（end-to-end h2c 不採用）**: コンテナは HTTP/1.1 のみで listen し、公開側 HTTP/2 は Cloud Run フロントが終端（`--no-use-http2`、[ADR-0002](./docs/adr/0002-container-http1-only-no-h2c.md)）。
-- **Cloud Run + Hono + Bun の採用**: 常時 1 インスタンス張り付きの薄いラッパとして Cloud Run（asia-northeast1）を採用（[ADR-0001](./docs/adr/0001-cloud-run-hono-bun.md)）。専用 runtime SA + Secret Manager + 機密度の低い env は substitution variable で公開リポジトリに値を残さない（[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。
+- **Cloud Run + Hono + Bunの採用**: コンテナruntimeの選択肢としてCloud Runを採用（[ADR-0001](./docs/adr/0001-cloud-run-hono-bun.md)）。runtime SA + Secret Manager + substitution variableで環境固有値を公開リポジトリに残さない（[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。
 - **mattpocock engineering skills の per-repo 土台**: 設計決定を `docs/adr/`（9 ADR）に backfill、用語集を root `CONTEXT.md` に新設、`docs/agents/{issue-tracker,domain}.md` + CLAUDE.md `## Agent skills` ブロックを整備。engineering skills を SoT から配布同期。
 
 ## スタック
 
 | 層 | 採用 |
 |---|---|
-| ランタイム / 実行 | Cloudflare Workers（本番主系）/ Bun 1.3.x + Cloud Run（待機系） |
-| HTTP フレームワーク | Hono（Workers）+ @hono/node-server（Cloud Run待機系） |
+| ランタイム / 実行 | Cloudflare Workers / Bun 1.3.x + Cloud Run |
+| HTTP フレームワーク | Hono（Workers）+ @hono/node-server（Cloud Run） |
 | Validation | Zod + @hono/zod-validator |
 | Linter / Formatter | Biome 2.x |
 | Logger | pino（+ pino-pretty in dev）、Cloud Run時はCloud Logging severity / trace連携 |
-| CI / CD | GitHub Actions（CI成功後にWorkers deploy）/ Cloud Build（Cloud Run手動復旧用） |
+| CI / CD | GitHub Actions（Workers）/ Cloud Build（Cloud Run） |
 | pre-commit / pre-push | lefthook（biome auto-fix + tsc + 関連テスト / 全件テスト） |

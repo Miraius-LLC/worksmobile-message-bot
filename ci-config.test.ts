@@ -5,6 +5,7 @@ interface WorkflowStep {
   id?: string
   uses?: string
   run?: string
+  env?: Record<string, string>
   with?: Record<string, string>
 }
 
@@ -29,7 +30,11 @@ describe('CI workflow', () => {
     const workflow = YAML.parse(source) as WorkflowConfig
     const dryRunStep = workflow.jobs?.check?.steps?.find(step => step.id === 'wrangler-dry-run')
 
-    expect(dryRunStep?.run).toBe('bunx wrangler deploy --dry-run')
+    expect(dryRunStep?.env?.WORKER_CUSTOM_DOMAIN).toBe('bot.example.com')
+    expect(dryRunStep?.run).toContain('bun scripts/create-wrangler-production-config.ts')
+    expect(dryRunStep?.run).toContain(
+      'bunx wrangler deploy --config wrangler.production.json --dry-run',
+    )
   })
 
   test('CI成功済みmainだけをSHA pinしたWrangler actionでdeployする', async () => {
@@ -37,6 +42,9 @@ describe('CI workflow', () => {
     const workflow = YAML.parse(source) as WorkflowConfig
     const deploy = workflow.jobs?.deploy
     const deployStep = deploy?.steps?.find(step => step.id === 'deploy')
+    const productionConfigStep = deploy?.steps?.find(step =>
+      step.run?.includes('create-wrangler-production-config.ts'),
+    )
     const externalActions = deploy?.steps?.flatMap(step => (step.uses ? [step.uses] : [])) ?? []
 
     expect(workflow.on).toHaveProperty('workflow_dispatch')
@@ -60,7 +68,15 @@ describe('CI workflow', () => {
       accountId: `\${{ vars.CLOUDFLARE_ACCOUNT_ID }}`,
       wranglerVersion: '4.120.0',
       packageManager: 'bun',
+      command:
+        'deploy --config wrangler.production.json --message "GitHub Actions $' +
+        '{{ github.sha }}"',
     })
+    expect(productionConfigStep?.env?.WORKER_CUSTOM_DOMAIN).toBe(
+      '$' + '{{ vars.WORKER_CUSTOM_DOMAIN }}',
+    )
+    expect(productionConfigStep?.run).toContain('test -n "$WORKER_CUSTOM_DOMAIN"')
+    expect(productionConfigStep?.run).toContain('bun scripts/create-wrangler-production-config.ts')
   })
 
   test('Biome gateはrootのconfig contract testsも検査する', async () => {

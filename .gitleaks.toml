@@ -1,7 +1,7 @@
 # gitleaks 設定 (worksmobile-message-bot)。lefthook の pre-commit (gitleaks protect --staged) が読む。
 #
 # Miraius 固有ルールの SoT は ~/.config/gitleaks/miraius.toml。本ファイルはチームリポ (Miraius-LLC) で
-# 他環境/CI が藤井ローカルの絶対パスを持たないため、[extend].path で参照せずルールをインライン複製する。
+# 他環境やCIでも動作するよう、ローカル絶対パスを参照せずルールをインライン定義する。
 # ルール変更時は SoT を正として両方を更新する。(本 repo は public だが、入るのは検知用 regex のみで実鍵値は含まない)
 #
 # 設計方針: freee も LINE WORKS も鍵に固定接頭辞のクセが弱い (base64 風 / ランダム列) ため、

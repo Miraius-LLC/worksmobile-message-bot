@@ -4,7 +4,7 @@
 
 ## 形式
 
-- 新規 ADR は [`adr-template.md`](./adr-template.md) を複製し、標準形式を使う。既存 ADR は移行前原文を SHA-256 付き Original Record として保存した標準形式へ移行済み。
+- 新規ADRは[`adr-template.md`](./adr-template.md)を複製し、標準形式を使う。既存ADRのOriginal Recordは原則保存する。ただし公開repositoryへ置けない環境固有情報はprivate infra SoTへ移し、公開側には`Sanitized Original Record`として判断の骨格とredaction理由を残す。
 - ファイル名は連番 `0001-slug.md`。新規は最大番号 + 1 とし、欠番を再利用しない。
 - `status: accepted` になった ADR は原則として書き換えず、新しい判断で置き換える場合は後継 ADR を追加して supersede 関係を記録する。
 - 新規 ADR を追加した変更では、本 README の索引も同時に更新する。
@@ -16,7 +16,7 @@
 
 ### 基盤 / 実行環境
 - [0001](./0001-cloud-run-hono-bun.md) — webhook サーバは Cloud Run + Hono + Bun
-- [0010](./0010-cloudflare-workers-primary-cloud-run-standby.md) — Cloudflare Workersを主系、Cloud Runを待機系とする（0001をsupersede）
+- [0010](./0010-dual-cloud-deployment.md) — WorkersとCloud Runの両方へデプロイ可能にする
 - [0002](./0002-container-http1-only-no-h2c.md) — コンテナは HTTP/1.1 のみ、end-to-end h2c 不採用
 
 ### 認証 / 認可
@@ -24,8 +24,8 @@
 - [0006](./0006-basic-auth-except-health-and-callback.md) — BASIC 認証を `/` と health probe / callback 以外に強制
 
 ### Callback（受信）
-- [0004](./0004-callback-dedup-in-memory-5min.md) — callback dedup は in-memory Map・5 分 window（Workersではbest effort、501側を最終防衛線）
-- [0005](./0005-forward-callback-to-501.md) — callback を 501 に転送する（案 B）
+- [0004](./0004-callback-dedup-in-memory-5min.md) — callback dedupはin-memory Map・5分window
+- [0005](./0005-forward-callback-to-upstream.md) — callbackを設定可能なupstreamへ転送する
 
 ### メッセージ送信（outbound）
 - [0007](./0007-message-type-dispatcher.md) — メッセージ型 dispatcher（個別 sender なし）

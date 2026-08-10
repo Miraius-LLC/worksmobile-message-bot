@@ -21,6 +21,7 @@ private_*.key
 # 実体は 1Password から op inject で生成。テンプレート .env.tpl のみ tracked
 .env
 .env.*
+wrangler.production.json
 !.env.tpl
 
 # =============================================================================

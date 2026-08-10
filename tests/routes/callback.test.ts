@@ -4,18 +4,18 @@ import { createHmac } from 'node:crypto'
 // LINE WORKS Bot Callback の受信ルート (`POST /callback`) の feature テスト。
 // BASIC 認証は除外パスで素通り、`X-WORKS-Signature` の HMAC-SHA256 + raw body
 // 検証で真正性を担保する設計のため、ここでは「署名 OK / NG」「Zod 検証 OK / NG」
-// 「501 への転送呼び出し」「dedup」の 4 観点をカバーする。
+// 「upstreamへの転送呼び出し」「dedup」の4観点をカバーする。
 //
-// 案 B では受信 callback を forwardEventTo501 経由で 501 に転送する。forward モジュールを
+// 受信callbackをforwardEventToUpstream経由で任意のupstreamへ転送する。forwardモジュールを
 // mock.module すると forward.test.ts (実装をテスト) にリークするため、ここでは
-// **globalThis.fetch をスタブ** して実 forwardEventTo501 を動かし、転送先 fetch の
+// **globalThis.fetchをスタブ**して実forwardEventToUpstreamを動かし、転送先fetchの
 // 呼び出し回数・status でルート挙動を検証する (afterEach で fetch 復元、リークしない)。
 
 const { app } = await import('@/app')
 const { _resetForTest: resetDedup } = await import('@/services/lineworks/callback/dedup')
 
-// 501 への転送先 (setup.ts の FORWARD_501_CALLBACK_URL と一致させる)
-const FORWARD_URL = 'https://scheduler-501.test/callback'
+// setup.tsのFORWARD_CALLBACK_URLと一致させる
+const FORWARD_URL = 'https://upstream.example.test/callback'
 
 let originalFetch: typeof fetch
 let forwardCalls: { url: string; init?: RequestInit }[]
@@ -28,7 +28,7 @@ beforeEach(() => {
   forwardStatus = 200
   globalThis.fetch = mock(async (input: string | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString()
-    // 501 への転送だけを捕捉する (他の fetch があれば素通し)
+    // upstreamへの転送だけを捕捉する（他のfetchがあれば素通し）
     if (url === FORWARD_URL) {
       forwardCalls.push({ url, init })
       return new Response(forwardStatus >= 400 ? 'err' : '', { status: forwardStatus })
@@ -131,8 +131,8 @@ describe('POST /callback: body 検証', () => {
   })
 })
 
-describe('POST /callback: 501 への転送', () => {
-  test('200 を返す前に 501 へ raw body + 署名をそのまま転送する', async () => {
+describe('POST /callback: upstreamへの転送', () => {
+  test('200を返す前にupstreamへraw bodyと署名をそのまま転送する', async () => {
     const raw = JSON.stringify(messageEventFixture)
     const signature = sign(raw)
     const res = await postCallback(raw, signature)
@@ -158,7 +158,7 @@ describe('POST /callback: 501 への転送', () => {
     expect(forwardCalls.length).toBe(0)
   })
 
-  test('501 が 5xx を返すと 500 (再送を促す)', async () => {
+  test('upstreamが5xxを返すと500（再送を促す）', async () => {
     forwardStatus = 503
     const raw = JSON.stringify(messageEventFixture)
     const res = await postCallback(raw, sign(raw))
@@ -248,7 +248,7 @@ describe('POST /callback: dedup (5 分 window)', () => {
     const raw = JSON.stringify(messageEventFixture)
     const signature = sign(raw)
 
-    // 1 回目: 501 が 5xx → forward throw → 500 → onError 経由
+    // 1回目: upstreamが5xx → forward throw → 500 → onError経由
     forwardStatus = 503
     const res1 = await postCallback(raw, signature)
     expect(res1.status).toBe(500)

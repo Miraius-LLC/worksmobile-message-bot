@@ -38,13 +38,13 @@ callback の再送による副作用二重実行を防ぐ仕組み。**raw body 
 _Avoid_: idempotency（より広い概念）, 重複排除（口語）
 
 **forward (転送)**:
-検証を通った callback を、raw body + 署名のまま **501（scheduler-501）の `/callback`** へ素通し転送すること（`callback/forward.ts`、env `FORWARD_501_CALLBACK_URL`）。応答コマンドの判断は 501 側にあり、本サーバは gateway に徹する。
+検証を通ったcallbackを、raw bodyと署名を保ったまま設定済みupstreamへ転送すること（`callback/forward.ts`、env `FORWARD_CALLBACK_URL`）。本サーバはgatewayとして接続・検証・転送に責務を絞る。
 _Avoid_: relay, proxy（HTTP proxy と紛らわしい）, dispatch（ローカル handler 雛形の語）
 
 ## Flagged ambiguities
 
 - **callback vs event**: 受信単位の HTTP リクエストが「callback」、その body 内の 1 件（`type` を持つ discriminated union 要素）が「event」。両者を混ぜない。
-- **forward vs dispatch**: 現行は forward（501 へ転送）に一本化。`callback/{dispatch,handlers,reply}.ts` のローカル handler 雛形は残置だが**呼ばれない**（[ADR-0005](./docs/adr/0005-forward-callback-to-501.md)）。「dispatch」はその雛形に閉じた語で、現行フローには使わない。
+- **forward vs dispatch**: 現行はforward（設定済みupstreamへ転送）に一本化。`callback/{dispatch,handlers,reply}.ts`のローカルhandler雛形は残置だが**呼ばれない**（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）。「dispatch」はその雛形に閉じた語で、現行フローには使わない。
 
 ## 用語が会話で交わる例
 

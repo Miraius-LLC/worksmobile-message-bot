@@ -1,33 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { file } from 'bun'
+import { file, Glob } from 'bun'
 
-interface DnsFallbackProfile {
-  hostname?: string
-  type?: string
-  content?: string
-  ttl?: number
-  proxied?: boolean
-  verifiedAt?: string
-  verifiedSource?: string
-}
-
-describe('operations config', () => {
-  test('Cloud Run DNS fallback profileはlive検証済みCNAMEを固定する', async () => {
-    const profile = (await file(
-      new URL('./docs/operations/cloud-run-dns-fallback.json', import.meta.url),
-    ).json()) as DnsFallbackProfile
-
-    expect(profile).toEqual({
-      hostname: 'line-works.api.miraius.co.jp',
-      type: 'CNAME',
-      content: 'ghs.googlehosted.com',
-      ttl: 1,
-      proxied: false,
-      verifiedAt: '2026-08-10',
-      verifiedSource: 'Cloudflare DNS API live GET for the miraius.co.jp zone',
-    })
-  })
-
+describe('public repository contract', () => {
   test('.gcloudignoreはGitと全env実体をupload対象外にする', async () => {
     const source = await file(new URL('./.gcloudignore', import.meta.url)).text()
     const patterns = source
@@ -42,55 +16,8 @@ describe('operations config', () => {
     expect(patterns.some(pattern => pattern === '!.env.tpl')).toBe(false)
   })
 
-  test('本番runbookはtokenをargvへ展開せず想定外DNSを上書きしない', async () => {
+  test('READMEは両基盤を対等なdeploy先として説明する', async () => {
     const readme = await file(new URL('./README.md', import.meta.url)).text()
-    const plan = await file(
-      new URL('./docs/superpowers/plans/2026-08-10-cloudflare-workers-cutover.md', import.meta.url),
-    ).text()
-    const runbooks = `${readme}\n${plan}`
-
-    expect(runbooks).not.toMatch(/Authorization:\s*Bearer\s+\$[A-Za-z_]/)
-    expect(runbooks).not.toContain('Authorization:Bearer $')
-    expect(runbooks).toContain('curl --config - --fail-with-body --silent --show-error')
-    expect(readme).not.toContain('wmbot_dns_id=')
-    expect(readme).toContain('assert_dns_profile <<<"$wmbot_dns_current"')
-  })
-
-  test('Cloud Build triggerは既存JSONを保持したfull bodyで停止・再開する', async () => {
-    const plan = await file(
-      new URL('./docs/superpowers/plans/2026-08-10-cloudflare-workers-cutover.md', import.meta.url),
-    ).text()
-
-    expect(plan).not.toContain(`--data '{"disabled":true}'`)
-    expect(plan).toContain('trigger_json="$(gcloud builds triggers describe')
-    expect(plan).toContain('serviceAccount,substitutions,disabled:true')
-    expect(plan).toContain('serviceAccount,substitutions,disabled:false')
-    expect(plan).toContain('--data-binary @-')
-    expect(plan).toContain("jq -e '.disabled == true'")
-    expect(plan).toContain("jq -e '.disabled == false'")
-  })
-
-  test('READMEは両基盤のdeploy対応と現在の運用状態を分離する', async () => {
-    const [readme, changelog, issueTracker, design, plan, cloudBuild, envTemplate] =
-      await Promise.all([
-        file(new URL('./README.md', import.meta.url)).text(),
-        file(new URL('./CHANGELOG.md', import.meta.url)).text(),
-        file(new URL('./docs/agents/issue-tracker.md', import.meta.url)).text(),
-        file(
-          new URL(
-            './docs/superpowers/specs/2026-08-10-cloudflare-workers-cutover-design.md',
-            import.meta.url,
-          ),
-        ).text(),
-        file(
-          new URL(
-            './docs/superpowers/plans/2026-08-10-cloudflare-workers-cutover.md',
-            import.meta.url,
-          ),
-        ).text(),
-        file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
-        file(new URL('./.env.tpl', import.meta.url)).text(),
-      ])
 
     expect(readme).toContain('## Cloud Run へのデプロイ')
     expect(readme).toContain('## Cloudflare Workers へのデプロイ')
@@ -99,33 +26,44 @@ describe('operations config', () => {
     expect(readme).toContain(
       '同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。',
     )
-    expect(readme).toContain('**実行基盤**: Cloudflare Workers / Google Cloud Run')
-    expect(readme).toContain(
-      'GitHub Actions (CI 成功後) → Cloudflare Workers / Cloud Build → Cloud Run',
+    expect(readme).toContain('`WORKER_CUSTOM_DOMAIN`')
+    expect(readme).not.toMatch(/主系|待機系|切戻し|社内運用|現在の運用/)
+  })
+
+  test('公開設定は環境固有の転送先とidentityをsubstitutionに要求する', async () => {
+    const [cloudBuild, monitoring] = await Promise.all([
+      file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
+      file(new URL('./scripts/setup-monitoring.sh', import.meta.url)).text(),
+    ])
+
+    for (const name of ['_SERVICE_ACCOUNT', '_CLIENT_ID', '_SERVICE_ACCOUNT_LW', '_BOT_ID']) {
+      expect(cloudBuild).toContain(`[ -n "\${${name}}" ]`)
+    }
+    expect(cloudBuild).toContain("_FORWARD_CALLBACK_URL: ''")
+    expect(cloudBuild).not.toMatch(/scheduler-[0-9]+|@[^\s]+\.iam\.gserviceaccount\.com/)
+    expect(monitoring).toContain('PROJECT_ID="$' + '{PROJECT_ID:?Set PROJECT_ID}"')
+    expect(monitoring).toContain('ALERT_EMAIL="$' + '{ALERT_EMAIL:?Set ALERT_EMAIL}"')
+    expect(monitoring).toContain('SERVICE_HOST="$' + '{SERVICE_HOST:?Set SERVICE_HOST}"')
+  })
+
+  test('公開docsとdeploy設定は移行時の実測runbookを含まない', async () => {
+    const paths = ['README.md', 'TODO.md', 'CHANGELOG.md', 'CONTEXT.md', 'AGENTS.md']
+    for await (const path of new Glob('docs/**/*.md').scan({ cwd: import.meta.dir })) {
+      paths.push(path)
+    }
+    paths.push(
+      '.env.tpl',
+      '.github/workflows/ci.yml',
+      'cloudbuild.yaml',
+      'wrangler.jsonc',
+      'scripts/setup-monitoring.sh',
     )
-    expect(readme).toContain('Task 7完了時点では、30分監視後も即時rollbackのためCloud Runを')
-    expect(readme).toContain('Task 8の')
-    expect(readme).toContain('これは現在の運用上の選択であり、このリポジトリの')
-    expect(readme).not.toContain(
-      'Cloudflare Workersを通常の本番主系、Cloud Runを障害復旧用の待機系とする。',
-    )
-    expect(readme).toContain('default URL の `/health`')
-    expect(readme).not.toContain('MS-A2 移行では')
-    expect(readme).not.toContain('Cloud Run default URL の `/healthz`')
-    expect(changelog).toContain('Cloudflare Workersを本番主系化')
-    expect(changelog).toContain('GitHub Actions（CI成功後にWorkers deploy）')
-    expect(issueTracker).toContain('[`TODO.md`](../../TODO.md)')
-    expect(issueTracker).not.toContain('`TODO.md` も無い')
-    expect(design).toContain('Cloudflare code `100117`')
-    expect(design).not.toContain('override_existing_dns_record=true')
-    expect(plan).toContain('run `31391499733`')
-    expect(plan).not.toContain('Wrangler非TTY deployが既存CNAMEをCustom Domain recordへ置換する')
-    expect(readme).toContain('restore_fallback()')
-    expect(readme).toContain('wmbot_cutover_record_id=')
-    expect(readme).toContain('gh run rerun "$WMBOT_FAILED_RUN_ID"')
-    expect(readme).toContain('gh run watch "$WMBOT_FAILED_RUN_ID"')
-    expect(cloudBuild).toContain('通常の本番CDはGitHub Actions → Cloudflare Workers')
-    expect(cloudBuild).not.toContain('GitHub push → build → push → Cloud Run')
-    expect(envTemplate).toContain('本番主系のWorkersはWrangler secret')
+    const source = (
+      await Promise.all(paths.map(path => file(new URL(`./${path}`, import.meta.url)).text()))
+    ).join('\n')
+
+    expect(source).not.toMatch(/scheduler-[0-9]+|Task [0-9]+|failed run|fallback profile/)
+    expect(source).not.toMatch(/Cloudflare Workers.{0,30}(主系|公開先)/)
+    expect(source).not.toMatch(/Cloud Run.{0,30}(待機系|障害復旧)/)
   })
 })

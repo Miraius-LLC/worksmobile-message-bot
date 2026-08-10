@@ -26,8 +26,8 @@ function setupFixtureEnv() {
   process.env['BASIC_PASS'] = 'test-pass'
   // BOT_SECRET も同様に固定 (Callback 署名検証テストで HMAC を組み立てるため決定論的に)
   process.env['BOT_SECRET'] = 'test-bot-secret'
-  // 501 への callback 転送先 (forward.ts のテスト用)。実 env があれば尊重する
-  process.env['FORWARD_501_CALLBACK_URL'] ??= 'https://scheduler-501.test/callback'
+  // callback転送先（forward.tsのテスト用）。実envがあれば尊重する
+  process.env['FORWARD_CALLBACK_URL'] ??= 'https://upstream.example.test/callback'
 }
 setupFixtureEnv()
 

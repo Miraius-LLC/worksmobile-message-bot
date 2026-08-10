@@ -56,7 +56,11 @@ jobs:
 
       - name: Wrangler dry run
         id: wrangler-dry-run
-        run: bunx wrangler deploy --dry-run
+        env:
+          WORKER_CUSTOM_DOMAIN: bot.example.com
+        run: |
+          bun scripts/create-wrangler-production-config.ts
+          bunx wrangler deploy --config wrangler.production.json --dry-run
 
   deploy:
     name: Deploy to Cloudflare Workers
@@ -95,6 +99,13 @@ jobs:
         env:
           SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
 
+      - name: Create production Wrangler config
+        env:
+          WORKER_CUSTOM_DOMAIN: ${{ vars.WORKER_CUSTOM_DOMAIN }}
+        run: |
+          test -n "$WORKER_CUSTOM_DOMAIN"
+          bun scripts/create-wrangler-production-config.ts
+
       - name: Deploy Worker
         id: deploy
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0
@@ -103,7 +114,7 @@ jobs:
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '4.120.0'
           packageManager: bun
-          command: deploy --message "GitHub Actions ${{ github.sha }}"
+          command: deploy --config wrangler.production.json --message "GitHub Actions ${{ github.sha }}"
 
       - name: Add deployment summary
         env:

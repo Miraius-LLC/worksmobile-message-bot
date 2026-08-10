@@ -12,7 +12,7 @@
       "groupName": "週次 minor/patch まとめ"
     },
     {
-      "description": "major は Dependency Dashboard の承認制 (藤井がチェックを入れたものだけ PR 化)",
+      "description": "majorはDependency Dashboardで承認されたものだけPR化",
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
     }

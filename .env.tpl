@@ -4,7 +4,7 @@
 # このファイル (.env.tpl) は tracked。実体 .env は 1Password (Worksmobile vault) から生成:
 #   bun run secrets:inject
 # .tpl は op 参照のみ = secret 非含有なので PUBLIC repo でも安全に commit できる。.env は .gitignore 済。
-# 本番主系のWorkersはWrangler secret、Cloud Run待機系はSecret Managerから注入するため、
+# WorkersはWrangler secret、Cloud RunはSecret Managerから注入するため、
 # 本ファイルはローカル開発と承認済みCloud Run手動復旧のsubstitution生成専用。
 # ==============================================================================
 

@@ -25,12 +25,12 @@ describe('utils/trace', () => {
   })
 
   test('trace + span + GOOGLE_CLOUD_PROJECT: fully-qualified resource name', async () => {
-    process.env['GOOGLE_CLOUD_PROJECT'] = 'office-381404'
+    process.env['GOOGLE_CLOUD_PROJECT'] = 'example-project'
     const res = await makeApp().request('/', {
       headers: { 'x-cloud-trace-context': 'abc123/span456;o=1' },
     })
     expect(await res.json()).toEqual({
-      'logging.googleapis.com/trace': 'projects/office-381404/traces/abc123',
+      'logging.googleapis.com/trace': 'projects/example-project/traces/abc123',
       'logging.googleapis.com/spanId': 'span456',
     })
   })

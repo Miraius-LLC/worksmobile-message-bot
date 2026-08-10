@@ -4,10 +4,7 @@
 #
 # 適用内容:
 #   1) Notification Channel (email)
-#   2) Uptime Check on /health
-#      (/healthz は Cloud Run / GFE 層で 404 になる現象を確認したため /health を使う。
-#       app.ts では HEALTH_PATHS = ['/healthz','/health','/readyz','/livez'] が全て
-#       同じハンドラで 200 を返すので機能的に等価)
+#   2) Uptime Check on HEALTH_PATH（既定: /health）
 #   3) Log-based metric: severity>=ERROR の発生数
 #   4) Log-based metric: ACCESS_DENIED (Bot 退室) の発生数
 #   5) Alerting Policy x3 (uptime / error rate / bot kicked)
@@ -16,19 +13,19 @@
 #   - gcloud auth login 済 (本人 or 同等の権限を持つ identity)
 #   - monitoring.googleapis.com / logging.googleapis.com が enable 済
 #
-# 実行:
-#   ./scripts/setup-monitoring.sh
+# 実行例:
+#   PROJECT_ID=... ALERT_EMAIL=... SERVICE_HOST=... ./scripts/setup-monitoring.sh
 #
-# 環境変数で上書き可:
-#   PROJECT_ID / SERVICE_NAME / REGION / ALERT_EMAIL / SERVICE_HOST
+# 必須環境変数: PROJECT_ID / ALERT_EMAIL / SERVICE_HOST
+# 任意環境変数: SERVICE_NAME / REGION / HEALTH_PATH
 # =============================================================================
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-office-381404}"
+PROJECT_ID="${PROJECT_ID:?Set PROJECT_ID}"
 SERVICE_NAME="${SERVICE_NAME:-worksmobile-message-bot}"
 REGION="${REGION:-asia-northeast1}"
-ALERT_EMAIL="${ALERT_EMAIL:-fujii@miraius.co.jp}"
-SERVICE_HOST="${SERVICE_HOST:-line-works.api.miraius.co.jp}"
+ALERT_EMAIL="${ALERT_EMAIL:?Set ALERT_EMAIL}"
+SERVICE_HOST="${SERVICE_HOST:?Set SERVICE_HOST}"
 HEALTH_PATH="${HEALTH_PATH:-/health}"
 
 METRIC_ERRORS="worksmobile_message_bot_errors"
@@ -63,7 +60,7 @@ fi
 log "  channel: ${CHANNEL_ID}"
 
 # -----------------------------------------------------------------------------
-# 2) Uptime Check on /healthz
+# 2) Uptime Check
 # -----------------------------------------------------------------------------
 log "Uptime Check (${UPTIME_DISPLAY_NAME}) を確認"
 # uptime list-configs は filter 文字列が API 側に通らないため、全件取得して grep で突合

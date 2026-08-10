@@ -4,10 +4,4 @@
   "main": "src/worker.ts",
   "compatibility_date": "2026-08-08",
   "compatibility_flags": ["nodejs_compat"],
-  "routes": [
-    {
-      "pattern": "line-works.api.miraius.co.jp",
-      "custom_domain": true,
-    },
-  ],
 }

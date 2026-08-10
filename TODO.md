@@ -7,25 +7,15 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 ---
 
-## 進行中
-
-- [ ] **Cloud Run を待機化する** — Workers 切替後30分監視の完了と藤井の別承認後、Cloud Runを
-  `min-instances=0` / `max-instances=1` / internal ingressへ変更する。Workers主系と
-  Cloud Build trigger disabledは維持する。
-- [ ] **Workers 移行24時間後を確認する** — Workers logs / Callback error、Cloud Run instance 0、
-  GitHub Actions deploy、重複応答なしを2026-08-11に確認し、問題がなければCHANGELOGへ移す。
-
----
-
 ## 未着手 / backlog
 
 ### スケーリング
 
-- [ ] **dedup を共有ストア化（Workers KV / Durable Objects 等）** — Workers isolate間でwmbot内Mapは共有されない。現状は501側dedupを最終防衛線とし、gateway単体で厳密な一回処理が必要になった時だけ共有ストア化する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
+- [ ] **dedupを共有ストア化** — Workers isolate間やCloud Run instance間でwmbot内Mapは共有されない。gateway単体で厳密な一回処理が必要になった時だけ共有ストアまたはupstream側idempotencyを導入する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
 
 ### コードの整理
 
-- [ ] **未使用のローカル handler 雛形の去就を決める** — callback は 501 へ転送する案 B（[ADR-0005](./docs/adr/0005-forward-callback-to-501.md)）に一本化したため、`src/services/lineworks/callback/{dispatch,handlers,reply}.ts` のローカル応答 handler は現在呼ばれない（雛形として残置）。501 側に応答ロジックが定着したら削除するか、ローカル応答が必要になったら案 A（本サーバ内応答）として復活させるかを判断する。
+- [ ] **未使用のローカルhandler雛形の去就を決める** — callbackは設定済みupstreamへの転送（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）に一本化しており、`src/services/lineworks/callback/{dispatch,handlers,reply}.ts`は現在呼ばれない。削除するか、本サーバ内応答が必要になった時に復活させるかを判断する。
 
 ### 拡張余地（必要になったら）
 
