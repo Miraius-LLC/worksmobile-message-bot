@@ -55,4 +55,18 @@ describe('operations config', () => {
     expect(readme).not.toContain('wmbot_dns_id=')
     expect(readme).toContain('assert_dns_profile <<<"$wmbot_dns_current"')
   })
+
+  test('Cloud Build triggerは既存JSONを保持したfull bodyで停止・再開する', async () => {
+    const plan = await file(
+      new URL('./docs/superpowers/plans/2026-08-10-cloudflare-workers-cutover.md', import.meta.url),
+    ).text()
+
+    expect(plan).not.toContain(`--data '{"disabled":true}'`)
+    expect(plan).toContain('trigger_json="$(gcloud builds triggers describe')
+    expect(plan).toContain('serviceAccount,substitutions,disabled:true')
+    expect(plan).toContain('serviceAccount,substitutions,disabled:false')
+    expect(plan).toContain('--data-binary @-')
+    expect(plan).toContain("jq -e '.disabled == true'")
+    expect(plan).toContain("jq -e '.disabled == false'")
+  })
 })

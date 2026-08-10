@@ -744,25 +744,38 @@ Expected: trigger enabled、Cloud Run ready、Workers current version、CNAME TT
 ```bash
 (
   set -euo pipefail
-  bearer_api() {
-    local method="$1"
-    shift
-    printf 'header = "Authorization: Bearer %s"\n' "$api_bearer_token" | \
-      curl --config - --fail-with-body --silent --show-error \
-        --request "$method" "$@"
-  }
-
+  readonly wmbot_trigger_id='6f86686c-3e42-440d-aaf3-26a17c397620'
+  trigger_json="$(gcloud builds triggers describe "$wmbot_trigger_id" \
+    --project=office-381404 \
+    --format=json)"
+  trigger_update="$(jq '
+    {resourceName,id,description,name,tags,github,filename,includeBuildLogs,
+      serviceAccount,substitutions,disabled:true}
+  ' <<<"$trigger_json")"
   unset api_bearer_token
   api_bearer_token="$(gcloud auth print-access-token)"
-  bearer_api PATCH \
-    --url 'https://cloudbuild.googleapis.com/v1/projects/office-381404/locations/global/triggers/6f86686c-3e42-440d-aaf3-26a17c397620?updateMask=disabled' \
+  printf '%s' "$trigger_update" | \
+    curl --config <(printf 'header = "Authorization: Bearer %s"\n' "$api_bearer_token") \
+    --fail-with-body --silent --show-error \
+    --request PATCH \
+    --url "https://cloudbuild.googleapis.com/v1/projects/office-381404/locations/global/triggers/$wmbot_trigger_id?updateMask=disabled" \
     --header 'Content-Type: application/json' \
-    --data '{"disabled":true}' | \
-    jq -e '.id == "6f86686c-3e42-440d-aaf3-26a17c397620" and .disabled == true'
+    --data-binary @- | \
+    jq -e --arg id "$wmbot_trigger_id" '.id == $id and .disabled == true' >/dev/null
+
+  gcloud builds triggers describe "$wmbot_trigger_id" \
+    --project=office-381404 \
+    --format=json | \
+    jq -e '.disabled == true' >/dev/null
 )
 ```
 
 Expected: `disabled: true`。Cloud Run本体/DNSはまだ変更しない。
+
+2026-08-10 live evidence: `updateMask=disabled`でbodyを`{"disabled":true}`だけにすると
+HTTP 400 `INVALID_ARGUMENT`。trigger未変更を確認後、既存trigger JSONの必要fieldを保持した
+full bodyでPATCHし、再GETで`disabled=true`を確認済み。substitution値とaccess tokenは
+stdout・log・argv/environmentへ出していない。
 
 - [ ] **Step 4: live CNAMEを永続fallback profileと比較する**
 
@@ -852,7 +865,39 @@ README「Workers障害時の即時復帰（既存 image）」のfail-closed bloc
 - tokenをstdinのcurl configへのみ渡し、子processのargv/environmentに載せない
 - `set -euo pipefail`のsubshellによるtokenと一時envの破棄
 
-Expected: Cloud Run CNAME復元。main差分は`git revert`で新規commitとして戻し、force/rebase/amendは使わない。Cloud Build trigger再有効化は同じPATCHへ`disabled:=false`を送る。
+Expected: Cloud Run CNAME復元。main差分は`git revert`で新規commitとして戻し、force/rebase/amendは使わない。
+
+Cloud Build triggerを再有効化する場合も簡略bodyは使わず、既存trigger JSONを保持した
+full bodyを送る。外部経路復元と同じく、藤井の明示承認後だけ実行する。
+
+```bash
+(
+  set -euo pipefail
+  readonly wmbot_trigger_id='6f86686c-3e42-440d-aaf3-26a17c397620'
+  trigger_json="$(gcloud builds triggers describe "$wmbot_trigger_id" \
+    --project=office-381404 \
+    --format=json)"
+  trigger_update="$(jq '
+    {resourceName,id,description,name,tags,github,filename,includeBuildLogs,
+      serviceAccount,substitutions,disabled:false}
+  ' <<<"$trigger_json")"
+  unset api_bearer_token
+  api_bearer_token="$(gcloud auth print-access-token)"
+  printf '%s' "$trigger_update" | \
+    curl --config <(printf 'header = "Authorization: Bearer %s"\n' "$api_bearer_token") \
+    --fail-with-body --silent --show-error \
+    --request PATCH \
+    --url "https://cloudbuild.googleapis.com/v1/projects/office-381404/locations/global/triggers/$wmbot_trigger_id?updateMask=disabled" \
+    --header 'Content-Type: application/json' \
+    --data-binary @- | \
+    jq -e --arg id "$wmbot_trigger_id" '.id == $id and .disabled == false' >/dev/null
+
+  gcloud builds triggers describe "$wmbot_trigger_id" \
+    --project=office-381404 \
+    --format=json | \
+    jq -e '.disabled == false' >/dev/null
+)
+```
 
 外部経路を復元した後、同じterminalで次を実行してmainの移行差分も打ち消す。
 
