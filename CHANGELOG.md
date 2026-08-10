@@ -6,6 +6,10 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 - 既存ADR 9件を移行前Markdown・SHA-256付きOriginal Recordを持つ共通形式へ移行し、全ADRを共通監査対象化。
 
+## secret 注入 P4: 旧 alias 撤去 — ✅ 2026-08-10
+
+- `package.json` と現行運用 docs から `secrets:dump` alias の案内を撤去し、`secrets:inject` / `secrets:check` の正規入口へ統一した。conformance adapter/test は contract v2 へ更新し、内部 entrypoint `scripts/dump-secrets-to-env.ts` と旧 managed header の読み取り互換は維持した。
+
 ## 受信（Callback）系
 
 - **Callback を 501（scheduler-501）へ転送（案 B）**: 検証を通った callback を raw body + 署名のまま 501 の `/callback` へ素通し転送する gateway 方式に一本化（`callback/forward.ts`、env `FORWARD_501_CALLBACK_URL`、[ADR-0005](./docs/adr/0005-forward-callback-to-501.md)）。応答コマンドの判断は 501 側に置き、本サーバ内のローカル handler 雛形（`callback/{dispatch,handlers,reply}.ts`）は二重応答を避けるため呼ばれない（雛形として残置）。デプロイ env も `cloudbuild.yaml` に明示。

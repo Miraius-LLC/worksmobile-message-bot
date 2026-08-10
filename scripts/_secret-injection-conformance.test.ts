@@ -6,8 +6,8 @@ import {
 } from './_secret-injection-adapter'
 
 describe('secret injection conformance adapter', () => {
-  test('contract v1 の template target を宣言する', () => {
-    expect(SECRET_INJECTION_ADAPTER.contractVersion).toBe(1)
+  test('contract v2 の template target を宣言する', () => {
+    expect(SECRET_INJECTION_ADAPTER.contractVersion).toBe(2)
     expect(SECRET_INJECTION_ADAPTER.kind).toBe('template')
     expect(SECRET_INJECTION_ADAPTER.targets).toEqual([
       {
@@ -19,7 +19,7 @@ describe('secret injection conformance adapter', () => {
     expect(SECRET_INJECTION_ADAPTER.scenarioIds).toBe(SECRET_INJECTION_SCENARIO_IDS)
   })
 
-  test('contract v1 の scenario ID と順序を固定する', () => {
+  test('contract v2 の scenario ID と順序を固定する', () => {
     expect(SECRET_INJECTION_SCENARIO_IDS).toEqual([
       'merge-preserves-unmanaged',
       'merge-quotes-values',
@@ -36,14 +36,14 @@ describe('secret injection conformance adapter', () => {
     ])
   })
 
-  test('package scripts は inject を正規入口、dump を互換 alias、check を非書込入口にする', async () => {
+  test('package scripts は inject/check を正規入口とし、dump を公開しない', async () => {
     const packageJson = await Bun.file('package.json').json()
 
     expect(packageJson.scripts['secrets:inject']).toBe('bun run ./scripts/dump-secrets-to-env.ts')
-    expect(packageJson.scripts['secrets:dump']).toBe('bun run secrets:inject')
     expect(packageJson.scripts['secrets:check']).toBe(
       'bun run ./scripts/dump-secrets-to-env.ts --check',
     )
+    expect(packageJson.scripts['secrets:dump']).toBeUndefined()
   })
 
   test('tracked template の全 key が有効な op reference を持つ', async () => {

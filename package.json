@@ -17,7 +17,6 @@
   "module": "src/index.ts",
   "scripts": {
     "secrets:inject": "bun run ./scripts/dump-secrets-to-env.ts",
-    "secrets:dump": "bun run secrets:inject",
     "secrets:check": "bun run ./scripts/dump-secrets-to-env.ts --check",
     "dev": "bun run --hot ./src/index.ts",
     "start": "bun run ./build/index.js",

@@ -17,7 +17,7 @@ export const SECRET_INJECTION_SCENARIO_IDS = [
 ] as const
 
 export const SECRET_INJECTION_ADAPTER = {
-  contractVersion: 1,
+  contractVersion: 2,
   kind: 'template',
   targets: [
     {

@@ -37,7 +37,7 @@
 bun run secrets:inject
 ```
 
-`secrets:inject` は `.env.tpl` の `op://` 参照を読み、値を表示せず `.env` にマージする。既存の `.env` にある未管理キーやコメントは残る。`secrets:check` は書き込まずに 1Password 参照の疎通だけ確認する。`secrets:dump` は移行用の互換 alias。
+`secrets:inject` は `.env.tpl` の `op://` 参照を読み、値を表示せず `.env` にマージする。既存の `.env` にある未管理キーやコメントは残る。`secrets:check` は書き込まずに 1Password 参照の疎通だけ確認する。
 
 手動で作成する場合は以下を設定する。
 
