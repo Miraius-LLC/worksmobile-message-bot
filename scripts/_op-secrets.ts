@@ -13,6 +13,7 @@ export type SecretReadFailure = {
   envKey: string
   reference: string
   reason: string
+  signinNeeded?: boolean
 }
 
 export type ResolveSecretsOptions = {
@@ -104,6 +105,7 @@ export async function resolveSecretsToEnv(
       envKey: target.envKey,
       reference: target.reference,
       reason: result.reason,
+      ...(result.signinNeeded ? { signinNeeded: true } : {}),
     })
     if (result.signinNeeded) signinNeeded = true
   }
@@ -116,7 +118,7 @@ export function formatCheckLines(result: ResolveSecretsResult): string[] {
 
   for (const key of Object.keys(result.values).sort()) lines.push(`✓ ${key}`)
   for (const failure of result.failures.sort((a, b) => a.envKey.localeCompare(b.envKey))) {
-    lines.push(`✗ ${failure.envKey} — ${failure.reference} (${failure.reason})`)
+    lines.push(`✗ ${failure.envKey} — ${failure.reference} (${publicFailureReason(failure)})`)
   }
   lines.push(
     '',
@@ -124,6 +126,13 @@ export function formatCheckLines(result: ResolveSecretsResult): string[] {
   )
 
   return lines
+}
+
+function publicFailureReason(failure: SecretReadFailure): string {
+  if (failure.signinNeeded) return '認証が必要'
+  if (failure.reason === 'op コマンドが見つかりません') return 'opコマンドなし'
+  if (failure.reason === '値が空') return '値が空'
+  return '取得失敗'
 }
 
 async function mapWithConcurrency<T, U>(

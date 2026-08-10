@@ -29,6 +29,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 ## CI / CD・基盤
 
+- **secret 注入 contract v1 の conformance 固定**: `template` adapter と共通 scenario ID を追加し、managed block の置換・quote、env 優先 / 強制再取得、未サインイン時の直列停止、並列数上限、check の決定順・値非表示・非書き込み、取得失敗時 no-write、package scripts、tracked template の key / `op://` 参照一致をテストで固定。runner は I/O と `op read` を注入可能にし、実 secret や `.env` を使わず安全性を検証する。
 - **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は互換 alias として残し、`secrets:check` の非書き込み契約は維持する。
 - **1Password から `.env` を生成する `secrets:dump` を追加**: `.env.tpl` の `op://` 参照を SoT として読み、値を表示せず `.env` へマージ保存するローカル secret dump を追加。最初の 1 件だけ直列で読み、1Password 未サインイン時の認証要求多重起動を避ける。既存 `secrets:inject` は互換 alias として `secrets:dump` に寄せた。
 - **scripts の検証対象化**: pre-commit / CI / package scripts の Biome 対象に `scripts/` を追加し、`run-related-tests.ts` の関連テスト抽出ロジックを unit test 付きで分離。監視設定スクリプトは uptime config の重複取得を削減。

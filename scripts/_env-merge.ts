@@ -1,4 +1,7 @@
-const MANAGED_HEADER = '# --- 1Password から secrets:dump で生成 (手動編集は次回 dump で上書き) ---'
+const MANAGED_HEADER =
+  '# --- 1Password から secrets:inject で生成 (手動編集は次回 inject で上書き) ---'
+const LEGACY_MANAGED_HEADER =
+  '# --- 1Password から secrets:dump で生成 (手動編集は次回 dump で上書き) ---'
 
 export function quoteEnvValue(value: string): string {
   if (!value.includes("'")) return `'${value}'`
@@ -16,7 +19,7 @@ export function mergeEnvContent(existing: string, values: Record<string, string>
   let inManagedBlock = false
 
   for (const line of lines) {
-    if (line === MANAGED_HEADER) {
+    if (line === MANAGED_HEADER || line === LEGACY_MANAGED_HEADER) {
       inManagedBlock = true
       continue
     }

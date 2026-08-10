@@ -3,30 +3,58 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { mergeEnvContent } from './_env-merge'
-import { formatCheckLines, resolveSecretsToEnv } from './_op-secrets'
+import { formatCheckLines, type ReadResult, resolveSecretsToEnv } from './_op-secrets'
 
-const args = new Set(process.argv.slice(2))
-const checkOnly = args.has('--check')
-const preferEnv = args.has('--prefer-env')
-const templatePath = '.env.tpl'
-const envPath = '.env'
-
-const template = await readFile(templatePath, 'utf8')
-const result = await resolveSecretsToEnv(template, { ignoreEnv: !preferEnv })
-
-process.stdout.write(`${formatCheckLines(result).join('\n')}\n`)
-
-if (result.signinNeeded) {
-  process.stderr.write('⚠️ 1Password にサインインしていません。`op signin` を実行してください。\n')
+type RunSecretInjectionOptions = {
+  args?: string[]
+  env?: Record<string, string | undefined>
+  readFileFn?: (path: string) => Promise<string>
+  existsSyncFn?: (path: string) => boolean
+  writeFileFn?: (path: string, content: string, options: { mode: number }) => Promise<void>
+  opReadFn?: (reference: string) => ReadResult | Promise<ReadResult>
+  stdoutWrite?: (text: string) => void
+  stderrWrite?: (text: string) => void
 }
 
-if (result.failures.length > 0) {
-  process.exitCode = 1
-} else if (!checkOnly) {
-  const existing = existsSync(envPath) ? await readFile(envPath, 'utf8') : ''
-  await writeFile(envPath, mergeEnvContent(existing, result.values), { mode: 0o600 })
-  process.stderr.write(
+export async function runSecretInjection(options: RunSecretInjectionOptions = {}): Promise<number> {
+  const args = new Set(options.args ?? process.argv.slice(2))
+  const checkOnly = args.has('--check')
+  const preferEnv = args.has('--prefer-env')
+  const templatePath = '.env.tpl'
+  const envPath = '.env'
+  const readFileFn = options.readFileFn ?? (async path => readFile(path, 'utf8'))
+  const existsSyncFn = options.existsSyncFn ?? existsSync
+  const writeFileFn =
+    options.writeFileFn ??
+    (async (path, content, writeOptions) => {
+      await writeFile(path, content, writeOptions)
+    })
+  const stdoutWrite = options.stdoutWrite ?? (text => process.stdout.write(text))
+  const stderrWrite = options.stderrWrite ?? (text => process.stderr.write(text))
+
+  const template = await readFileFn(templatePath)
+  const result = await resolveSecretsToEnv(template, {
+    env: options.env,
+    ignoreEnv: !preferEnv,
+    opReadFn: options.opReadFn,
+  })
+
+  stdoutWrite(`${formatCheckLines(result).join('\n')}\n`)
+
+  if (result.signinNeeded) {
+    stderrWrite('⚠️ 1Password にサインインしていません。`op signin` を実行してください。\n')
+  }
+
+  if (result.failures.length > 0) return 1
+  if (checkOnly) return 0
+
+  const existing = existsSyncFn(envPath) ? await readFileFn(envPath) : ''
+  await writeFileFn(envPath, mergeEnvContent(existing, result.values), { mode: 0o600 })
+  stderrWrite(
     `✅ ${Object.keys(result.values).length} 件の secret を ${envPath} にマージ書き込みしました\n`,
   )
-  process.stderr.write('   以後のローカル実行は .env を読むため、毎回 1Password を開きません。\n')
+  stderrWrite('   以後のローカル実行は .env を読むため、毎回 1Password を開きません。\n')
+  return 0
 }
+
+if (import.meta.main) process.exitCode = await runSecretInjection()

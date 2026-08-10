@@ -60,6 +60,21 @@ describe('resolveSecretsToEnv', () => {
     expect(result.values.CLIENT_SECRET).toBe('op://Worksmobile/LINE WORKS Bot/client_secret:value')
   })
 
+  test('ignoreEnv の時は既存 env を使わず全参照を読む', async () => {
+    const calls: string[] = []
+    const result = await resolveSecretsToEnv(template, {
+      env: { CLIENT_ID: 'from-env' },
+      ignoreEnv: true,
+      opReadFn: async reference => {
+        calls.push(reference)
+        return { ok: true, value: `${reference}:from-op` }
+      },
+    })
+
+    expect(calls).toHaveLength(3)
+    expect(result.values.CLIENT_ID).toBe('op://Worksmobile/LINE WORKS Bot/client_id:from-op')
+  })
+
   test('失敗は集約し、表示行に secret 値を含めない', async () => {
     const results = new Map<string, ReadResult>([
       ['op://Worksmobile/LINE WORKS Bot/client_id', { ok: true, value: 'secret-value' }],
@@ -114,5 +129,46 @@ describe('resolveSecretsToEnv', () => {
     expect(calls).toEqual(['op://Worksmobile/LINE WORKS Bot/client_id'])
     expect(result.signinNeeded).toBe(true)
     expect(result.failures).toHaveLength(3)
+  })
+})
+
+describe('formatCheckLines', () => {
+  test('内部 reason は固定カテゴリだけに変換して表示する', () => {
+    const lines = formatCheckLines({
+      values: {},
+      failures: [
+        {
+          envKey: 'D_OTHER',
+          reference: 'op://Vault/Item/d',
+          reason: 'upstream leaked SENTINEL-SECRET',
+        },
+        {
+          envKey: 'A_SIGNIN',
+          reference: 'op://Vault/Item/a',
+          reason: 'not currently signed in',
+          signinNeeded: true,
+        },
+        {
+          envKey: 'C_EMPTY',
+          reference: 'op://Vault/Item/c',
+          reason: '値が空',
+        },
+        {
+          envKey: 'B_COMMAND',
+          reference: 'op://Vault/Item/b',
+          reason: 'op コマンドが見つかりません',
+        },
+      ],
+      signinNeeded: true,
+      references: {},
+    })
+
+    expect(lines.slice(0, 4)).toEqual([
+      '✗ A_SIGNIN — op://Vault/Item/a (認証が必要)',
+      '✗ B_COMMAND — op://Vault/Item/b (opコマンドなし)',
+      '✗ C_EMPTY — op://Vault/Item/c (値が空)',
+      '✗ D_OTHER — op://Vault/Item/d (取得失敗)',
+    ])
+    expect(lines.join('\n')).not.toContain('SENTINEL-SECRET')
   })
 })
