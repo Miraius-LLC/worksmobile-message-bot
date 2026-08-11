@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
+description: 原因未確定のバグや性能劣化を、再現→最小化→仮説→計測→修正→回帰テストで診断する。「diagnose」「debug this」、壊れている・例外・失敗・遅いという報告で使う。
 ---
 
 # Diagnosing Bugs

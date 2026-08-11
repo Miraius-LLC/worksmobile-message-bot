@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model. Use when the user wants to pin down domain terminology or a ubiquitous language, record an architectural decision, or when another skill needs to maintain the domain model.
+description: プロジェクトの正規語とdomain modelを研ぎ、CONTEXT.mdと必要なADRへ反映する。曖昧語の解消、ubiquitous language、architectural decisionを扱うときに使う。
 ---
 
 # Domain Modeling
