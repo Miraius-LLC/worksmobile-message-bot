@@ -4,7 +4,7 @@
 
 ## 形式
 
-- 新規ADRは[`adr-template.md`](./adr-template.md)を複製し、標準形式を使う。既存ADRのOriginal Recordは原則保存する。ただし公開repositoryへ置けない環境固有情報はprivate infra SoTへ移し、公開側には`Sanitized Original Record`として判断の骨格とredaction理由を残す。
+- 新規ADRは[`adr-template.md`](./adr-template.md)を複製し、標準形式を使う。既存ADRのOriginal Recordは原則保存する。ただし公開repositoryへ置けない環境固有情報はprivate infra SoTへ移し、公開側には`Sanitized Original Record`として判断の骨格とredaction理由を残す。現在この方式を使う対象はADR-0001、ADR-0004、ADR-0005である。各対象にはprivate legacy source digestとpublic sanitized record digestを併記し、private側は原文の保管・redaction根拠、公開側はSanitized本文（フェンス内本文、末尾改行を除くUTF-8）の不変性検証を担う。
 - ファイル名は連番 `0001-slug.md`。新規は最大番号 + 1 とし、欠番を再利用しない。
 - `status: accepted` になった ADR は原則として書き換えず、新しい判断で置き換える場合は後継 ADR を追加して supersede 関係を記録する。
 - 新規 ADR を追加した変更では、本 README の索引も同時に更新する。
@@ -33,3 +33,6 @@
 ### Docker / デプロイ
 - [0008](./0008-docker-cloud-build-constraints.md) — Docker / Cloud Build の制約
 - [0009](./0009-dedicated-runtime-sa-public-repo-secrets.md) — 専用 runtime SA + 公開リポ向け secret 運用
+
+### ADR archive
+- [0011](./0011-sanitized-original-record-for-public-repository.md) — 公開repositoryでは環境固有情報をSanitized Original Recordへ置換する

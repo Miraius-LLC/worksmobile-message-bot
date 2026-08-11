@@ -5,6 +5,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 ## ドキュメント
 
 - 既存ADR 9件を移行前Markdown・SHA-256付きOriginal Recordを持つ共通形式へ移行し、全ADRを共通監査対象化。
+- 公開repositoryへ置けない環境固有情報を含むADR-0001/0004/0005を二層digest付きSanitized Original Recordへ整理し、公開redactionの責任分界をADR-0011へ記録。
 
 ## secret 注入 P4: 旧 alias 撤去 — ✅ 2026-08-10
 

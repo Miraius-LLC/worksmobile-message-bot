@@ -32,6 +32,7 @@ Chosen option: 「共通Hono appを両runtime用entrypointから利用する」
 - Good: 基盤を選択してもrouteとserviceの実装を共有できる
 - Good: 一方の基盤に依存せずデプロイできる
 - Bad: 両runtimeの互換性と設定をCIで維持する必要がある
+- Neutral: 実行基盤の主従や環境固有の切替情報は、公開ADRではなくprivate infra SoTで管理する
 
 ### Confirmation
 
