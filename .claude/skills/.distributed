@@ -1,5 +1,4 @@
 archify
-ask-matt
 code-review
 codebase-design
 diagnosing-bugs
@@ -12,9 +11,5 @@ prototype
 research
 resolving-merge-conflicts
 tdd
-to-spec
-to-tickets
-triage
-wayfinder
 wizard
 worktree-start
