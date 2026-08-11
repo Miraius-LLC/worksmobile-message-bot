@@ -7,7 +7,7 @@ date: 2026-08-11
 
 ## Context and Problem Statement
 
-本リポジトリは公開repositoryであり、既存ADRの原文には環境固有のサービス構成、resource識別子、URLなど、公開側へ戻してはならない情報が含まれる場合がある。一方、ADR-0013相当の移行監査により、移行済みADRの判断履歴と改変検出を維持する必要がある。
+本リポジトリは公開repositoryであり、既存ADRの原文には環境固有のサービス構成、resource識別子、URLなど、公開側へ戻してはならない情報が含まれる場合がある。一方、project横断の移行監査により、移行済みADRの判断履歴と改変検出を維持する必要がある。
 
 ## Decision Drivers
 
