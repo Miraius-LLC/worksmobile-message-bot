@@ -6,6 +6,7 @@ import {
   botDomainSchema,
   deleteBotDomain,
   listBotDomains,
+  listBotDomainsQuerySchema,
   patchBotDomain,
   registerBotDomain,
   replaceBotDomain,
@@ -17,6 +18,7 @@ import {
   deleteBot,
   getBot,
   listBots,
+  listBotsQuerySchema,
   patchBot,
   reissueBotSecret,
   replaceBot,
@@ -58,10 +60,20 @@ botsApp.post(
 )
 
 /** GET /bots — テナント内 Bot 一覧 */
-botsApp.get('/', async c => {
-  const result = await listBots(c.var.token)
-  return c.json(result)
-})
+botsApp.get(
+  '/',
+  zValidator('query', listBotsQuerySchema, (result, c) => {
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
+      return c.json({ error: message }, 400)
+    }
+  }),
+  async c => {
+    const query = c.req.valid('query')
+    const result = await listBots(c.var.token, query)
+    return c.json(result)
+  },
+)
 
 /** GET /bots/:botId — Bot 取得 (未登録は 200 + null) */
 botsApp.get('/:botId', async c => {
@@ -181,11 +193,21 @@ botsApp.post('/:botId/secret', async c => {
 // =============================================================================
 
 /** GET /bots/:botId/domains — Bot が登録されているドメイン一覧 */
-botsApp.get('/:botId/domains', async c => {
-  const botId = c.req.param('botId')
-  const result = await listBotDomains(c.var.token, botId)
-  return c.json(result)
-})
+botsApp.get(
+  '/:botId/domains',
+  zValidator('query', listBotDomainsQuerySchema, (result, c) => {
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
+      return c.json({ error: message }, 400)
+    }
+  }),
+  async c => {
+    const botId = c.req.param('botId')
+    const query = c.req.valid('query')
+    const result = await listBotDomains(c.var.token, botId, query)
+    return c.json(result)
+  },
+)
 
 /** POST /bots/:botId/domains/:domainId — ドメインに Bot を登録 */
 botsApp.post(

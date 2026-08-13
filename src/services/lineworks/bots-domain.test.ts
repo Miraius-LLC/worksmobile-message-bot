@@ -89,6 +89,24 @@ describe('listBotDomains', () => {
     expect(result.domains).toEqual(['d-001'])
   })
 
+  test('query count / cursor を URL searchParams として転送し responseMetaData を保持する', async () => {
+    installFetch(
+      () =>
+        new Response(
+          JSON.stringify({
+            domains: ['d-001'],
+            responseMetaData: { nextCursor: 'domain-next-cur' },
+          }),
+          { status: 200 },
+        ),
+    )
+    const result = await listBotDomains('tok', 'b-001', { count: 50, cursor: 'domain-cur' })
+    expect(result.domains).toEqual(['d-001'])
+    expect(result.responseMetaData).toEqual({ nextCursor: 'domain-next-cur' })
+    expect(lastRequest?.url).toContain('count=50')
+    expect(lastRequest?.url).toContain('cursor=domain-cur')
+  })
+
   test('500 は LineWorksApiError', async () => {
     installFetch(() => new Response('boom', { status: 500 }))
     await expect(listBotDomains('tok', 'b-001')).rejects.toThrow('status=500')

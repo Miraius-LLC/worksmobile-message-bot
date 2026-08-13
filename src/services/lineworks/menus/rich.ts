@@ -164,19 +164,46 @@ export async function createRichMenu(
   return data
 }
 
-/** リッチメニュー一覧 (Bot 内に登録された全件) */
-export async function listRichMenus(token: string): Promise<RichMenu[]> {
-  const response = await fetchWithTimeout(richMenuBaseUrl(), {
+export const listRichMenusQuerySchema = z.object({
+  count: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().optional(),
+})
+
+export type ListRichMenusQuery = z.infer<typeof listRichMenusQuerySchema>
+
+export type RichMenuListResult = {
+  richmenus: RichMenu[]
+  responseMetaData?: { nextCursor?: string }
+}
+
+/** リッチメニュー一覧 (Bot 内に登録された全件、count/cursor pagination 対応) */
+export async function listRichMenus(
+  token: string,
+  query: ListRichMenusQuery = {},
+): Promise<RichMenuListResult> {
+  const url = new URL(richMenuBaseUrl())
+  if (query.count !== undefined) url.searchParams.set('count', String(query.count))
+  if (query.cursor) url.searchParams.set('cursor', query.cursor)
+
+  const response = await fetchWithTimeout(url.toString(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
 
   if (!response.ok) await throwUpstream(response, `${CALLER}.listRichMenus`)
 
-  // spec ドキュメント上 `{ richmenus: [...] }` を返す想定だが、レスポンス形式が
-  // 公開 doc で確定していないため、配列 / オブジェクトラップの両方を許容する
-  const raw = (await response.json()) as { richmenus?: RichMenu[] } | RichMenu[]
-  return Array.isArray(raw) ? raw : (raw.richmenus ?? [])
+  // spec ドキュメント上 `{ richmenus: [...], responseMetaData?: { nextCursor } }` を返す想定。
+  // 配列 / オブジェクトラップの両方を許容する
+  const raw = (await response.json()) as
+    | { richmenus?: RichMenu[]; responseMetaData?: { nextCursor?: string } }
+    | RichMenu[]
+  if (Array.isArray(raw)) {
+    return { richmenus: raw }
+  }
+  return {
+    richmenus: raw.richmenus ?? [],
+    ...(raw.responseMetaData ? { responseMetaData: raw.responseMetaData } : {}),
+  }
 }
 
 /**

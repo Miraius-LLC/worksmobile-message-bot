@@ -754,7 +754,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 
 ##### 5. 一覧取得 / 削除
 
-- 一覧: `GET /menus/rich` → 200 + `{ richmenus: [...] }`
+- 一覧: `GET /menus/rich?count={1..100}&cursor={str}` → 200 + `{ richmenus: [...], responseMetaData?: { nextCursor } }`
 - 削除: `DELETE /menus/rich/{:richmenuId}` → 204 (未登録も idempotent)
 
 ---
@@ -825,7 +825,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 
 ##### 取得 / 一覧 / 更新 / 削除 / Secret 再発行
 
-- 一覧: `GET /bots` → 200 + `{ bots: [...] }`
+- 一覧: `GET /bots?count={1..100}&cursor={str}` → 200 + `{ bots: [...], responseMetaData?: { nextCursor } }`
 - 取得: `GET /bots/{:botId}` → 200 + BotInfo (未登録は `null`)
 - 完全置換: `PUT /bots/{:botId}` (作成と同じ body 構造)
 - 部分更新: `PATCH /bots/{:botId}` (`{ "botName": "Renamed" }` 等の部分 body)
@@ -844,7 +844,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 ドメイン上の Bot の公開範囲と利用メンバー制限をドメイン単位で個別管理。テナント Bot CRUD と区別。
 
 - 登録: `POST /bots/{:botId}/domains/{:domainId}` (body: `{ visible?: bool, allowToSelectedMember?: bool }`) → 201 + `{ botId, domainId }`
-- 一覧: `GET /bots/{:botId}/domains` → 200 + `{ domains: [...] }`
+- 一覧: `GET /bots/{:botId}/domains?count={1..100}&cursor={str}` → 200 + `{ domains: [...], responseMetaData?: { nextCursor } }`
 - 完全置換: `PUT /bots/{:botId}/domains/{:domainId}`
 - 部分更新: `PATCH /bots/{:botId}/domains/{:domainId}` (送ったフィールドだけ)
 - 削除: `DELETE /bots/{:botId}/domains/{:domainId}` → 204 (404 idempotent)

@@ -114,6 +114,13 @@ export type BotInfo = BotCreateInput & {
   modifiedTime?: string
 }
 
+export const listBotsQuerySchema = z.object({
+  count: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().optional(),
+})
+
+export type ListBotsQuery = z.infer<typeof listBotsQuerySchema>
+
 export type BotListResult = {
   bots: BotInfo[]
   responseMetaData?: { nextCursor?: string }
@@ -163,18 +170,30 @@ export async function createBot(token: string, input: BotCreateInput): Promise<B
   return data
 }
 
-/** テナント内の Bot 一覧を取得 (spec 上ページングなしの想定だが将来対応) */
-export async function listBots(token: string): Promise<BotListResult> {
-  const response = await fetchWithTimeout(botsUrl(), {
+/** テナント内の Bot 一覧を取得 (count/cursor pagination 対応) */
+export async function listBots(token: string, query: ListBotsQuery = {}): Promise<BotListResult> {
+  const url = new URL(botsUrl())
+  if (query.count !== undefined) url.searchParams.set('count', String(query.count))
+  if (query.cursor) url.searchParams.set('cursor', query.cursor)
+
+  const response = await fetchWithTimeout(url.toString(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
 
   if (!response.ok) await throwUpstream(response, `${CALLER}.listBots`)
 
-  // spec 上 { bots: [...] } 想定。レスポンスが配列の可能性も保険対応
-  const raw = (await response.json()) as { bots?: BotInfo[] } | BotInfo[]
-  return Array.isArray(raw) ? { bots: raw } : { bots: raw.bots ?? [] }
+  // spec 上 { bots: [...], responseMetaData?: { nextCursor } } 想定。レスポンスが配列の可能性も保険対応
+  const raw = (await response.json()) as
+    | { bots?: BotInfo[]; responseMetaData?: { nextCursor?: string } }
+    | BotInfo[]
+  if (Array.isArray(raw)) {
+    return { bots: raw }
+  }
+  return {
+    bots: raw.bots ?? [],
+    ...(raw.responseMetaData ? { responseMetaData: raw.responseMetaData } : {}),
+  }
 }
 
 /** Bot 取得。未存在 (404) は null */

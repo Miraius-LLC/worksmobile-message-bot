@@ -5,6 +5,7 @@ import {
   createRichMenu,
   deleteRichMenu,
   listRichMenus,
+  listRichMenusQuerySchema,
   richMenuCreateSchema,
   richMenuImageSchema,
   setDefaultRichMenu,
@@ -44,11 +45,21 @@ richMenuApp.post(
   },
 )
 
-/** GET /menus/rich — 一覧 (常に配列を返す) */
-richMenuApp.get('/', async c => {
-  const list = await listRichMenus(c.var.token)
-  return c.json({ richmenus: list })
-})
+/** GET /menus/rich — 一覧 (count/cursor pagination 対応) */
+richMenuApp.get(
+  '/',
+  zValidator('query', listRichMenusQuerySchema, (result, c) => {
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
+      return c.json({ error: message }, 400)
+    }
+  }),
+  async c => {
+    const query = c.req.valid('query')
+    const result = await listRichMenus(c.var.token, query)
+    return c.json(result)
+  },
+)
 
 /** POST /menus/rich/:id/image — 事前アップロード済み fileId で画像を登録 */
 richMenuApp.post(

@@ -209,6 +209,24 @@ describe('listBots', () => {
     expect(result.bots).toHaveLength(1)
   })
 
+  test('query count / cursor を URL searchParams として転送し responseMetaData を保持する', async () => {
+    installFetch(
+      () =>
+        new Response(
+          JSON.stringify({
+            bots: [{ botId: 'b-001', ...validBot }],
+            responseMetaData: { nextCursor: 'cur-123' },
+          }),
+          { status: 200 },
+        ),
+    )
+    const result = await listBots('tok', { count: 20, cursor: 'cur-000' })
+    expect(result.bots).toHaveLength(1)
+    expect(result.responseMetaData).toEqual({ nextCursor: 'cur-123' })
+    expect(lastRequest?.url).toContain('count=20')
+    expect(lastRequest?.url).toContain('cursor=cur-000')
+  })
+
   test('500 は LineWorksApiError', async () => {
     installFetch(() => new Response('boom', { status: 500 }))
     await expect(listBots('tok')).rejects.toThrow('status=500')

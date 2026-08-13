@@ -180,7 +180,7 @@ describe('createRichMenu', () => {
 })
 
 describe('listRichMenus', () => {
-  test('200 + { richmenus: [...] } を配列で返す', async () => {
+  test('200 + { richmenus: [...] } を返す', async () => {
     installFetch(
       () =>
         new Response(
@@ -191,8 +191,8 @@ describe('listRichMenus', () => {
         ),
     )
     const result = await listRichMenus('tok')
-    expect(result).toHaveLength(1)
-    expect(result[0]?.richmenuId).toBe('rm-001')
+    expect(result.richmenus).toHaveLength(1)
+    expect(result.richmenus[0]?.richmenuId).toBe('rm-001')
   })
 
   test('200 + 素の配列レスポンスも受け付ける (spec 不確定への保険)', async () => {
@@ -203,7 +203,25 @@ describe('listRichMenus', () => {
         }),
     )
     const result = await listRichMenus('tok')
-    expect(result).toHaveLength(1)
+    expect(result.richmenus).toHaveLength(1)
+  })
+
+  test('query count / cursor を URL searchParams として転送し responseMetaData を保持する', async () => {
+    installFetch(
+      () =>
+        new Response(
+          JSON.stringify({
+            richmenus: [{ richmenuId: 'rm-001', ...validMenu }],
+            responseMetaData: { nextCursor: 'rm-next-cur' },
+          }),
+          { status: 200 },
+        ),
+    )
+    const result = await listRichMenus('tok', { count: 10, cursor: 'rm-cur' })
+    expect(result.richmenus).toHaveLength(1)
+    expect(result.responseMetaData).toEqual({ nextCursor: 'rm-next-cur' })
+    expect(lastRequest?.url).toContain('count=10')
+    expect(lastRequest?.url).toContain('cursor=rm-cur')
   })
 
   test('500 は LineWorksApiError', async () => {

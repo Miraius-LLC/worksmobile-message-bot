@@ -56,6 +56,44 @@ describe('GET /bots/:botId/domains', () => {
     const res = await app.request('/bots/b-001/domains')
     expect(res.status).toBe(401)
   })
+
+  test('count/cursor クエリを転送し 200 + responseMetaData を返す', async () => {
+    installFetch(
+      () =>
+        new Response(
+          JSON.stringify({
+            domains: ['d-001'],
+            responseMetaData: { nextCursor: 'd-next-cur' },
+          }),
+          { status: 200 },
+        ),
+    )
+    const res = await app.request('/bots/b-001/domains?count=25&cursor=d-cur-1', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      domains: unknown[]
+      responseMetaData?: { nextCursor?: string }
+    }
+    expect(body.domains).toEqual(['d-001'])
+    expect(body.responseMetaData?.nextCursor).toBe('d-next-cur')
+    const apiCall = recorded.find(r => r.url.includes('/domains'))
+    expect(apiCall?.url).toContain('count=25')
+    expect(apiCall?.url).toContain('cursor=d-cur-1')
+  })
+
+  test('count が範囲外 (0 や 101) は 400 エラーになる', async () => {
+    const resMin = await app.request('/bots/b-001/domains?count=0', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(resMin.status).toBe(400)
+
+    const resMax = await app.request('/bots/b-001/domains?count=101', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(resMax.status).toBe(400)
+  })
 })
 
 describe('POST /bots/:botId/domains/:domainId (登録)', () => {

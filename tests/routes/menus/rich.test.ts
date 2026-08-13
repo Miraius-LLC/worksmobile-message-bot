@@ -115,6 +115,45 @@ describe('GET /menus/rich (一覧)', () => {
     const res = await app.request('/menus/rich')
     expect(res.status).toBe(401)
   })
+
+  test('count/cursor クエリを転送し 200 + responseMetaData を返す', async () => {
+    installFetch(
+      () =>
+        new Response(
+          JSON.stringify({
+            richmenus: [{ richmenuId: 'rm-001', ...sampleMenu }],
+            responseMetaData: { nextCursor: 'rm-next-cur' },
+          }),
+          { status: 200 },
+        ),
+    )
+    const res = await app.request('/menus/rich?count=15&cursor=rm-cur-0', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      richmenus: Array<{ richmenuId: string }>
+      responseMetaData?: { nextCursor?: string }
+    }
+    expect(body.richmenus).toHaveLength(1)
+    expect(body.richmenus[0]?.richmenuId).toBe('rm-001')
+    expect(body.responseMetaData?.nextCursor).toBe('rm-next-cur')
+    const apiCall = recorded.find(r => r.url.includes('/richmenus'))
+    expect(apiCall?.url).toContain('count=15')
+    expect(apiCall?.url).toContain('cursor=rm-cur-0')
+  })
+
+  test('count が範囲外 (0 や 101) は 400 エラーになる', async () => {
+    const resMin = await app.request('/menus/rich?count=0', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(resMin.status).toBe(400)
+
+    const resMax = await app.request('/menus/rich?count=101', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(resMax.status).toBe(400)
+  })
 })
 
 describe('POST /menus/rich/:id/image (画像登録)', () => {

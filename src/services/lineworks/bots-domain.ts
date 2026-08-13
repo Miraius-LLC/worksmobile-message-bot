@@ -69,20 +69,45 @@ export async function registerBotDomain(
   })
 }
 
+export const listBotDomainsQuerySchema = z.object({
+  count: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().optional(),
+})
+
+export type ListBotDomainsQuery = z.infer<typeof listBotDomainsQuerySchema>
+
+export type BotDomainListResult = {
+  domains: unknown[]
+  responseMetaData?: { nextCursor?: string }
+}
+
 /** Bot が登録されているドメイン一覧 */
 export async function listBotDomains(
   token: string,
   botId: string,
-): Promise<{ domains: unknown[] }> {
-  const response = await fetchWithTimeout(domainsUrl(botId), {
+  query: ListBotDomainsQuery = {},
+): Promise<BotDomainListResult> {
+  const url = new URL(domainsUrl(botId))
+  if (query.count !== undefined) url.searchParams.set('count', String(query.count))
+  if (query.cursor) url.searchParams.set('cursor', query.cursor)
+
+  const response = await fetchWithTimeout(url.toString(), {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   })
 
   if (!response.ok) await throwUpstream(response, `${CALLER}.listBotDomains`)
 
-  const raw = (await response.json()) as { domains?: unknown[] } | unknown[]
-  return Array.isArray(raw) ? { domains: raw } : { domains: raw.domains ?? [] }
+  const raw = (await response.json()) as
+    | { domains?: unknown[]; responseMetaData?: { nextCursor?: string } }
+    | unknown[]
+  if (Array.isArray(raw)) {
+    return { domains: raw }
+  }
+  return {
+    domains: raw.domains ?? [],
+    ...(raw.responseMetaData ? { responseMetaData: raw.responseMetaData } : {}),
+  }
 }
 
 /** ドメイン別 Bot 設定を完全置換 (PUT) */
