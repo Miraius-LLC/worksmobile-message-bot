@@ -340,6 +340,10 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 | `/{:richmenuId}/set-default` | POST   | このリッチメニューを Bot 全員のデフォルトとして適用 → 200 + `{ richmenuId }`              |
 | `/{:richmenuId}`        | DELETE | リッチメニューを削除 (未登録時も 204 で idempotent)                                              |
 
+> 互換性注意: 画像登録は公式APIに合わせ、従来の multipart + `200 { richmenuId }` から
+> JSON `fileId` + `204 No Content` へ変更した。既存の呼び出し元は、先に `POST /attachments`
+> で画像をアップロードして `fileId` を取得してから画像登録を呼び出すこと。
+
 ---
 
 #### [チャンネル管理](https://developers.worksmobile.com/jp/reference/bot-channel-create) (トークルーム CRUD)

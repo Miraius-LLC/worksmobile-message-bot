@@ -104,7 +104,7 @@ export type CreateRichMenuResult = { richmenuId: string }
 /** 一覧レスポンスの個別要素 (作成時の構造に richmenuId を加えたもの) */
 export type RichMenu = RichMenuCreate & { richmenuId: string }
 
-/** 画像の制約 (本ファイルで強制はしないが、route 層 / 呼び出し側のチェック基準) */
+/** コンテンツアップロード時に適用する画像の制約 (画像登録 endpoint では強制しない) */
 export const RICH_MENU_IMAGE_LIMITS = {
   maxBytes: 1024 * 1024, // 1MB
   allowedMimeTypes: ['image/jpeg', 'image/png'] as const,
@@ -182,7 +182,7 @@ export async function listRichMenus(token: string): Promise<RichMenu[]> {
 /**
  * リッチメニューに画像を登録する。
  *
- * 画像仕様 (spec):
+ * 画像仕様 (コンテンツアップロード時の spec):
  *  - 解像度: 2500x843 または 2500x1686
  *  - 形式: JPEG / PNG
  *  - サイズ: 1MB 以下
