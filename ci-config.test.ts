@@ -31,6 +31,7 @@ describe('CI workflow', () => {
     const dryRunStep = workflow.jobs?.check?.steps?.find(step => step.id === 'wrangler-dry-run')
 
     expect(dryRunStep?.env?.WORKER_CUSTOM_DOMAIN).toBe('bot.example.com')
+    expect(dryRunStep?.env?.OAUTH_SCOPE).toBe('bot')
     expect(dryRunStep?.run).toContain('bun scripts/create-wrangler-production-config.ts')
     expect(dryRunStep?.run).toContain(
       'bunx wrangler deploy --config wrangler.production.json --dry-run',
@@ -75,6 +76,7 @@ describe('CI workflow', () => {
     expect(productionConfigStep?.env?.WORKER_CUSTOM_DOMAIN).toBe(
       '$' + '{{ vars.WORKER_CUSTOM_DOMAIN }}',
     )
+    expect(productionConfigStep?.env?.OAUTH_SCOPE).toBe('$' + '{{ vars.OAUTH_SCOPE }}')
     expect(productionConfigStep?.run).toContain('test -n "$WORKER_CUSTOM_DOMAIN"')
     expect(productionConfigStep?.run).toContain('bun scripts/create-wrangler-production-config.ts')
   })

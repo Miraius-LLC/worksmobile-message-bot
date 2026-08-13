@@ -165,6 +165,7 @@ done
 #      _SERVICE_ACCOUNT_LW   = LINE WORKS の service account (例: lrpkq.serviceaccount@xxx)
 #      _BOT_ID               = LINE WORKS の bot ID
 #      _FORWARD_CALLBACK_URL = callbackの転送先URL（任意）
+#      _OAUTH_SCOPE          = OAuth認可スコープ (任意, 省略時 bot)
 
 # 5. Cloud Build trigger を作成する場合は cloudbuild.yaml を指定し、
 #    main などデプロイ対象の branch と substitution variables を設定する。
@@ -181,7 +182,7 @@ done
   COMMIT_SHA="$(git rev-parse HEAD)"
   SHORT_SHA="$(git rev-parse --short=7 HEAD)"
   gcloud builds submit . --config=cloudbuild.yaml \
-    --substitutions="REPO_NAME=${REPO_NAME},COMMIT_SHA=${COMMIT_SHA},SHORT_SHA=${SHORT_SHA},_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SA},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID},_FORWARD_CALLBACK_URL=${FORWARD_CALLBACK_URL:-}"
+    --substitutions="REPO_NAME=${REPO_NAME},COMMIT_SHA=${COMMIT_SHA},SHORT_SHA=${SHORT_SHA},_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SA},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID},_FORWARD_CALLBACK_URL=${FORWARD_CALLBACK_URL:-},_OAUTH_SCOPE=${OAUTH_SCOPE:-}"
 )
 ```
 
@@ -212,7 +213,9 @@ Artifact Registryでは、用途に合わせてcleanup policyを設定してく�
 Cloudflare Workersでは、Cloud RunのNode serverと共通のHono appをWorker
 `worksmobile-message-bot`から配信する。`nodejs_compat`は`wrangler.jsonc`で明示している。
 
-初回または値の更新時は、次の binding 名を `wrangler secret put` で登録する。コマンドは値を対話入力し、README や shell history に値を残さない。
+GitHub Actions 経由でのデプロイ時は、Repository Variable `OAUTH_SCOPE` (`${{ vars.OAUTH_SCOPE }}`) を設定するとビルド時に `wrangler.production.json` の `vars.OAUTH_SCOPE` へ動的注入されます (未設定時は `bot` デフォルト)。
+
+手動デプロイまたは個別設定を行う場合は、`wrangler secret put` または `wrangler deploy --var` を使用します。
 
 ```sh
 bunx wrangler secret put CLIENT_ID
@@ -224,9 +227,10 @@ bunx wrangler secret put BASIC_ID
 bunx wrangler secret put BASIC_PASS
 bunx wrangler secret put BOT_SECRET
 bunx wrangler secret put FORWARD_CALLBACK_URL
+bunx wrangler secret put OAUTH_SCOPE  # (任意) Secret として設定する場合
 ```
 
-`PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_CALLBACK_URL` は callback 転送を使う場合だけ登録する。
+`PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_CALLBACK_URL` や `OAUTH_SCOPE` は必要な場合のみ登録する。手動デプロイ時に CLI から直接環境変数を注入する場合は `bunx wrangler deploy --var OAUTH_SCOPE:bot.message` も利用できる。
 
 ```sh
 # bundle 生成まで。外部へ deploy しない

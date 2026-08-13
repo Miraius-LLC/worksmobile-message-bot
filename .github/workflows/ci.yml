@@ -58,6 +58,7 @@ jobs:
         id: wrangler-dry-run
         env:
           WORKER_CUSTOM_DOMAIN: bot.example.com
+          OAUTH_SCOPE: bot
         run: |
           bun scripts/create-wrangler-production-config.ts
           bunx wrangler deploy --config wrangler.production.json --dry-run
@@ -102,6 +103,7 @@ jobs:
       - name: Create production Wrangler config
         env:
           WORKER_CUSTOM_DOMAIN: ${{ vars.WORKER_CUSTOM_DOMAIN }}
+          OAUTH_SCOPE: ${{ vars.OAUTH_SCOPE }}
         run: |
           test -n "$WORKER_CUSTOM_DOMAIN"
           bun scripts/create-wrangler-production-config.ts

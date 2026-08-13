@@ -43,8 +43,8 @@ const configSchema = z
     /** Base64 エンコード済みプライベートキー */
     PRIVATE_KEY: z.string().min(1),
     BOT_ID: z.string().min(1),
-    /** OAuth 認可スコープ (bot.message | bot.read | bot) */
-    OAUTH_SCOPE: oauthScopeEnum.default('bot'),
+    /** OAuth 認可スコープ (bot.message | bot.read | bot)。空文字または未設定時は bot */
+    OAUTH_SCOPE: z.preprocess(val => (val === '' ? undefined : val), oauthScopeEnum.default('bot')),
     PORT: z.coerce.number().int().positive().default(8080),
     NODE_ENV: z.string().default('development'),
     LOG_PRETTY: z.literal('1').optional(),

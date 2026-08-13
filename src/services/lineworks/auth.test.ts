@@ -56,7 +56,7 @@ describe('services/lineworks/auth', () => {
     const origScope = process.env['OAUTH_SCOPE']
     try {
       // 1. デフォルト (bot)
-      delete process.env['OAUTH_SCOPE']
+      Reflect.deleteProperty(process.env, 'OAUTH_SCOPE')
       _resetConfigCacheForTest()
       load()
       _resetTokenCacheForTest()
@@ -88,7 +88,7 @@ describe('services/lineworks/auth', () => {
       if (origScope !== undefined) {
         process.env['OAUTH_SCOPE'] = origScope
       } else {
-        delete process.env['OAUTH_SCOPE']
+        Reflect.deleteProperty(process.env, 'OAUTH_SCOPE')
       }
       _resetConfigCacheForTest()
       load()

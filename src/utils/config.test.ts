@@ -31,16 +31,16 @@ describe('utils/config', () => {
     expect(parseConfig({ ...validEnv, OAUTH_SCOPE: 'bot.read' }).oauthScope).toBe('bot.read')
     expect(parseConfig({ ...validEnv, OAUTH_SCOPE: 'bot' }).oauthScope).toBe('bot')
 
-    // 不正値は拒否
+    // 不正値は拒否 (空文字は未設定扱い/botにフォールバック)
+    expect(parseConfig({ ...validEnv, OAUTH_SCOPE: '' }).oauthScope).toBe('bot')
     expect(() => parseConfig({ ...validEnv, OAUTH_SCOPE: 'invalid' })).toThrow()
     expect(() => parseConfig({ ...validEnv, OAUTH_SCOPE: 'bot.write' })).toThrow()
-    expect(() => parseConfig({ ...validEnv, OAUTH_SCOPE: '' })).toThrow()
   })
 
   test('OAUTH_SCOPE が load() 経由で Config.oauthScope へ反映される', () => {
     const origScope = process.env['OAUTH_SCOPE']
     try {
-      delete process.env['OAUTH_SCOPE']
+      Reflect.deleteProperty(process.env, 'OAUTH_SCOPE')
       _resetConfigCacheForTest()
       expect(load().oauthScope).toBe('bot')
 
@@ -51,7 +51,7 @@ describe('utils/config', () => {
       if (origScope !== undefined) {
         process.env['OAUTH_SCOPE'] = origScope
       } else {
-        delete process.env['OAUTH_SCOPE']
+        Reflect.deleteProperty(process.env, 'OAUTH_SCOPE')
       }
       _resetConfigCacheForTest()
       load()

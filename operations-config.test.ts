@@ -41,6 +41,7 @@ describe('public repository contract', () => {
       expect(cloudBuild).toContain(`[ -n "\${${name}}" ]`)
     }
     expect(cloudBuild).toContain("_FORWARD_CALLBACK_URL: ''")
+    expect(cloudBuild).toContain("_OAUTH_SCOPE: ''")
     expect(cloudBuild).not.toMatch(/scheduler-[0-9]+|@[^\s]+\.iam\.gserviceaccount\.com/)
     expect(monitoring).toContain('PROJECT_ID="$' + '{PROJECT_ID:?Set PROJECT_ID}"')
     expect(monitoring).toContain('SERVICE_HOST="$' + '{SERVICE_HOST:?Set SERVICE_HOST}"')

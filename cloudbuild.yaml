@@ -15,6 +15,7 @@ substitutions:
   _MIN_INSTANCES: '0'
   _MAX_INSTANCES: '10'
   _FORWARD_CALLBACK_URL: ''
+  _OAUTH_SCOPE: ''
   _SECRET_CLIENT_SECRET: lineworks-client-secret
   _SECRET_PRIVATE_KEY: lineworks-private-key
   _SECRET_BASIC_ID: lineworks-basic-id
@@ -111,7 +112,7 @@ steps:
       - --update-secrets=CLIENT_SECRET=${_SECRET_CLIENT_SECRET}:latest,PRIVATE_KEY=${_SECRET_PRIVATE_KEY}:latest,BASIC_ID=${_SECRET_BASIC_ID}:latest,BASIC_PASS=${_SECRET_BASIC_PASS}:latest,BOT_SECRET=${_SECRET_BOT_SECRET}:latest
 
       # --- 通常 env (機密度の低い設定値) ---
-      - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLIENT_ID=${_CLIENT_ID},SERVICE_ACCOUNT=${_SERVICE_ACCOUNT_LW},BOT_ID=${_BOT_ID},FORWARD_CALLBACK_URL=${_FORWARD_CALLBACK_URL}
+      - --update-env-vars=GOOGLE_CLOUD_PROJECT=${PROJECT_ID},CLIENT_ID=${_CLIENT_ID},SERVICE_ACCOUNT=${_SERVICE_ACCOUNT_LW},BOT_ID=${_BOT_ID},FORWARD_CALLBACK_URL=${_FORWARD_CALLBACK_URL},OAUTH_SCOPE=${_OAUTH_SCOPE}
 
       # --- ネットワーク ---
       - --no-use-http2  # コンテナは HTTP/1.1、Cloud Run frontend が HTTP/2 終端
