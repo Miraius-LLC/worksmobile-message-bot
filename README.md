@@ -215,7 +215,7 @@ Cloudflare Workersでは、Cloud RunのNode serverと共通のHono appをWorker
 
 GitHub Actions 経由でのデプロイ時は、Repository Variable `OAUTH_SCOPE` (`${{ vars.OAUTH_SCOPE }}`) を設定するとビルド時に `wrangler.production.json` の `vars.OAUTH_SCOPE` へ動的注入されます (未設定時は `bot` デフォルト)。
 
-手動デプロイまたは個別設定を行う場合は、`wrangler secret put` または `wrangler deploy --var` を使用します。
+機密値は `wrangler secret put` で設定し、`OAUTH_SCOPE` は GitHub Actions Repository Variable または `wrangler.production.json` の `vars` で設定します。手動時は `wrangler deploy --var OAUTH_SCOPE:bot.message` を使用します。
 
 ```sh
 bunx wrangler secret put CLIENT_ID
@@ -227,10 +227,9 @@ bunx wrangler secret put BASIC_ID
 bunx wrangler secret put BASIC_PASS
 bunx wrangler secret put BOT_SECRET
 bunx wrangler secret put FORWARD_CALLBACK_URL
-bunx wrangler secret put OAUTH_SCOPE  # (任意) Secret として設定する場合
 ```
 
-`PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_CALLBACK_URL` や `OAUTH_SCOPE` は必要な場合のみ登録する。手動デプロイ時に CLI から直接環境変数を注入する場合は `bunx wrangler deploy --var OAUTH_SCOPE:bot.message` も利用できる。
+`PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_CALLBACK_URL` は必要な場合のみ登録する。
 
 ```sh
 # bundle 生成まで。外部へ deploy しない
