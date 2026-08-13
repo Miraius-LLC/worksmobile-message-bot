@@ -24,3 +24,19 @@ export function verifyCallbackSignature(
 
   return timingSafeEqual(expectedBuf, actualBuf)
 }
+
+/**
+ * LINE WORKS Bot ID の一致検証。
+ *
+ * `X-WORKS-BotId` ヘッダの値と設定済み `botId` を比較する。
+ *
+ * @see https://developers.worksmobile.com/jp/docs/bot-callback
+ */
+export function verifyBotId(
+  headerBotId: string | null | undefined,
+  configuredBotId: string,
+): 'ok' | 'missing' | 'mismatch' {
+  if (!headerBotId) return 'missing'
+  if (headerBotId !== configuredBotId) return 'mismatch'
+  return 'ok'
+}

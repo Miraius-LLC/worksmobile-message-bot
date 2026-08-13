@@ -42,11 +42,9 @@ export function checkAndRegister(key: string, now: number = Date.now()): boolean
 }
 
 /**
- * 副作用 (dispatch) が throw した場合に呼ぶ。LINE WORKS の再送を再び受け付けられるよう
- * key を内部 Map から削除する。`checkAndRegister` で登録した直後の rollback 用。
- *
- * 呼ばない場合: dispatch 失敗 (例: 業務 API への書き込み失敗) → LINE WORKS の再送が
- * 来ても dedup で skip され、処理されないまま終わる (副作用喪失)。
+ * 副作用 (forward / dispatch) が throw した場合に呼ぶ。
+ * 手動再投入等で同一 payload が再送された際に受け入れられるよう key を内部 Map から削除する。
+ * なお、LINE WORKS 公式仕様として Callback の自動再送は行われない。
  */
 export function unregister(key: string): void {
   seen.delete(key)

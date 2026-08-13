@@ -8,12 +8,11 @@ const CALLER = 'services/lineworks/callback/forward'
  * 受信したCallback（raw body + 署名）を設定済みupstreamへ転送する。
  * raw bodyを変更せず、X-WORKS-Signatureヘッダも引き継ぐ。
  *
- * レスポンス方針 (LINE WORKS の再送判定に合わせる):
+ * レスポンス方針:
  *  - upstream が 2xx → 正常 (return)
- *  - upstream が 5xx / network error → throw (callback.ts が dedup を unregister → 500 →
- *    LINE WORKS が再送 → 再転送される)
- *  - upstream が 4xx → 再送しても直らないためwarnしてreturn
- *    (LINE WORKS には 200 を返させて再送ループを防ぐ)
+ *  - upstream が 5xx / network error → throw (callback.ts が dedup を unregister → 500 返却。
+ *    LINE WORKS 公式仕様として自動再送は行われないため、ログ記録および手動再投入用)
+ *  - upstream が 4xx → 再送しても解決しないため warn して return (LINE WORKS へは 200 返却)
  */
 export async function forwardEventToUpstream(
   rawBody: string,
@@ -38,7 +37,7 @@ export async function forwardEventToUpstream(
 
   if (response.status >= 500) {
     const body = await response.text().catch(() => '')
-    logger.error('upstreamへのcallback転送が5xx（再送対象）', {
+    logger.error('upstreamへのcallback転送が5xx（転送失敗）', {
       caller: `${CALLER}.forwardEventToUpstream`,
       status: response.status,
       debug: body,

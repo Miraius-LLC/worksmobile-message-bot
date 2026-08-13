@@ -53,7 +53,7 @@ describe('forwardEventToUpstream', () => {
     expect(calls.length).toBe(1)
   })
 
-  test('5xx は throw する (callback.ts が dedup unregister → 再送)', async () => {
+  test('5xx は throw する (upstream 転送失敗を上位へ伝播)', async () => {
     stubFetch(503)
     await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).rejects.toThrow(
       'forward to upstream failed: 503',

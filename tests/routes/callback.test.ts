@@ -48,9 +48,14 @@ function sign(rawBody: string): string {
   return createHmac('sha256', BOT_SECRET).update(rawBody, 'utf8').digest('base64')
 }
 
-async function postCallback(rawBody: string, signature?: string | null): Promise<Response> {
+async function postCallback(
+  rawBody: string,
+  signature?: string | null,
+  botId: string | null = 'test-bot-id',
+): Promise<Response> {
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   if (typeof signature === 'string') headers['x-works-signature'] = signature
+  if (typeof botId === 'string') headers['x-works-botid'] = botId
   return app.request('/callback', { method: 'POST', headers, body: rawBody })
 }
 
@@ -101,6 +106,35 @@ describe('POST /callback: 署名検証', () => {
     // Authorization ヘッダを付けない (postCallback も付けていない) のに署名さえ正しければ 200
     const res = await postCallback(raw, sign(raw))
     expect(res.status).toBe(200)
+  })
+})
+
+describe('POST /callback: Bot ID 検証', () => {
+  test('X-WORKS-BotId ヘッダ欠落は 400 + { error: "missing bot id" }', async () => {
+    const raw = JSON.stringify(messageEventFixture)
+    const res = await postCallback(raw, sign(raw), null)
+    expect(res.status).toBe(400)
+    expect(((await res.json()) as { error: string }).error).toBe('missing bot id')
+  })
+
+  test('X-WORKS-BotId ヘッダ不一致は 403 + { error: "bot id mismatch" }', async () => {
+    const raw = JSON.stringify(messageEventFixture)
+    const res = await postCallback(raw, sign(raw), 'wrong-bot-id')
+    expect(res.status).toBe(403)
+    expect(((await res.json()) as { error: string }).error).toBe('bot id mismatch')
+  })
+
+  test('正しい Bot ID + 正しい署名なら 200', async () => {
+    const raw = JSON.stringify(messageEventFixture)
+    const res = await postCallback(raw, sign(raw), 'test-bot-id')
+    expect(res.status).toBe(200)
+  })
+
+  test('署名不正時は Bot ID チェック前に 401 を返す (Bot ID ヘッダ欠落/不一致でも 401)', async () => {
+    const raw = JSON.stringify(messageEventFixture)
+    const res = await postCallback(raw, null, 'wrong-bot-id')
+    expect(res.status).toBe(401)
+    expect(((await res.json()) as { error: string }).error).toBe('invalid signature')
   })
 })
 
@@ -158,7 +192,7 @@ describe('POST /callback: upstreamへの転送', () => {
     expect(forwardCalls.length).toBe(0)
   })
 
-  test('upstreamが5xxを返すと500（再送を促す）', async () => {
+  test('upstreamが5xxを返すと500を返す (LINE WORKSの自動再送は期待しない)', async () => {
     forwardStatus = 503
     const raw = JSON.stringify(messageEventFixture)
     const res = await postCallback(raw, sign(raw))
@@ -244,7 +278,7 @@ describe('POST /callback: dedup (5 分 window)', () => {
     expect(forwardCalls.length).toBe(2)
   })
 
-  test('転送が throw した場合は dedup を unregister して再送を許可する', async () => {
+  test('転送が throw した場合は dedup を unregister し、手動再投入等での再実行を許可する', async () => {
     const raw = JSON.stringify(messageEventFixture)
     const signature = sign(raw)
 
@@ -253,7 +287,7 @@ describe('POST /callback: dedup (5 分 window)', () => {
     const res1 = await postCallback(raw, signature)
     expect(res1.status).toBe(500)
 
-    // 2 回目 (LINE WORKS の再送相当): dedup が unregister されているので再度転送される
+    // 2 回目 (手動再投入相当): dedup が unregister されているので再度転送される
     forwardStatus = 200
     const res2 = await postCallback(raw, signature)
     expect(res2.status).toBe(200)

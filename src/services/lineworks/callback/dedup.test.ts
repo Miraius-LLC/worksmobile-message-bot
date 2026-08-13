@@ -77,7 +77,7 @@ describe('checkAndRegister', () => {
 })
 
 describe('unregister', () => {
-  test('登録済 key を削除すると再び未登録扱いになる (= 失敗時 retry が通る)', () => {
+  test('登録済 key を削除すると再び未登録扱いになる (= 失敗時の手動再投入が通る)', () => {
     const key = buildDedupKey('payload-X')
     expect(checkAndRegister(key, FIXED_NOW)).toBe(false)
     unregister(key)

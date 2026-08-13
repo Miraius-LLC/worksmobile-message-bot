@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import { createHmac } from 'node:crypto'
-import { verifyCallbackSignature } from '@/services/lineworks/callback/verify'
+import { verifyBotId, verifyCallbackSignature } from '@/services/lineworks/callback/verify'
 
 const BOT_SECRET = 'test-bot-secret-12345'
+const EXPECTED_BOT_ID = 'test-bot-id-123'
 
 function makeSignature(rawBody: string, secret: string = BOT_SECRET): string {
   return createHmac('sha256', secret).update(rawBody, 'utf8').digest('base64')
@@ -67,5 +68,27 @@ describe('verifyCallbackSignature', () => {
     const rawBody = ''
     const signature = makeSignature(rawBody)
     expect(verifyCallbackSignature(rawBody, signature, BOT_SECRET)).toBe(true)
+  })
+})
+
+describe('verifyBotId', () => {
+  test('Bot ID ヘッダが設定値と一致する場合は ok を返す', () => {
+    expect(verifyBotId('test-bot-id-123', EXPECTED_BOT_ID)).toBe('ok')
+  })
+
+  test('Bot ID ヘッダが null の場合は missing を返す', () => {
+    expect(verifyBotId(null, EXPECTED_BOT_ID)).toBe('missing')
+  })
+
+  test('Bot ID ヘッダが undefined の場合は missing を返す', () => {
+    expect(verifyBotId(undefined, EXPECTED_BOT_ID)).toBe('missing')
+  })
+
+  test('Bot ID ヘッダが空文字の場合は missing を返す', () => {
+    expect(verifyBotId('', EXPECTED_BOT_ID)).toBe('missing')
+  })
+
+  test('Bot ID ヘッダが設定値と不一致の場合は mismatch を返す', () => {
+    expect(verifyBotId('different-bot-id', EXPECTED_BOT_ID)).toBe('mismatch')
   })
 })

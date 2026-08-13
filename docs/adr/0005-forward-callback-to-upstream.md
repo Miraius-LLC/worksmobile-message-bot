@@ -25,18 +25,18 @@ LINE WORKS callbackの認証とpayload検証は本サーバで行い、業務固
 
 Chosen option: 「環境変数で指定したupstreamへ転送する」
 
-署名検証、dedup、Zod検証を通したcallbackを、raw bodyと`X-WORKS-Signature`を保ったまま`FORWARD_CALLBACK_URL`へ転送する。未設定の場合は転送せず`200`を返す。
+署名検証、Bot ID検証、dedup、Zod検証を通したcallbackを、raw bodyと`X-WORKS-Signature`を保ったまま`FORWARD_CALLBACK_URL`へ転送する。未設定の場合は転送せず`200`を返す。
 
 ### Consequences
 
 - Good: gatewayを変更せずに転送先や業務ロジックを交換できる
 - Good: ローカル開発ではupstreamを起動せずcallback受信だけを確認できる
-- Bad: 転送先障害時の再送とidempotencyを両サービスで考慮する必要がある
+- Bad: LINE WORKS 公式仕様として Callback は自動再送されないため、転送失敗時の到達保証 (Durable Queue やオペレーター手動再投入等) を考慮する必要がある
 - Neutral: 業務固有の処理は転送先の責務として扱い、本サーバはgatewayの責務を維持する
 
 ### Confirmation
 
-callback route testsでraw body、署名、成功時応答、失敗時のdedup解除を確認する。
+callback route testsでraw body、署名、Bot ID、成功時応答、失敗時のdedup解除 (unregister) を確認する。
 
 <!-- Private legacy source SHA-256: 7877bd11d775071d9bf515378930ce0489be8fd57e5f6f46cfa39536ba9bdf3c -->
 <!-- Public sanitized record SHA-256: 97ff8a9f3bd8b0352627537eb63a65fbc0e12ec4af2b85e5a9e6f7fc5bfd9502 -->

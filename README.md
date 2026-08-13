@@ -895,18 +895,18 @@ LINE WORKS から Bot 宛のイベント (メッセージ送信 / ボタン押�
 #### 認証
 
 - BASIC 認証は適用しない (LINE WORKS は BASIC 認証ヘッダを付けないため)
-- 代わりに **`X-WORKS-Signature` ヘッダ (= raw body の HMAC-SHA256 を Bot Secret を鍵に計算し Base64 化した値) を検証**して真正性を担保する
-- 検証 NG → `401 invalid signature` を返す。LINE WORKS は再送しないため body は短くしている
+- 代わりに **`X-WORKS-Signature` ヘッダ (= raw body の HMAC-SHA256 を Bot Secret を鍵に計算し Base64 化した値) を検証**して真正性を担保する (検証 NG → `401 invalid signature`)
+- 署名検証成功後、**`X-WORKS-BotId` ヘッダを検証**し、対象 Bot ID の一致を確認する (欠落 → `400 missing bot id`、不一致 → `403 bot id mismatch`)
 - 検証 OK → dedup チェック (下記) → JSON.parse → Zod の `discriminatedUnion` でevent形式を確認 → 転送先が設定されていればraw bodyと署名をupstream serviceへ転送 → `200`を返す
 
 #### Dedup (5 分 window)
 
-LINE WORKS が同一 event を再送した場合に副作用が二重実行されるのを防ぐため、`src/services/lineworks/callback/dedup.ts` で軽量 dedup を実施する。
+LINE WORKS から同一 event が重複して届いた場合に副作用が二重実行されるのを防ぐため、`src/services/lineworks/callback/dedup.ts` で軽量 dedup を実施する。
 
 - **Dedup key**: raw body の SHA-256 hex (`createHash('sha256').update(rawBody).digest('hex')`)。LINE WORKS の callback payload には event ID 相当のフィールドが無いため、payload 全体のハッシュをキーにする
-- **TTL**: 5 分。同じ key が直近 5 分以内に届いていれば skip して 200 を返す (LINE WORKS の再送を黙らせる)
-- **失敗時 retry**: upstreamへの転送が5xxまたはnetwork errorで失敗した場合はdedup keyを`unregister`し、LINE WORKSからの再送を許可する
-- **検証順序**: 署名検証 → dedup → JSON parse → Zod検証 → 設定済みupstreamへ転送
+- **TTL**: 5 分。同じ key が直近 5 分以内に届いていれば skip して 200 を返す (重複実行を抑止)
+- **失敗時リセット**: upstream への転送が 5xx または network error で失敗した場合は dedup key を `unregister` し、手動再投入時等に再実行を許可する (なお、LINE WORKS 公式仕様として Callback の自動再送は行われない)
+- **検証順序**: 署名検証 → Bot ID 検証 → dedup → JSON parse → Zod検証 → 設定済みupstreamへ転送
 
 ⚠️ **Workersのisolate間、およびCloud Runのinstance間でwmbot内のMapは共有されない**ため、
 callback dedupはどちらの基盤でもbest effortです。厳密な一回処理が必要な場合は、

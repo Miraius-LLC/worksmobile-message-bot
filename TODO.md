@@ -18,10 +18,11 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 - [x] **Bot・ドメイン・リッチメニュー一覧のpaginationを追加** — `count` / `cursor` / `responseMetaData.nextCursor`を公式仕様どおり扱い、転送・クエリ検証・契約テストを反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **公開routeのHTTP status契約を公式準拠へ整理** — 201/204を返す作成・画像・デフォルト適用経路について、既存利用者互換を確認して契約テストを固定する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **OAuth scopeの用途別選択を実装** — 環境変数 `OAUTH_SCOPE` (default: `bot`, 許容値: `bot.message` / `bot.read` / `bot`) を追加し、OAuth トークンリクエストへ反映。最小権限選択に対応した（[公式 Scope 仕様](https://developers.worksmobile.com/jp/docs/auth-scope)）。
-- [ ] **CallbackのBot ID検証と非同期処理方針を確認** — 公式Callbackの `X-WORKS-BotId` ヘッダ検証と、後続イベントを滞留させない非同期転送を採用するか要件を確認する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [x] **CallbackのBot ID検証と非同期処理方針を確認** — 署名検証後の `X-WORKS-BotId` ヘッダ検証 (400 missing / 403 mismatch) を実装。非同期方針は Cloud Run / Workers 共通で同期 await 転送を維持する案 A を採用し、将来のイベント非消失キュー検討を別 TODO として整理した（[調査メモ](./docs/research/lineworks-callback-bot-id-async-2026-08-13.md)）。
 
 ### スケーリング
 
+- [ ] **Callbackの厳密非同期化・耐久キュー (Durable Queue) 導入** — Cloud Run の request-based CPU allocation や Workers の応答/障害契約の対称性を保ちつつイベント非消失を担保するため、Cloud Tasks や Cloudflare Queues 等の durable queue を導入する（[調査メモ](./docs/research/lineworks-callback-bot-id-async-2026-08-13.md)）。
 - [ ] **dedupを共有ストア化** — Workers isolate間やCloud Run instance間でwmbot内Mapは共有されない。gateway単体で厳密な一回処理が必要になった時だけ共有ストアまたはupstream側idempotencyを導入する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
 
 ### コードの整理
