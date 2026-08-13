@@ -336,7 +336,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 | ----------------------- | ------ | ----------------------------------------------------------------------------------------------- |
 | `/`                     | POST   | リッチメニューを作成 → 200 + `{ richmenuId }`                                                    |
 | `/`                     | GET    | 登録済リッチメニュー一覧 → 200 + `{ richmenus: [...] }`                                          |
-| `/{:richmenuId}/image`  | POST   | 画像を登録 (`multipart/form-data`, `file` フィールドに JPEG / PNG, 1MB 以下)                    |
+| `/{:richmenuId}/image`  | POST   | 事前アップロード済み `fileId` を JSON で画像登録 → 204 No Content                       |
 | `/{:richmenuId}/set-default` | POST   | このリッチメニューを Bot 全員のデフォルトとして適用 → 200 + `{ richmenuId }`              |
 | `/{:richmenuId}`        | DELETE | リッチメニューを削除 (未登録時も 204 で idempotent)                                              |
 
@@ -393,7 +393,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 #### [Bot CRUD (ドメイン別)](https://developers.worksmobile.com/jp/reference/bot-domain-bot-update) (ドメイン上の Bot 設定)
 
 - BASE URL: `/bots/{:botId}/domains`
-- ドメイン単位の Bot 設定 (administrators / enableCallback 等) を個別に管理
+- ドメイン単位の Bot 公開設定 (`visible` / `allowToSelectedMember`) を個別に管理
 
 | Endpoint              | HTTP   | 説明                                                                                          |
 | --------------------- | ------ | --------------------------------------------------------------------------------------------- |
@@ -445,7 +445,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 | Bot `administrators` | 1〜3 件、重複不可 |
 | Bot `subadministrators` | 0〜3 件 |
 | Bot `callbackEvents` | `text`/`location`/`sticker`/`image`/`file`/`audio`/`video` から選択 |
-| Bot `channelEvents` | `join`/`leave`/`joined`/`left`/`begin`/`end` から選択 |
+| Bot `channelEvents` | `message`/`join`/`leave`/`joined`/`left`/`postback`/`begin`/`end` から選択 |
 
 ---
 
@@ -725,24 +725,30 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
   { "richmenuId": "rm-001-xxx" }
   ```
 
-##### 2. 画像登録
+##### 2. 画像をコンテンツアップロードして fileId を取得
+
+まず [コンテンツアップロード](https://developers.worksmobile.com/jp/docs/bot-attachment-create) で画像の `uploadUrl` を取得し、画像をアップロードする。アップロード結果の `fileId` を次の画像登録で使う。
+
+##### 3. 画像登録
 
 - Endpoint: `/menus/rich/{:richmenuId}/image`
 - HTTP: `POST`
 - Body:
-  ```md
-    multipart/form-data
-    Key: file
-    Value: <2500x843 or 2500x1686 の JPEG/PNG, 1MB 以下>
+  ```json
+  {
+    "fileId": "file-001",
+    "i18nFileIds": [{ "language": "en_US", "fileId": "file-en-001" }]
+  }
   ```
+- Response: `204 No Content`
 
-##### 3. デフォルトとして適用
+##### 4. デフォルトとして適用
 
 - Endpoint: `/menus/rich/{:richmenuId}/set-default`
 - HTTP: `POST`
 - Body: なし (URL の `:richmenuId` だけで完結)
 
-##### 4. 一覧取得 / 削除
+##### 5. 一覧取得 / 削除
 
 - 一覧: `GET /menus/rich` → 200 + `{ richmenus: [...] }`
 - 削除: `DELETE /menus/rich/{:richmenuId}` → 204 (未登録も idempotent)
@@ -807,7 +813,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
     "enableCallback": true,
     "callbackUrl": "https://bot.example.com/callback",
     "callbackEvents": ["text", "image", "file"],
-    "channelEvents": ["join", "leave", "joined", "left", "begin", "end"],
+    "channelEvents": ["message", "join", "leave", "joined", "left", "postback", "begin", "end"],
     "enableGroupJoin": true
   }
   ```
@@ -831,9 +837,9 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 
 #### Bot CRUD (ドメイン別)
 
-ドメイン上の Bot 設定 (administrators / enableCallback 等) をドメイン単位で個別管理。テナント Bot CRUD と区別。
+ドメイン上の Bot の公開範囲と利用メンバー制限をドメイン単位で個別管理。テナント Bot CRUD と区別。
 
-- 登録: `POST /bots/{:botId}/domains/{:domainId}` (body: `{ administrators: ['u1'], enableCallback?: bool, ... }`) → 201 + `{ botId, domainId }`
+- 登録: `POST /bots/{:botId}/domains/{:domainId}` (body: `{ visible?: bool, allowToSelectedMember?: bool }`) → 201 + `{ botId, domainId }`
 - 一覧: `GET /bots/{:botId}/domains` → 200 + `{ domains: [...] }`
 - 完全置換: `PUT /bots/{:botId}/domains/{:domainId}`
 - 部分更新: `PATCH /bots/{:botId}/domains/{:domainId}` (送ったフィールドだけ)

@@ -1,13 +1,12 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { bodyLimit } from 'hono/body-limit'
 import { type AuthenticatedEnv, tokenMiddleware } from '@/routes/_middleware'
 import {
   createRichMenu,
   deleteRichMenu,
   listRichMenus,
-  RICH_MENU_IMAGE_LIMITS,
   richMenuCreateSchema,
+  richMenuImageSchema,
   setDefaultRichMenu,
   uploadRichMenuImage,
 } from '@/services/lineworks/menus/rich'
@@ -21,7 +20,7 @@ import {
  * 提供するのは MVP 5 endpoint:
  *  - POST /        作成
  *  - GET /         一覧
- *  - POST /:id/image     画像登録 (multipart/form-data, file フィールド)
+ *  - POST /:id/image     画像登録 (application/json, fileId)
  *  - POST /:id/set-default デフォルト適用
  *  - DELETE /:id   削除 (404 idempotent)
  */
@@ -51,41 +50,20 @@ richMenuApp.get('/', async c => {
   return c.json({ richmenus: list })
 })
 
-/**
- * POST /menus/rich/:id/image — 画像登録
- *
- * `multipart/form-data` で `file` フィールドに画像を載せる。
- * 1MB の bodyLimit + Content-Type 検証で route 層で早期 reject、
- * サイズ・解像度の厳密検証は LINE WORKS 側に委ねる
- */
+/** POST /menus/rich/:id/image — 事前アップロード済み fileId で画像を登録 */
 richMenuApp.post(
   '/:id/image',
-  bodyLimit({
-    maxSize: RICH_MENU_IMAGE_LIMITS.maxBytes,
-    onError: c =>
-      c.json(
-        {
-          error: `画像サイズが上限 (${RICH_MENU_IMAGE_LIMITS.maxBytes / 1024 / 1024}MB) を超えています`,
-        },
-        413,
-      ),
+  zValidator('json', richMenuImageSchema, (result, c) => {
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? 'リクエスト本文が不正です'
+      return c.json({ error: message }, 400)
+    }
   }),
   async c => {
     const id = c.req.param('id')
-    const body = await c.req.parseBody()
-    const file = body['file']
-    if (!(file instanceof File)) {
-      return c.json({ error: 'file フィールドに画像をアップロードしてください' }, 400)
-    }
-    const allowed = RICH_MENU_IMAGE_LIMITS.allowedMimeTypes as readonly string[]
-    if (!allowed.includes(file.type)) {
-      return c.json(
-        { error: `画像形式は ${allowed.join(' / ')} のみ対応 (受信: ${file.type})` },
-        400,
-      )
-    }
-    await uploadRichMenuImage(c.var.token, id, file, file.name)
-    return c.json({ richmenuId: id })
+    const body = c.req.valid('json')
+    await uploadRichMenuImage(c.var.token, id, body)
+    return c.body(null, 204)
   },
 )
 

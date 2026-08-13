@@ -5,6 +5,7 @@ import {
   listRichMenus,
   RICH_MENU_IMAGE_LIMITS,
   type RichMenuCreate,
+  type RichMenuImageInput,
   richMenuCreateSchema,
   setDefaultRichMenu,
   uploadRichMenuImage,
@@ -212,24 +213,25 @@ describe('listRichMenus', () => {
 })
 
 describe('uploadRichMenuImage', () => {
-  test('POST /richmenus/{id}/image に multipart/form-data で送信', async () => {
-    installFetch(() => new Response('', { status: 201 }))
-    const blob = new Blob(['fake-image-bytes'], { type: 'image/png' })
-    await uploadRichMenuImage('tok', 'rm-001', blob, 'menu.png')
+  const image: RichMenuImageInput = {
+    fileId: 'file-001',
+    i18nFileIds: [{ language: 'en_US', fileId: 'file-en-001' }],
+  }
+
+  test('POST /richmenus/{id}/image に fileId JSON を送信する', async () => {
+    installFetch(() => new Response(null, { status: 204 }))
+    await uploadRichMenuImage('tok', 'rm-001', image)
     expect(lastRequest?.init?.method).toBe('POST')
     expect(lastRequest?.url).toContain('/richmenus/rm-001/image')
-    // FormData は Content-Type を自動付与する。手動でセットしていないこと
     const headers = lastRequest?.init?.headers as Record<string, string> | undefined
-    expect(headers?.['Content-Type']).toBeUndefined()
+    expect(headers?.['Content-Type']).toBe('application/json')
     expect(headers?.Authorization).toBe('Bearer tok')
-    // body が FormData
-    expect(lastRequest?.init?.body).toBeInstanceOf(FormData)
+    expect(lastRequest?.init?.body).toBe(JSON.stringify(image))
   })
 
   test('upstream 4xx は LineWorksApiError', async () => {
     installFetch(() => new Response('bad', { status: 400 }))
-    const blob = new Blob([''], { type: 'image/png' })
-    await expect(uploadRichMenuImage('tok', 'rm-001', blob, 'x.png')).rejects.toThrow('status=400')
+    await expect(uploadRichMenuImage('tok', 'rm-001', image)).rejects.toThrow('status=400')
   })
 })
 

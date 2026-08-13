@@ -118,52 +118,54 @@ describe('GET /menus/rich (一覧)', () => {
 })
 
 describe('POST /menus/rich/:id/image (画像登録)', () => {
-  function buildFormData(file: Blob, filename = 'menu.png'): FormData {
-    const fd = new FormData()
-    fd.append('file', file, filename)
-    return fd
-  }
-
-  test('正常 (PNG) は 200 + richmenuId', async () => {
-    installFetch(() => new Response('', { status: 201 }))
-    const fd = buildFormData(new Blob(['fake'], { type: 'image/png' }))
+  test('正常は 204 No Content + fileId JSON', async () => {
+    installFetch(() => new Response(null, { status: 204 }))
     const res = await app.request('/menus/rich/rm-001/image', {
       method: 'POST',
-      headers: { Authorization: BASIC_AUTH },
-      body: fd,
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
+      body: JSON.stringify({
+        fileId: 'file-001',
+        i18nFileIds: [{ language: 'en_US', fileId: 'file-en-001' }],
+      }),
     })
-    expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ richmenuId: 'rm-001' })
+    expect(res.status).toBe(204)
+    expect(await res.text()).toBe('')
     const apiCall = recorded.find(r => r.url.includes('/richmenus/rm-001/image'))
     expect(apiCall?.init?.method).toBe('POST')
+    expect(apiCall?.init?.body).toBe(
+      JSON.stringify({
+        fileId: 'file-001',
+        i18nFileIds: [{ language: 'en_US', fileId: 'file-en-001' }],
+      }),
+    )
   })
 
-  test('file フィールド欠落は 400', async () => {
-    const fd = new FormData()
-    fd.append('not-file', 'x')
+  test('fileId 欠落は 400', async () => {
     const res = await app.request('/menus/rich/rm-001/image', {
       method: 'POST',
-      headers: { Authorization: BASIC_AUTH },
-      body: fd,
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
+      body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
   })
 
-  test('未対応 MIME (text/plain) は 400', async () => {
-    const fd = buildFormData(new Blob(['x'], { type: 'text/plain' }), 'x.txt')
+  test('i18nFileIds の言語コード不正は 400', async () => {
     const res = await app.request('/menus/rich/rm-001/image', {
       method: 'POST',
-      headers: { Authorization: BASIC_AUTH },
-      body: fd,
+      headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
+      body: JSON.stringify({
+        fileId: 'file-001',
+        i18nFileIds: [{ language: 'xx_XX', fileId: 'file-xx-001' }],
+      }),
     })
     expect(res.status).toBe(400)
   })
 
   test('BASIC 認証なしは 401', async () => {
-    const fd = buildFormData(new Blob(['x'], { type: 'image/png' }))
     const res = await app.request('/menus/rich/rm-001/image', {
       method: 'POST',
-      body: fd,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ fileId: 'file-001' }),
     })
     expect(res.status).toBe(401)
   })

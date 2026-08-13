@@ -48,6 +48,32 @@ describe('botCreateSchema', () => {
     ).toBe(false)
   })
 
+  test('配列の重複は reject (uniqueItems)', () => {
+    expect(
+      botCreateSchema.safeParse({ ...validBot, administrators: ['same', 'same'] }).success,
+    ).toBe(false)
+    expect(
+      botCreateSchema.safeParse({ ...validBot, allowDomains: [10000001, 10000001] }).success,
+    ).toBe(false)
+  })
+
+  test('allowDomains は整数のみ受け付ける', () => {
+    expect(botCreateSchema.safeParse({ ...validBot, allowDomains: [10000001] }).success).toBe(true)
+    expect(botCreateSchema.safeParse({ ...validBot, allowDomains: [1.5] }).success).toBe(false)
+  })
+
+  test('channelEvents は公式の8種と重複制約に従う', () => {
+    expect(
+      botCreateSchema.safeParse({
+        ...validBot,
+        channelEvents: ['message', 'join', 'leave', 'joined', 'left', 'postback', 'begin', 'end'],
+      }).success,
+    ).toBe(true)
+    expect(
+      botCreateSchema.safeParse({ ...validBot, channelEvents: ['message', 'message'] }).success,
+    ).toBe(false)
+  })
+
   test('callbackUrl が HTTPS なら OK', () => {
     expect(
       botCreateSchema.safeParse({
@@ -81,11 +107,22 @@ describe('botCreateSchema', () => {
       botCreateSchema.safeParse({
         ...validBot,
         i18nBotNames: [
-          { language: 'ja_JP', value: '日本語名' },
-          { language: 'en_US', value: 'English' },
+          { language: 'ja_JP', botName: '日本語名' },
+          { language: 'en_US', botName: 'English' },
         ],
+        i18nDescriptions: [{ language: 'ja_JP', description: '説明' }],
+        i18nPhotoUrls: [{ language: 'ja_JP', photoUrl: 'https://example.com/photo-ja.png' }],
       }).success,
     ).toBe(true)
+  })
+
+  test('i18n の旧 value フィールドは reject', () => {
+    expect(
+      botCreateSchema.safeParse({
+        ...validBot,
+        i18nBotNames: [{ language: 'ja_JP', value: '日本語名' }],
+      }).success,
+    ).toBe(false)
   })
 })
 

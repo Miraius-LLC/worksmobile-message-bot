@@ -11,10 +11,26 @@ const CALLER = 'services/lineworks/bots-tenant'
 
 const i18nLanguageSchema = z.enum(['ja_JP', 'ko_KR', 'en_US', 'zh_CN', 'zh_TW'])
 
-const i18nValueSchema = z.object({
+const i18nBotNameSchema = z.object({
   language: i18nLanguageSchema,
-  value: z.string(),
+  botName: z.string().max(100),
 })
+
+const i18nDescriptionSchema = z.object({
+  language: i18nLanguageSchema,
+  description: z.string().max(100),
+})
+
+const i18nPhotoUrlSchema = z.object({
+  language: i18nLanguageSchema,
+  photoUrl: z.string().max(1000).refine(isHttpsUrl, { message: 'HTTPS の URL を指定してください' }),
+})
+
+function uniqueArray<T>(schema: z.ZodType<T>) {
+  return z.array(schema).refine(values => new Set(values).size === values.length, {
+    message: '配列内の値は重複できません',
+  })
+}
 
 /** HTTPS URL チェック (photoUrl / callbackUrl) */
 function isHttpsUrl(value: string): boolean {
@@ -42,7 +58,16 @@ const callbackEventTypeSchema = z.enum([
 ])
 
 /** Callback で受信可能なトークルームイベント */
-const channelEventTypeSchema = z.enum(['join', 'leave', 'joined', 'left', 'begin', 'end'])
+const channelEventTypeSchema = z.enum([
+  'message',
+  'join',
+  'leave',
+  'joined',
+  'left',
+  'postback',
+  'begin',
+  'end',
+])
 
 // =============================================================================
 // Bot create body schema (POST / PUT で共通)
@@ -59,20 +84,18 @@ export const botCreateSchema = z.object({
   botName: z.string().min(1).max(100),
   photoUrl: httpsUrlSchema,
   description: z.string().min(1).max(100),
-  administrators: z.array(z.string()).min(1).max(3),
-  subadministrators: z.array(z.string()).max(3).optional(),
-  allowDomains: z.array(z.number()).optional(),
+  administrators: uniqueArray(z.string()).min(1).max(3),
+  subadministrators: uniqueArray(z.string()).max(3).optional(),
+  allowDomains: uniqueArray(z.number().int()).optional(),
   enableCallback: z.boolean().optional(),
   callbackUrl: httpsUrlSchema.optional(),
-  callbackEvents: z.array(callbackEventTypeSchema).optional(),
-  channelEvents: z.array(channelEventTypeSchema).optional(),
+  callbackEvents: uniqueArray(callbackEventTypeSchema).optional(),
+  channelEvents: uniqueArray(channelEventTypeSchema).optional(),
   enableGroupJoin: z.boolean().optional(),
   defaultRichmenuId: z.string().optional(),
-  i18nBotNames: z.array(i18nValueSchema).optional(),
-  i18nDescriptions: z.array(i18nValueSchema).optional(),
-  i18nPhotoUrls: z
-    .array(z.object({ language: i18nLanguageSchema, value: httpsUrlSchema }))
-    .optional(),
+  i18nBotNames: z.array(i18nBotNameSchema).optional(),
+  i18nDescriptions: z.array(i18nDescriptionSchema).optional(),
+  i18nPhotoUrls: z.array(i18nPhotoUrlSchema).optional(),
 })
 
 export type BotCreateInput = z.infer<typeof botCreateSchema>

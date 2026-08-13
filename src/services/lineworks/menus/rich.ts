@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { fetchWithTimeout, LONG_TIMEOUT_MS } from '@/services/lineworks/_fetch'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
 import { logger } from '@/utils/logger'
 
@@ -74,6 +74,13 @@ const richMenuAreaSchema = z.object({
   action: richMenuActionSchema,
 })
 
+const i18nLanguageSchema = z.enum(['ja_JP', 'ko_KR', 'en_US', 'zh_CN', 'zh_TW'])
+
+const i18nFileIdSchema = z.object({
+  language: i18nLanguageSchema,
+  fileId: z.string().min(1),
+})
+
 /** rich menu 作成リクエスト全体 */
 export const richMenuCreateSchema = z.object({
   richmenuName: z.string().min(1).max(300),
@@ -82,6 +89,14 @@ export const richMenuCreateSchema = z.object({
 })
 
 export type RichMenuCreate = z.infer<typeof richMenuCreateSchema>
+
+/** リッチメニュー画像登録リクエスト。画像本体は事前のコンテンツアップロードで登録する。 */
+export const richMenuImageSchema = z.object({
+  fileId: z.string().min(1),
+  i18nFileIds: z.array(i18nFileIdSchema).optional(),
+})
+
+export type RichMenuImageInput = z.infer<typeof richMenuImageSchema>
 
 /** 作成レスポンス: richmenuId が返る */
 export type CreateRichMenuResult = { richmenuId: string }
@@ -172,27 +187,23 @@ export async function listRichMenus(token: string): Promise<RichMenu[]> {
  *  - 形式: JPEG / PNG
  *  - サイズ: 1MB 以下
  *
- * Content-Type は LINE WORKS の他の Bot 添付 API と同じく multipart/form-data + `file` フィールドを採用。
- * (公式 doc で確証が取れていない部分。本番動作確認時に直接 image/png バイナリ POST が
- *  必要だと判明した場合はこの関数を分岐させる)
+ * 画像本体はコンテンツアップロード API で先に登録し、返された fileId を JSON で渡す。
+ * 公式 API はこの endpoint では画像バイナリを受け取らない。
  */
 export async function uploadRichMenuImage(
   token: string,
   richmenuId: string,
-  image: Blob,
-  filename: string,
+  input: RichMenuImageInput,
 ): Promise<void> {
   const url = `${richMenuBaseUrl()}/${richmenuId}/image`
 
-  const formData = new FormData()
-  formData.append('file', image, filename)
-
   const response = await fetchWithTimeout(url, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-    // 1 MB までの multipart upload を許容するため長めの timeout
-    timeoutMs: LONG_TIMEOUT_MS,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
   })
 
   if (!response.ok) await throwUpstream(response, `${CALLER}.uploadRichMenuImage`)

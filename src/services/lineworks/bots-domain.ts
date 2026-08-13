@@ -9,20 +9,13 @@ const CALLER = 'services/lineworks/bots-domain'
 // Zod schema (ドメイン別 Bot の設定上書き用)
 // =============================================================================
 
-/**
- * ドメイン別の Bot 設定。spec ドキュメントは公開済 docs で全フィールド網羅情報が
- * 取り切れていないため、tenant Bot のサブセット (administrators / subadministrators /
- * enableCallback / 各種フィールド) を任意で受け付ける緩めの schema にしてある。
- * 必要に応じてフィールド追加する。
- */
+/** ドメイン別 Bot の公開範囲と利用メンバー制限。公式APIのbodyに合わせる。 */
 export const botDomainSchema = z
   .object({
-    administrators: z.array(z.string()).min(1).max(3),
-    subadministrators: z.array(z.string()).max(3).optional(),
-    enableCallback: z.boolean().optional(),
-    enableGroupJoin: z.boolean().optional(),
+    visible: z.boolean().optional(),
+    allowToSelectedMember: z.boolean().optional(),
   })
-  .loose()
+  .strict()
 
 export type BotDomainInput = z.infer<typeof botDomainSchema>
 export const botDomainPatchSchema = botDomainSchema.partial()

@@ -64,17 +64,17 @@ describe('POST /bots/:botId/domains/:domainId (登録)', () => {
     const res = await app.request('/bots/b-001/domains/d-001', {
       method: 'POST',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
-      body: JSON.stringify({ administrators: ['a'] }),
+      body: JSON.stringify({ visible: true, allowToSelectedMember: true }),
     })
     expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ botId: 'b-001', domainId: 'd-001' })
   })
 
-  test('administrators 欠落は 400', async () => {
+  test('旧 administrators フィールドは 400', async () => {
     const res = await app.request('/bots/b-001/domains/d-001', {
       method: 'POST',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ administrators: ['a'] }),
     })
     expect(res.status).toBe(400)
   })
@@ -83,7 +83,7 @@ describe('POST /bots/:botId/domains/:domainId (登録)', () => {
     const res = await app.request('/bots/b-001/domains/d-001', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ administrators: ['a'] }),
+      body: JSON.stringify({ visible: true }),
     })
     expect(res.status).toBe(401)
   })
@@ -95,7 +95,7 @@ describe('PUT /bots/:botId/domains/:domainId (完全置換)', () => {
     const res = await app.request('/bots/b-001/domains/d-001', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
-      body: JSON.stringify({ administrators: ['a'] }),
+      body: JSON.stringify({ visible: true }),
     })
     expect(res.status).toBe(200)
     const apiCall = recorded.find(r => r.url.includes('/domains/d-001'))
@@ -109,7 +109,7 @@ describe('PATCH /bots/:botId/domains/:domainId (部分更新)', () => {
     const res = await app.request('/bots/b-001/domains/d-001', {
       method: 'PATCH',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
-      body: JSON.stringify({ enableCallback: true }),
+      body: JSON.stringify({ allowToSelectedMember: true }),
     })
     expect(res.status).toBe(200)
     const apiCall = recorded.find(r => r.url.includes('/domains/d-001'))
