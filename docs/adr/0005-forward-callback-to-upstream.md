@@ -31,7 +31,7 @@ Chosen option: 「環境変数で指定したupstreamへ転送する」
 
 - Good: gatewayを変更せずに転送先や業務ロジックを交換できる
 - Good: ローカル開発ではupstreamを起動せずcallback受信だけを確認できる
-- Bad: LINE WORKS 公式仕様として Callback は自動再送されないため、転送失敗時の到達保証 (Durable Queue やオペレーター手動再投入等) を考慮する必要がある
+- Bad: 公式ページでは再送契約を確認できないため、転送失敗時の厳密な到達保証 (Durable Queue やオペレーター手動再投入等) は別途考慮が必要（現行はCloud Run/Workers共通で同期await転送、失敗は500とログ）
 - Neutral: 業務固有の処理は転送先の責務として扱い、本サーバはgatewayの責務を維持する
 
 ### Confirmation

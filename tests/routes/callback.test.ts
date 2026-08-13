@@ -193,7 +193,7 @@ describe('POST /callback: upstreamへの転送', () => {
     expect(forwardCalls.length).toBe(0)
   })
 
-  test('upstreamが5xxを返すと500を返す (LINE WORKSの自動再送は期待しない)', async () => {
+  test('upstreamが5xxを返すと500を返しdedup解除する (公式ページでは再送契約未確認・手動再投入用)', async () => {
     forwardStatus = 503
     const raw = JSON.stringify(messageEventFixture)
     const res = await postCallback(raw, sign(raw))

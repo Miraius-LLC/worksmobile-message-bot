@@ -3,7 +3,7 @@
 ## 主要結論 (TL;DR)
 
 1. **LINE WORKS 公式仕様の真実 (一次情報)**
-   - LINE WORKS の Callback は **「送信に失敗しても再送されない」** 仕様である ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback))。
+   - LINE WORKS 公式の Callback ページ ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback)) には `X-WORKS-BotId`、署名検証、200 応答、非同期化推奨は記載されているが、自動再送の有無は明記されていない (公式ページでは再送契約を確認できない)。
    - 公式ドキュメントでは、後続イベントの処理遅延を防ぐために **「イベント処理の非同期化」** が推奨されている ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback))。
    - リクエストヘッダーには `X-WORKS-BotId` (受信対象 Bot の識別子) が含まれ、HTTP ヘッダー名の規格通り大文字小文字は区別されない (`case-insensitive`) ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback))。
 
@@ -20,9 +20,9 @@
      - Cloudflare Workers の `waitUntil` ([Cloudflare Workers Runtime API Context](https://developers.cloudflare.com/workers/runtime-apis/context/)) 単独採用は、Cloud Run との応答/障害契約が非対称になるため見送る。
    - **将来方針**: 厳密なイベント非消失・完全非同期化には Cloud Tasks / Cloudflare Queues 等の durable queue が必要であり、別 TODO として整理・保留する。
 
-4. **Callback 送信失敗と再送契約の訂正**
-   - LINE WORKS は送信失敗時に自動再送しないため、「500 応答で LINE WORKS 再送を許可する」という誤った前提を README・ADR・コードコメントから削除・訂正する。
-   - await 転送中の upstream 5xx / network error 時は現行の 500 返却とログ記録を維持するが、それは LINE WORKS の自動再送を期待する契約ではない。`dedup unregister` は手動再投入時等の再実行用として扱う。
+4. **Callback 送信失敗と再送契約の整理**
+   - 公式ページでは自動再送契約を確認できないため、「500 応答で LINE WORKS 再送を許可する」という過去の断定を README・ADR・コードコメントから修正・整理する。
+   - await 転送中の upstream 5xx / network error 時は現行の 500 返却とログ記録を維持するが、それは LINE WORKS の自動再送を前提としたものではない。`dedup unregister` は手動再投入時等の再実行用として扱う。
 
 ---
 
@@ -40,7 +40,7 @@
 
 ### 1.3. レスポンス 200 および 失敗時再送の記載
 - **レスポンス 200**: 「Callback を受け取ったボットサーバーから LINE WORKS のメッセージングサーバーへのレスポンスは、ステータスコード 200 で返してください」と明記されている ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback))。
-- **失敗時再送の非存在**: 「Callback で送信された HTTP リクエストは、**送信に失敗しても再送されません**」と明記されている ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback))。
+- **自動再送の記載なし**: 公式 Callback ドキュメントには `X-WORKS-BotId`、署名検証、200 応答、非同期化推奨が記載されているが、自動再送の有無は明記されておらず、再送契約を確認できない ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback))。
 
 ### 1.4. イベント処理の非同期化推奨
 - **公式記載**: 「HTTPS POST リクエストの処理が後続のイベントの処理に遅延を与えないよう、**イベント処理を非同期化することを推奨します**」と明確に記載されている ([LINE WORKS Callback 公式ドキュメント](https://developers.worksmobile.com/jp/docs/bot-callback))。
@@ -86,7 +86,7 @@
       └--> 成功: LINE WORKS へ 200 OK (空 body) 返却
       └--> upstream 5xx / ネットワークエラー:
              dedup key を unregister (手動再投入用)
-             logger.error 記録 + 500 返却 (LINE WORKS 自動再送は期待しない)
+             logger.error 記録 + 500 返却 (手動再投入用の dedup unregister、公式では再送契約未確認)
 ```
 
 ### 3.2. 今後の拡張 (Durable Queue)

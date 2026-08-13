@@ -25,7 +25,7 @@ LINE WORKS Callbackの重複受信・再投入による副作用の二重実行�
 
 Chosen option: 「raw bodyのhashをin-memoryで保持する」
 
-`callback/dedup.ts`でraw bodyのSHA-256をkeyに、直近5分windowの重複を検出する。転送に失敗した場合はkeyを解除 (unregister) し、手動再投入時等に再実行できるようにする (なお、LINE WORKS 公式仕様として Callback の自動再送は行われない。現状は同期awaitで転送し、厳密な到達保証に必要な耐久キューは将来TODOとする)。
+`callback/dedup.ts`でraw bodyのSHA-256をkeyに、直近5分windowの重複を検出する。転送に失敗した場合はkeyを解除 (unregister) し、手動再投入時等に再実行できるようにする (なお、公式ページでは再送契約を確認できない。現行はCloud Run/Workers共通で同期await転送、失敗は500とログ、厳密な非消失はDurable Queueを将来TODOとする)。
 
 ### Consequences
 

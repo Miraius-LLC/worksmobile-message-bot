@@ -11,7 +11,7 @@ const CALLER = 'services/lineworks/callback/forward'
  * レスポンス方針:
  *  - upstream が 2xx → 正常 (return)
  *  - upstream が 5xx / network error → throw (callback.ts が dedup を unregister → 500 返却。
- *    LINE WORKS 公式仕様として自動再送は行われないため、ログ記録および手動再投入用)
+ *    公式ページでは再送契約を確認できないため、ログ記録および手動再投入時の再実行用)
  *  - upstream が 4xx → 再送しても解決しないため warn して return (LINE WORKS へは 200 返却)
  */
 export async function forwardEventToUpstream(

@@ -18,8 +18,8 @@ const CALLER = 'routes/callback'
  * 4. raw body の SHA-256 を dedup key として直近 5 分以内の再送を検出 → 副作用無しで 200
  * 5. raw body を JSON.parse → Zod の `discriminatedUnion` で 8 event type を検証 → NG なら 400
  * 6. 転送先が設定されていればraw bodyと署名をそのまま転送する。5xx / network error時は
- *    dedup key を unregister し、手動再投入等で再処理できるようにする (LINE WORKS公式は自動再送しない)
- * 7. 正常時は 200 (LINE WORKS は再送しないため body は不要)
+ *    dedup key を unregister し、手動再投入等で再処理できるようにする (公式ページでは再送契約を確認できないため同期await、失敗は500とログ)
+ * 7. 正常時は 200 (空 body 返却)
  *
  * BASIC 認証は `app.ts` の PUBLIC_PATHS で除外済。署名検証および Bot ID 検証で真正性を担保する。
  * ローカルhandler（dispatch.ts / handlers/）は転送経路では呼ばれない。

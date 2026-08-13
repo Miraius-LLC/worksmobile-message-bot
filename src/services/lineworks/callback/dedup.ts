@@ -44,7 +44,7 @@ export function checkAndRegister(key: string, now: number = Date.now()): boolean
 /**
  * 副作用 (forward / dispatch) が throw した場合に呼ぶ。
  * 手動再投入等で同一 payload が再送された際に受け入れられるよう key を内部 Map から削除する。
- * なお、LINE WORKS 公式仕様として Callback の自動再送は行われない。
+ * なお、公式ページでは再送契約を確認できないため、手動再投入時の再実行用として扱う。
  */
 export function unregister(key: string): void {
   seen.delete(key)

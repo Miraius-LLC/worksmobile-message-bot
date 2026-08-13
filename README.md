@@ -905,7 +905,7 @@ LINE WORKS から同一 event が重複して届いた場合に副作用が二�
 
 - **Dedup key**: raw body の SHA-256 hex (`createHash('sha256').update(rawBody).digest('hex')`)。LINE WORKS の callback payload には event ID 相当のフィールドが無いため、payload 全体のハッシュをキーにする
 - **TTL**: 5 分。同じ key が直近 5 分以内に届いていれば skip して 200 を返す (重複実行を抑止)
-- **失敗時リセット**: upstream への転送が 5xx または network error で失敗した場合は dedup key を `unregister` し、手動再投入時等に再実行を許可する (なお、LINE WORKS 公式仕様として Callback の自動再送は行われない)
+- **失敗時リセット**: upstream への転送が 5xx または network error で失敗した場合は dedup key を `unregister` し、手動再投入時等に再実行を許可する (なお、公式ページでは再送契約を確認できない。現行は同期 await 転送、失敗は 500 とログ、厳密な非消失は Durable Queue を将来 TODO とする)
 - **検証順序**: 署名検証 → Bot ID 検証 → dedup → JSON parse → Zod検証 → 設定済みupstreamへ転送
 
 ⚠️ **Workersのisolate間、およびCloud Runのinstance間でwmbot内のMapは共有されない**ため、
