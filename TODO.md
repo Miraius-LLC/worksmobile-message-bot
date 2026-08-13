@@ -14,7 +14,7 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 - [x] **リッチメニュー画像登録を公式仕様へ同期** — 公式の `fileId` JSON API、画像upload flow、204 responseを現行wrapperへ反映し、契約テストを追加した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **ドメイン別Bot設定schemaを公式仕様へ同期** — `visible` / `allowToSelectedMember` とPUT/PATCHの公式schemaへ更新し、旧administrators系schemaを除去した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **Bot CRUDのchannelEvents・i18n schemaを公式仕様へ同期** — `message` / `postback`を含む8 channel event、i18nの公式field名、unique/integer制約を反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [ ] **リッチメニューの未対応操作を追加** — 詳細・画像取得、ユーザー別適用/取得/削除、デフォルト取得/削除を追加する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [x] **リッチメニューの未対応操作を追加** — 詳細・画像取得、ユーザー別適用/取得/削除、デフォルト取得/削除を追加する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **Bot・ドメイン・リッチメニュー一覧のpaginationを追加** — `count` / `cursor` / `responseMetaData.nextCursor`を公式仕様どおり扱い、転送・クエリ検証・契約テストを反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [ ] **公開routeのHTTP status契約を公式準拠へ整理** — 201/204を返す作成・画像・デフォルト適用経路について、既存利用者互換を確認して契約テストを固定する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [ ] **OAuth scopeの用途別選択を設計** — `bot.message` / `bot` / `bot.read`をAPI用途と最小権限に応じて選択可能にする（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。

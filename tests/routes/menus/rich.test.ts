@@ -264,3 +264,186 @@ describe('DELETE /menus/rich/:id', () => {
     expect(res.status).toBe(401)
   })
 })
+
+describe('GET /menus/rich/:id (詳細取得)', () => {
+  test('正常は 200 + リッチメニュー詳細', async () => {
+    const detail = { richmenuId: 'rm-001', ...sampleMenu, fileId: 'file-001' }
+    installFetch(() => new Response(JSON.stringify(detail), { status: 200 }))
+    const res = await app.request('/menus/rich/rm-001', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual(detail)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/rm-001'))
+    expect(apiCall?.init?.method).toBe('GET')
+    expect(apiCall?.init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+  })
+
+  test('path encoding が正しく適用される', async () => {
+    installFetch(
+      () => new Response(JSON.stringify({ richmenuId: 'rm/001', ...sampleMenu }), { status: 200 }),
+    )
+    const res = await app.request('/menus/rich/rm%2F001', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/rm%2F001'))
+    expect(apiCall).toBeDefined()
+  })
+
+  test('upstream 404 は透過', async () => {
+    installFetch(() => new Response('not found', { status: 404 }))
+    const res = await app.request('/menus/rich/rm-001', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(404)
+  })
+
+  test('BASIC 認証なしは 401', async () => {
+    const res = await app.request('/menus/rich/rm-001')
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('GET /menus/rich/:id/image (画像情報取得)', () => {
+  test('正常は 200 + fileId と i18nFileIds を返す', async () => {
+    const imageData = {
+      fileId: 'file-001',
+      i18nFileIds: [{ language: 'en_US', fileId: 'file-en-001' }],
+    }
+    installFetch(() => new Response(JSON.stringify(imageData), { status: 200 }))
+    const res = await app.request('/menus/rich/rm-001/image', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual(imageData)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/rm-001/image'))
+    expect(apiCall?.init?.method).toBe('GET')
+    expect(apiCall?.init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+  })
+
+  test('BASIC 認証なしは 401', async () => {
+    const res = await app.request('/menus/rich/rm-001/image')
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('POST /menus/rich/:id/users/:userId (ユーザー設定)', () => {
+  test('正常は 204 No Content', async () => {
+    installFetch(() => new Response(null, { status: 204 }))
+    const res = await app.request('/menus/rich/rm-001/users/user-123', {
+      method: 'POST',
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(204)
+    expect(await res.text()).toBe('')
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/rm-001/users/user-123'))
+    expect(apiCall?.init?.method).toBe('POST')
+    expect(apiCall?.init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+  })
+
+  test('path encoding (richmenuId / userId) が適用される', async () => {
+    installFetch(() => new Response(null, { status: 204 }))
+    const res = await app.request('/menus/rich/rm%2F001/users/user%2F123', {
+      method: 'POST',
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(204)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/rm%2F001/users/user%2F123'))
+    expect(apiCall).toBeDefined()
+  })
+
+  test('BASIC 認証なしは 401', async () => {
+    const res = await app.request('/menus/rich/rm-001/users/user-123', { method: 'POST' })
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('GET /menus/rich/users/:userId (ユーザーのリッチメニュー取得)', () => {
+  test('正常は 200 + リッチメニュー詳細', async () => {
+    const detail = { richmenuId: 'rm-001', ...sampleMenu }
+    installFetch(() => new Response(JSON.stringify(detail), { status: 200 }))
+    const res = await app.request('/menus/rich/users/user-123', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual(detail)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/users/user-123'))
+    expect(apiCall?.init?.method).toBe('GET')
+    expect(apiCall?.init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+  })
+
+  test('path encoding (userId) が適用される', async () => {
+    const detail = { richmenuId: 'rm-001', ...sampleMenu }
+    installFetch(() => new Response(JSON.stringify(detail), { status: 200 }))
+    const res = await app.request('/menus/rich/users/user%2F123', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/users/user%2F123'))
+    expect(apiCall).toBeDefined()
+  })
+
+  test('BASIC 認証なしは 401', async () => {
+    const res = await app.request('/menus/rich/users/user-123')
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('DELETE /menus/rich/users/:userId (ユーザーのリッチメニュー解除)', () => {
+  test('正常は 204 No Content', async () => {
+    installFetch(() => new Response(null, { status: 204 }))
+    const res = await app.request('/menus/rich/users/user-123', {
+      method: 'DELETE',
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(204)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/users/user-123'))
+    expect(apiCall?.init?.method).toBe('DELETE')
+    expect(apiCall?.init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+  })
+
+  test('BASIC 認証なしは 401', async () => {
+    const res = await app.request('/menus/rich/users/user-123', { method: 'DELETE' })
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('GET /menus/rich/default (デフォルトリッチメニュー取得)', () => {
+  test('正常は 200 + botId & defaultRichmenuId', async () => {
+    const result = { botId: 'bot-123', defaultRichmenuId: 'rm-001' }
+    installFetch(() => new Response(JSON.stringify(result), { status: 200 }))
+    const res = await app.request('/menus/rich/default', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual(result)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/default'))
+    expect(apiCall?.init?.method).toBe('GET')
+    expect(apiCall?.init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+  })
+
+  test('BASIC 認証なしは 401', async () => {
+    const res = await app.request('/menus/rich/default')
+    expect(res.status).toBe(401)
+  })
+})
+
+describe('DELETE /menus/rich/default (デフォルトリッチメニュー解除)', () => {
+  test('正常は 204 No Content', async () => {
+    installFetch(() => new Response(null, { status: 204 }))
+    const res = await app.request('/menus/rich/default', {
+      method: 'DELETE',
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(204)
+    const apiCall = recorded.find(r => r.url.includes('/richmenus/default'))
+    expect(apiCall?.init?.method).toBe('DELETE')
+    expect(apiCall?.init?.headers).toMatchObject({ Authorization: 'Bearer tok' })
+  })
+
+  test('BASIC 認証なしは 401', async () => {
+    const res = await app.request('/menus/rich/default', { method: 'DELETE' })
+    expect(res.status).toBe(401)
+  })
+})

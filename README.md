@@ -330,15 +330,22 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 #### [リッチメニュー](https://developers.worksmobile.com/jp/reference/bot-richmenu-create) (画像ベースの大型メニュー)
 
 - BASE URL: `/menus/rich`
-- 画像 1 枚を分割して領域ごとにアクションを割り当てる、UX 向け大型メニュー (MVP は 5 endpoint)
+- 画像 1 枚を分割して領域ごとにアクションを割り当てる、UX 向け大型メニュー (全 12 endpoint)
 
-| Endpoint                | HTTP   | 説明                                                                                            |
-| ----------------------- | ------ | ----------------------------------------------------------------------------------------------- |
-| `/`                     | POST   | リッチメニューを作成 → 200 + `{ richmenuId }`                                                    |
-| `/`                     | GET    | 登録済リッチメニュー一覧 → 200 + `{ richmenus: [...] }`                                          |
-| `/{:richmenuId}/image`  | POST   | 事前アップロード済み `fileId` を JSON で画像登録 → 204 No Content                       |
-| `/{:richmenuId}/set-default` | POST   | このリッチメニューを Bot 全員のデフォルトとして適用 → 200 + `{ richmenuId }`              |
-| `/{:richmenuId}`        | DELETE | リッチメニューを削除 (未登録時も 204 で idempotent)                                              |
+| Endpoint | HTTP | 説明 |
+| --- | --- | --- |
+| `/` | POST | リッチメニューを作成 → 200 + `{ richmenuId }` |
+| `/` | GET | 登録済リッチメニュー一覧 → 200 + `{ richmenus: [...] }` |
+| `/default` | GET | デフォルトリッチメニュー ID を取得 → 200 + `{ botId, defaultRichmenuId }` |
+| `/default` | DELETE | デフォルトリッチメニューの設定を解除 → 204 No Content |
+| `/users/{:userId}` | GET | 特定ユーザーに適用されているリッチメニュー詳細を取得 → 200 + RichMenu |
+| `/users/{:userId}` | DELETE | 特定ユーザーのリッチメニュー適用を解除 → 204 No Content |
+| `/{:richmenuId}` | GET | リッチメニュー詳細を取得 → 200 + RichMenu |
+| `/{:richmenuId}` | DELETE | リッチメニューを削除 (未登録時も 204 で idempotent) |
+| `/{:richmenuId}/image` | GET | リッチメニュー画像情報 (fileId, i18nFileIds) を取得 → 200 + `{ fileId, i18nFileIds? }` |
+| `/{:richmenuId}/image` | POST | 事前アップロード済み `fileId` を JSON で画像登録 → 204 No Content |
+| `/{:richmenuId}/set-default` | POST | このリッチメニューを Bot 全員のデフォルトとして適用 → 200 + `{ richmenuId }` |
+| `/{:richmenuId}/users/{:userId}` | POST | 特定ユーザーにこのリッチメニューを適用 → 204 No Content |
 
 > 互換性注意: 画像登録は公式APIに合わせ、従来の multipart + `200 { richmenuId }` から
 > JSON `fileId` + `204 No Content` へ変更した。既存の呼び出し元は、先に `POST /attachments`
@@ -752,9 +759,16 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 - HTTP: `POST`
 - Body: なし (URL の `:richmenuId` だけで完結)
 
-##### 5. 一覧取得 / 削除
+##### 5. 詳細・画像情報取得 / ユーザー設定 / デフォルト取得・解除 / 削除
 
-- 一覧: `GET /menus/rich?count={1..100}&cursor={str}` → 200 + `{ richmenus: [...], responseMetaData?: { nextCursor } }`
+- 詳細取得: `GET /menus/rich/{:richmenuId}` → 200 + RichMenu
+- 画像情報取得: `GET /menus/rich/{:richmenuId}/image` → 200 + `{ fileId, i18nFileIds? }`
+- 一覧取得: `GET /menus/rich?count={1..100}&cursor={str}` → 200 + `{ richmenus: [...], responseMetaData?: { nextCursor } }`
+- ユーザー個別設定: `POST /menus/rich/{:richmenuId}/users/{:userId}` → 204 No Content
+- ユーザー設定取得: `GET /menus/rich/users/{:userId}` → 200 + RichMenu
+- ユーザー設定解除: `DELETE /menus/rich/users/{:userId}` → 204 No Content
+- デフォルト取得: `GET /menus/rich/default` → 200 + `{ botId, defaultRichmenuId }`
+- デフォルト解除: `DELETE /menus/rich/default` → 204 No Content
 - 削除: `DELETE /menus/rich/{:richmenuId}` → 204 (未登録も idempotent)
 
 ---

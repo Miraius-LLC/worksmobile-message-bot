@@ -101,8 +101,12 @@ export type RichMenuImageInput = z.infer<typeof richMenuImageSchema>
 /** 作成レスポンス: richmenuId が返る */
 export type CreateRichMenuResult = { richmenuId: string }
 
-/** 一覧レスポンスの個別要素 (作成時の構造に richmenuId を加えたもの) */
-export type RichMenu = RichMenuCreate & { richmenuId: string }
+/** 一覧・詳細レスポンスの個別要素 (作成時の構造に richmenuId と画像参照用メタデータを加えたもの) */
+export type RichMenu = RichMenuCreate & {
+  richmenuId: string
+  fileId?: string
+  i18nFileIds?: Array<{ language: string; fileId: string }>
+}
 
 /** コンテンツアップロード時に適用する画像の制約 (画像登録 endpoint では強制しない) */
 export const RICH_MENU_IMAGE_LIMITS = {
@@ -277,5 +281,117 @@ export async function deleteRichMenu(token: string, richmenuId: string): Promise
   logger.success('リッチメニューを削除', {
     caller: `${CALLER}.deleteRichMenu`,
     id: richmenuId,
+  })
+}
+
+/** リッチメニューの詳細を取得 */
+export async function getRichMenu(token: string, richmenuId: string): Promise<RichMenu> {
+  const url = `${richMenuBaseUrl()}/${encodeURIComponent(richmenuId)}`
+  const response = await fetchWithTimeout(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) await throwUpstream(response, `${CALLER}.getRichMenu`)
+
+  return (await response.json()) as RichMenu
+}
+
+/** リッチメニューの画像情報 (fileId, i18nFileIds) を取得 */
+export async function getRichMenuImage(
+  token: string,
+  richmenuId: string,
+): Promise<RichMenuImageInput> {
+  const url = `${richMenuBaseUrl()}/${encodeURIComponent(richmenuId)}/image`
+  const response = await fetchWithTimeout(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) await throwUpstream(response, `${CALLER}.getRichMenuImage`)
+
+  return (await response.json()) as RichMenuImageInput
+}
+
+/** 特定ユーザーにリッチメニューをリンク */
+export async function linkRichMenuToUser(
+  token: string,
+  richmenuId: string,
+  userId: string,
+): Promise<void> {
+  const url = `${richMenuBaseUrl()}/${encodeURIComponent(richmenuId)}/users/${encodeURIComponent(userId)}`
+  const response = await fetchWithTimeout(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) await throwUpstream(response, `${CALLER}.linkRichMenuToUser`)
+
+  logger.success('ユーザーにリッチメニューを設定', {
+    caller: `${CALLER}.linkRichMenuToUser`,
+    id: richmenuId,
+    debug: { userId },
+  })
+}
+
+/** 特定ユーザーにリンクされたリッチメニューの詳細を取得 */
+export async function getUserRichMenu(token: string, userId: string): Promise<RichMenu> {
+  const url = `${richMenuBaseUrl()}/users/${encodeURIComponent(userId)}`
+  const response = await fetchWithTimeout(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) await throwUpstream(response, `${CALLER}.getUserRichMenu`)
+
+  return (await response.json()) as RichMenu
+}
+
+/** 特定ユーザーにリンクされたリッチメニューを解除 */
+export async function unlinkRichMenuFromUser(token: string, userId: string): Promise<void> {
+  const url = `${richMenuBaseUrl()}/users/${encodeURIComponent(userId)}`
+  const response = await fetchWithTimeout(url, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) await throwUpstream(response, `${CALLER}.unlinkRichMenuFromUser`)
+
+  logger.success('ユーザーのリッチメニュー解除', {
+    caller: `${CALLER}.unlinkRichMenuFromUser`,
+    id: userId,
+  })
+}
+
+export type DefaultRichMenuResult = {
+  botId: string
+  defaultRichmenuId: string
+}
+
+/** デフォルトリッチメニューの ID を取得 */
+export async function getDefaultRichMenu(token: string): Promise<DefaultRichMenuResult> {
+  const url = `${richMenuBaseUrl()}/default`
+  const response = await fetchWithTimeout(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) await throwUpstream(response, `${CALLER}.getDefaultRichMenu`)
+
+  return (await response.json()) as DefaultRichMenuResult
+}
+
+/** デフォルトリッチメニューを解除 */
+export async function cancelDefaultRichMenu(token: string): Promise<void> {
+  const url = `${richMenuBaseUrl()}/default`
+  const response = await fetchWithTimeout(url, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok) await throwUpstream(response, `${CALLER}.cancelDefaultRichMenu`)
+
+  logger.success('デフォルトリッチメニューを解除', {
+    caller: `${CALLER}.cancelDefaultRichMenu`,
   })
 }
