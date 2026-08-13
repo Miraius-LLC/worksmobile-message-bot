@@ -9,19 +9,29 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 ## 未着手 / backlog
 
+### 公式API追従
+
+- [ ] **リッチメニュー画像登録を公式仕様へ同期** — 公式の `fileId` JSON API、画像upload flow、204 responseを現行wrapperへ反映し、契約テストを追加する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [ ] **ドメイン別Bot設定schemaを公式仕様へ同期** — `visible` / `allowToSelectedMember` とPUT/PATCHの公式schemaを確認し、現行の誤ったadministrators系schemaを修正する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [ ] **Bot CRUDのchannelEvents・i18n schemaを公式仕様へ同期** — `message` / `postback`を含む8 channel event、i18nの公式field名、unique/integer制約を反映する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [ ] **リッチメニューの未対応操作を追加** — 詳細・画像取得、ユーザー別適用/取得/削除、デフォルト取得/削除、および一覧paginationを追加する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [ ] **Bot・ドメイン一覧のpaginationを追加** — `count` / `cursor` / `responseMetaData.nextCursor`を公式仕様どおり扱う（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [ ] **公開routeのHTTP status契約を公式準拠へ整理** — 201/204を返す作成・画像・デフォルト適用経路について、既存利用者互換を確認して契約テストを固定する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [ ] **OAuth scopeの用途別選択を設計** — `bot.message` / `bot` / `bot.read`をAPI用途と最小権限に応じて選択可能にする（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+
 ### スケーリング
 
 - [ ] **dedupを共有ストア化** — Workers isolate間やCloud Run instance間でwmbot内Mapは共有されない。gateway単体で厳密な一回処理が必要になった時だけ共有ストアまたはupstream側idempotencyを導入する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
 
 ### コードの整理
 
-- [ ] **未使用のローカルhandler雛形の去就を決める** — callbackは設定済みupstreamへの転送（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）に一本化しており、`src/services/lineworks/callback/{dispatch,handlers,reply}.ts`は現在呼ばれない。削除するか、本サーバ内応答が必要になった時に復活させるかを判断する。
+- [ ] **ローカルcallback handlerの責務を決める** — 現行callbackは設定済みupstreamへの転送（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）を主経路とする一方、公式Callbackに沿った本サーバ内応答の将来余地もある。削除せず、実装する要件が出た時にforwardとの責務境界を決める。
 
 ### 拡張余地（必要になったら）
 
 - [ ] **メッセージ型の追加** — 新しい LINE WORKS メッセージ型が必要になったら `services/lineworks/messages/index.ts` の `messageSchemas` に Zod schema を 1 件足すだけ（route とディスパッチャは自動追従、[ADR-0007](./docs/adr/0007-message-type-dispatcher.md)）。
 - [ ] **新 callback event type への追従** — LINE WORKS 仕様変更で event type が増えたら `callback/schemas.ts` の `discriminatedUnion` に追加する（未知 type は現状 400 で reject）。
-- [ ] **アクセストークンの追加スコープ** — 現状 scope は `bot` 固定。他スコープが必要になったら `auth.ts` を分岐させる前に LINE WORKS 側の権限設定を確認する。
+- [ ] **アクセストークンの追加スコープ** — 現状 scope は `bot` 固定。用途別の最小権限選択は上記の「OAuth scopeの用途別選択」で設計する。
 
 ### ワークフロー（任意）
 
