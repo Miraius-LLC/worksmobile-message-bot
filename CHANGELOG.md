@@ -2,6 +2,14 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## 公式 Bot API 追従・Callback 契約整理 — ✅ 2026-08-13
+
+- **公式 Bot API 契約の同期**: リッチメニュー画像登録を公式 `fileId` / `i18nFileIds` JSON API（`204 No Content`）へ変更し、ドメイン別 Bot 設定、Bot テナント設定の schema を公式仕様へ同期した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- **リッチメニュー操作と一覧 pagination**: 詳細・画像情報・ユーザー別・デフォルト操作を含む全 12 操作に対応し、Bot / ドメイン / リッチメニュー一覧で `count` / `cursor` / `responseMetaData.nextCursor` を扱うようにした。
+- **公開 route の HTTP status 同期**: メッセージ送信、作成系は `201`、リッチメニュー画像登録は `204` とし、公式仕様の契約テストを固定した。
+- **OAuth scope の選択対応**: `OAUTH_SCOPE` で `bot.message` / `bot.read` / `bot` を設定可能にした。未設定時のデフォルトは `bot` とする。
+- **Callback の検証と同期 await 方針**: `X-WORKS-BotId` 検証（欠落 `400` / 不一致 `403`）を追加した。公式 Callback ページで自動再送契約を確認できないため、Cloud Run / Workers 共通で同期 await 転送、失敗時は `500` + ログ出力、`unregister` は手動再投入用として整理した。
+
 ## ドキュメント
 
 - 既存ADR 9件を移行前Markdown・SHA-256付きOriginal Recordを持つ共通形式へ移行し、全ADRを共通監査対象化。
@@ -14,7 +22,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 ## 受信（Callback）系
 
 - **Callbackを設定可能なupstreamへ転送**: 検証済みcallbackをraw bodyと署名を保ったまま`FORWARD_CALLBACK_URL`へ転送するgateway方式を採用（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）。未設定時は転送せず`200`を返す。
-- **Callback dedup（5分window）**: raw bodyのSHA-256をkeyにしたin-memory Mapで再送を抑止する。Workers isolate間やCloud Run instance間ではbest effortであり、厳密な一回処理は共有ストアまたはupstream側idempotencyで担保する（[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。転送失敗時はkeyを解除して再送を許可する。
+- **Callback dedup（5分window）**: raw bodyのSHA-256をkeyにしたin-memory Mapで重複を抑止する。Workers isolate間やCloud Run instance間ではbest effortであり、厳密な一回処理は共有ストアまたはupstream側idempotencyで担保する（[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。転送失敗時はkeyを解除し、手動再投入を受け入れられるようにする（LINE WORKSの自動再送契約は前提にしない）。
 - **Callback 受信エンドポイント（`POST /callback`）+ event dispatcher**: LINE WORKS からの Bot Callback を受信。`X-WORKS-Signature`（raw body の HMAC-SHA256 を Bot Secret 鍵で計算し Base64 化した値）で真正性を検証し、`discriminatedUnion('type', …)` で event 8 種（`message` / `postback` / `join` / `leave` / `joined` / `left` / `begin` / `end`）を網羅。reply ヘルパ（source → MessageTarget）も追加。
 
 ## 送信（Bot API ラッパ）系
@@ -37,8 +45,8 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 - **基盤共通uptime監視とCloud Runログ監視を分離**: `setup-monitoring.sh`はHTTPS uptime監視だけを扱い、Cloud Run固有のログ指標・通知は明示実行する別scriptへ分離。Cloud Buildの環境固有値はtriggerまたはmanual buildのsubstitutionで渡せることを明文化した。
 - **Workers / Cloud Runの両deploy経路**: 共通Hono appをWorkersはWrangler + GitHub Actions、Cloud RunはDocker + Cloud Buildでデプロイできる構成にした（[ADR-0010](./docs/adr/0010-dual-cloud-deployment.md)）。Custom Domainは公開設定に固定せずGitHub Variableから生成する。
 - **secret 注入 contract v1 の conformance 固定**: `template` adapter と共通 scenario ID を追加し、managed block の置換・quote、env 優先 / 強制再取得、未サインイン時の直列停止、並列数上限、check の決定順・値非表示・非書き込み、取得失敗時 no-write、package scripts、tracked template の key / `op://` 参照一致をテストで固定。runner は I/O と `op read` を注入可能にし、実 secret や `.env` を使わず安全性を検証する。
-- **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は互換 alias として残し、`secrets:check` の非書き込み契約は維持する。
-- **1Password から `.env` を生成する `secrets:dump` を追加**: `.env.tpl` の `op://` 参照を SoT として読み、値を表示せず `.env` へマージ保存するローカル secret dump を追加。最初の 1 件だけ直列で読み、1Password 未サインイン時の認証要求多重起動を避ける。既存 `secrets:inject` は互換 alias として `secrets:dump` に寄せた。
+- **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は 2026-08-10 の P4 で現行入口から撤去し、`secrets:check` の非書き込み契約は維持する。
+- **1Password から `.env` を生成する `secrets:dump` を追加（歴史的記録）**: `.env.tpl` の `op://` 参照を SoT として読み、値を表示せず `.env` へマージ保存する実装を追加した。その後 `secrets:inject` へ完全一元化し、旧 alias を撤去した。
 - **scripts の検証対象化**: pre-commit / CI / package scripts の Biome 対象に `scripts/` を追加し、`run-related-tests.ts` の関連テスト抽出ロジックを unit test 付きで分離。監視設定スクリプトは uptime config の重複取得を削減。
 - **Cloud Build に bun test step を追加**: ビルドパイプラインに `bun test` を組み込み、`--no-verify` での pre-push バイパスを防止（[ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) / [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。`cloudbuild.yaml` が Cloud Run 構成（runtime SA / Secret Manager マウント / scaling / resources / ingress）の SoT。
 - **HTTP/1.1-only（end-to-end h2c 不採用）**: コンテナは HTTP/1.1 のみで listen し、公開側 HTTP/2 は Cloud Run フロントが終端（`--no-use-http2`、[ADR-0002](./docs/adr/0002-container-http1-only-no-h2c.md)）。

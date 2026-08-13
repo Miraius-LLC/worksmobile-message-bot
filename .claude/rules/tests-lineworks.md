@@ -48,7 +48,7 @@ const res = await messagesApp.request('/channels/C1/messages/type/text', {
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ content: { text: 'hi' } }),
 })
-expect(res.status).toBe(200)
+expect(res.status).toBe(201)
 ```
 
 `tokenMiddleware` で `c.var.token` に注入されるトークンは `getServerToken` をモックして固定値にしておく。

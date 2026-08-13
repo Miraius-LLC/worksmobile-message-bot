@@ -71,7 +71,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **JWT は `node:crypto` で自前生成 + `aud` 固定** ([ADR-0003](./docs/adr/0003-jwt-node-crypto-rs256.md))。`auth.ts` 内の `AUTH_URL` 定数 (`https://auth.worksmobile.com/oauth2/v2.0/token`) を `aud` と一致させる。仕様変更時は base64url エンコードと改行に注意
 - **`PRIVATE_KEY` は Base64 エンコード**を前提に PEM へデコードしている。生 PEM をそのまま入れると JWT 署名で失敗。`config.ts` の Zod schema が起動時に PEM 含有チェックする
 - **添付ファイル取得は 3xx の Location 抽出**。LINE WORKS のダウンロード API は 3xx を返してくるため `redirect: 'manual'` で受け、`Location` ヘッダから実 URL を取り出す。`fetch` のデフォルト (follow) ではリダイレクト先に Authorization ヘッダが付与されない問題と二重に絡むので変えない
-- **アクセストークンの scope は `bot` 固定**。他スコープが必要になる場合は `auth.ts` を分岐させる前に LINE WORKS 側の権限設定を確認
+- **アクセストークンの scope は `OAUTH_SCOPE` で選択可能** (`bot.message` / `bot` / `bot.read`)。未指定時はデフォルトの `bot` が適用される
 - **`getServerToken` はキャッシュ + single-flight 済み**。直接 `fetch` を叩き直す変更は避け、`auth.ts` の `cached` / `inFlight` の状態管理を尊重する
 
 ### よくあるハマり
@@ -82,8 +82,9 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
 - **BASIC 認証は `app.ts` で `/` と health probe / `/callback` 以外に強制** ([ADR-0006](./docs/adr/0006-basic-auth-except-health-and-callback.md))。`hono/basic-auth` を lazy 初期化 + `PUBLIC_PATHS` で除外。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換エイリアスで同じハンドラを共有 (`HEALTH_PATHS` 配列で集中管理)
 - **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
-- **callback dedupはin-memory Mapで5分windowのbest effort** ([ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md))。Workers isolate間やCloud Run instance間でMapは共有されない。upstream転送（`forward.ts`）がthrowしたら`unregister`で再送を許可する。
-- **callbackは設定可能なupstreamへ転送する** ([ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md))。`callback/forward.ts`がenv `FORWARD_CALLBACK_URL`へraw bodyと`X-WORKS-Signature`を転送する。wmbot内の`dispatch.ts` / `handlers/`は現在呼ばれない（雛形として残置）
+- **callback 検証と同期 await 転送**: 署名検証 → Bot ID 検証 (`X-WORKS-BotId` 欠落 400 / 不一致 403) → dedup チェック → JSON/Zod 検証 → upstream へ同期 await 転送を行う。失敗時は 500 + ログ出力とし、dedup key を `unregister` して手動再投入を受け入れる。これは LINE WORKS の自動再送契約を前提としない。
+- **callback dedup は in-memory Map で 5 分 window の best effort** ([ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md))。Workers isolate 間や Cloud Run instance 間で Map は共有されない。
+- **callback は設定可能な upstream へ転送する** ([ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md))。`callback/forward.ts` が env `FORWARD_CALLBACK_URL` へ raw body と `X-WORKS-Signature` を転送する。wmbot 内の `dispatch.ts` / `handlers/` は現在呼ばれない (将来のローカル応答用雛形として残置)
 
 ### Docker / デプロイ
 

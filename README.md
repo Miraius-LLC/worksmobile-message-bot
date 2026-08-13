@@ -350,7 +350,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 | Endpoint | HTTP | 説明 |
 | --- | --- | --- |
 | `/` | POST | リッチメニューを作成 → 201 + `{ richmenuId }` |
-| `/` | GET | 登録済リッチメニュー一覧 → 200 + `{ richmenus: [...] }` |
+| `/` | GET | 登録済リッチメニュー一覧 → 200 + `{ richmenus: [...], responseMetaData?: { nextCursor } }` |
 | `/default` | GET | デフォルトリッチメニュー ID を取得 → 200 + `{ botId, defaultRichmenuId }` |
 | `/default` | DELETE | デフォルトリッチメニューの設定を解除 → 204 No Content |
 | `/users/{:userId}` | GET | 特定ユーザーに適用されているリッチメニュー詳細を取得 → 200 + RichMenu |
@@ -403,7 +403,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 | Endpoint              | HTTP   | 説明                                                                                                |
 | --------------------- | ------ | --------------------------------------------------------------------------------------------------- |
 | `/`                   | POST   | Bot を新規作成 → 201 + `{ botId, ... }`                                                              |
-| `/`                   | GET    | テナント内 Bot 一覧 → 200 + `{ bots: [...] }`                                                        |
+| `/`                   | GET    | テナント内 Bot 一覧 → 200 + `{ bots: [...], responseMetaData?: { nextCursor } }`                    |
 | `/{:botId}`           | GET    | Bot 取得 (未登録は 200 + `null`)                                                                     |
 | `/{:botId}`           | PUT    | Bot 完全置換 (全フィールド再送)                                                                      |
 | `/{:botId}`           | PATCH  | Bot 部分更新 (送ったフィールドだけ)                                                                  |
@@ -421,7 +421,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 
 | Endpoint              | HTTP   | 説明                                                                                          |
 | --------------------- | ------ | --------------------------------------------------------------------------------------------- |
-| `/`                   | GET    | Bot が登録されているドメイン一覧                                                              |
+| `/`                   | GET    | Bot が登録されているドメイン一覧（`count` / `cursor`、`responseMetaData.nextCursor` 対応）             |
 | `/{:domainId}`        | POST   | ドメインに Bot を登録                                                                          |
 | `/{:domainId}`        | PUT    | ドメイン別 Bot 設定を完全置換                                                                  |
 | `/{:domainId}`        | PATCH  | ドメイン別 Bot 設定を部分更新                                                                  |
@@ -884,7 +884,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 
 ## Callback (受信側)
 
-LINE WORKS から Bot 宛のイベント (メッセージ送信 / ボタン押下 / トーク参加・退室 等) を受け取って自動応答するエンドポイント。
+LINE WORKS から Bot 宛のイベント (メッセージ送信 / ボタン押下 / トーク参加・退室 等) を受け取り、検証して必要なら設定済み upstream へ転送するエンドポイント。
 
 ### エンドポイント
 
@@ -897,7 +897,7 @@ LINE WORKS から Bot 宛のイベント (メッセージ送信 / ボタン押�
 - BASIC 認証は適用しない (LINE WORKS は BASIC 認証ヘッダを付けないため)
 - 代わりに **`X-WORKS-Signature` ヘッダ (= raw body の HMAC-SHA256 を Bot Secret を鍵に計算し Base64 化した値) を検証**して真正性を担保する (検証 NG → `401 invalid signature`)
 - 署名検証成功後、**`X-WORKS-BotId` ヘッダを検証**し、対象 Bot ID の一致を確認する (欠落 → `400 missing bot id`、不一致 → `403 bot id mismatch`)
-- 検証 OK → dedup チェック (下記) → JSON.parse → Zod の `discriminatedUnion` でevent形式を確認 → 転送先が設定されていればraw bodyと署名をupstream serviceへ転送 → `200`を返す
+- **検証順序**: 署名検証 → Bot ID 検証 → dedup チェック (下記) → JSON.parse → Zod の `discriminatedUnion` で event 形式を確認 → 設定済み upstream へ同期 await 転送 → `200`を返す。upstream 5xx / network error はログを記録して `500` を返す。
 
 #### Dedup (5 分 window)
 
@@ -905,7 +905,7 @@ LINE WORKS から同一 event が重複して届いた場合に副作用が二�
 
 - **Dedup key**: raw body の SHA-256 hex (`createHash('sha256').update(rawBody).digest('hex')`)。LINE WORKS の callback payload には event ID 相当のフィールドが無いため、payload 全体のハッシュをキーにする
 - **TTL**: 5 分。同じ key が直近 5 分以内に届いていれば skip して 200 を返す (重複実行を抑止)
-- **失敗時リセット**: upstream への転送が 5xx または network error で失敗した場合は dedup key を `unregister` し、手動再投入時等に再実行を許可する (なお、公式ページでは再送契約を確認できない。現行は同期 await 転送、失敗は 500 とログ、厳密な非消失は Durable Queue を将来 TODO とする)
+- **失敗時リセット**: upstream への同期 await 転送が 5xx または network error で失敗した場合は `500` とログ出力を行い、dedup key を `unregister` する。これは手動再投入時の再実行を受け入れるためであり、LINE WORKS の自動再送契約を前提にしない。厳密な非消失は Durable Queue を将来 TODO とする。
 - **検証順序**: 署名検証 → Bot ID 検証 → dedup → JSON parse → Zod検証 → 設定済みupstreamへ転送
 
 ⚠️ **Workersのisolate間、およびCloud Runのinstance間でwmbot内のMapは共有されない**ため、
@@ -931,8 +931,8 @@ callback dedupはどちらの基盤でもbest effortです。厳密な一回処�
 
 ### Callback転送
 
-`FORWARD_CALLBACK_URL`を設定すると、検証済みCallbackを任意のupstream serviceへ転送する。
-未設定の場合は転送せず、署名・payload検証とdedupだけを行って`200`を返す。
+`FORWARD_CALLBACK_URL`を設定すると、検証済みCallbackを任意のupstream serviceへ同期 await 転送する。
+未設定の場合は転送せず、署名・payload検証とdedupだけを行って`200`を返す。公式 Callback ページで自動再送契約は確認できないため、転送失敗時の `500` は自動再送を保証せず、`unregister` は手動再投入用である。
 
 ### 初回セットアップ手順 (Developer Console)
 

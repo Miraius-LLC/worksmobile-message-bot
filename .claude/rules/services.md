@@ -32,7 +32,7 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 - `getServerToken()` が JWT 生成 → アクセストークン取得を 1 関数で実施。route 層からはこれだけ呼べば良い
 - `PRIVATE_KEY` は Base64 デコードを前提とした扱い。`auth.ts` 内の `getPrivateKey` を経由する (生 PEM を渡してはいけない)
 - JWT の `aud` は **`https://auth.worksmobile.com/oauth2/v2.0/token`** で固定。`AUTH_URL` 定数を共有しているのでズラさない
-- スコープは `bot` 固定。`bot.message`, `bot.read` 等が必要になる場合は呼び出し側で URLSearchParams を組み直す
+- スコープは `OAUTH_SCOPE` 環境変数で選択可能 (`bot.message` / `bot` / `bot.read`、デフォルト `bot`)
 
 ## api (`services/lineworks/api.ts`)
 
@@ -42,7 +42,7 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 
 ## messages (`services/lineworks/messages/index.ts`)
 
-- 全 10 メッセージ type の Zod schema + 汎用 dispatcher `sendMessageByType` を **単一ファイルに集約**。type ごとの sender 関数は書かない
+- 全 13 メッセージ type の Zod schema + 汎用 dispatcher `sendMessageByType` を **単一ファイルに集約**。type ごとの sender 関数は書かない
 - 送信先は route 層が `MessageTarget = { channelId } | { userId }` を組み立てて `sendMessageByType` に渡す
 - 新メッセージタイプを足す時:
   1. `messages/index.ts` 内に Zod schema (`<type>BodySchema`) を定義
@@ -58,4 +58,4 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 - **`uploadAttachment` は 2 段階リクエスト**: (1) `POST /bots/{botId}/attachments` で `uploadUrl` 発行 → (2) `uploadUrl` に multipart/form-data POST。1 関数にまとめてあるので呼び出し側でこの順序を意識する必要は無い
 - `Blob` + `FormData` は Bun のネイティブ実装を使用。`form-data` パッケージや `multer` には依存しない
 - **`resolveDownloadUrl` は 3xx 手動リダイレクト**: LINE WORKS のダウンロード API は 3xx で実 URL を返すため `redirect: 'manual'` で `Location` を抽出する。fetch のデフォルト (follow) は **リダイレクト先に Authorization ヘッダを付け直さない**ため使えない
-- ダウンロードは route 側で `fetch(downloadUrl)` の body (`ReadableStream`) を `reply.send()` に直接流す。Fastify がストリーム送信に対応している
+- ダウンロードは route 側で `fetch(downloadUrl)` の body (`ReadableStream`) を Hono / Web API の `new Response(stream)` で直接流す

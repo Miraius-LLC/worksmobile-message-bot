@@ -25,18 +25,18 @@ LINE WORKS callbackの認証とpayload検証は本サーバで行い、業務固
 
 Chosen option: 「環境変数で指定したupstreamへ転送する」
 
-署名検証、Bot ID検証、dedup、Zod検証を通したcallbackを、raw bodyと`X-WORKS-Signature`を保ったまま`FORWARD_CALLBACK_URL`へ転送する。未設定の場合は転送せず`200`を返す。
+署名検証、Bot ID検証 (`X-WORKS-BotId`)、dedup、JSON/Zod検証を通したcallbackを、raw bodyと`X-WORKS-Signature`を保ったまま`FORWARD_CALLBACK_URL`へ同期 await 転送する。未設定の場合は転送せず`200`を返す。転送失敗時はログを記録して`500`を返し、dedup keyを解除 (`unregister`) する。公式Callbackページで自動再送契約は確認できないため、`unregister` は手動再投入用である。
 
 ### Consequences
 
 - Good: gatewayを変更せずに転送先や業務ロジックを交換できる
 - Good: ローカル開発ではupstreamを起動せずcallback受信だけを確認できる
-- Bad: 公式ページでは再送契約を確認できないため、転送失敗時の厳密な到達保証 (Durable Queue やオペレーター手動再投入等) は別途考慮が必要（現行はCloud Run/Workers共通で同期await転送、失敗は500とログ）
+- Bad: 転送先障害時の厳密な非消失保証には Durable Queue が必要であり、現行の `500` とログは自動再送を保証しない。`unregister` により手動再投入は受け入れられる
 - Neutral: 業務固有の処理は転送先の責務として扱い、本サーバはgatewayの責務を維持する
 
 ### Confirmation
 
-callback route testsでraw body、署名、Bot ID、成功時応答、失敗時のdedup解除 (unregister) を確認する。
+callback route testsでraw body、署名、Bot ID、成功時応答、失敗時のdedup解除を確認する。
 
 <!-- Private legacy source SHA-256: 7877bd11d775071d9bf515378930ce0489be8fd57e5f6f46cfa39536ba9bdf3c -->
 <!-- Public sanitized record SHA-256: 97ff8a9f3bd8b0352627537eb63a65fbc0e12ec4af2b85e5a9e6f7fc5bfd9502 -->

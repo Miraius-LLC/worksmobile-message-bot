@@ -7,33 +7,21 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 ---
 
-## 未着手 / backlog
+## 未着手 / 要件待ち
 
-### 公式API追従
+### 信頼性・スケーリング
 
-- [x] **リッチメニュー画像登録を公式仕様へ同期** — 公式の `fileId` JSON API、画像upload flow、204 responseを現行wrapperへ反映し、契約テストを追加した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [x] **ドメイン別Bot設定schemaを公式仕様へ同期** — `visible` / `allowToSelectedMember` とPUT/PATCHの公式schemaへ更新し、旧administrators系schemaを除去した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [x] **Bot CRUDのchannelEvents・i18n schemaを公式仕様へ同期** — `message` / `postback`を含む8 channel event、i18nの公式field名、unique/integer制約を反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [x] **リッチメニューの未対応操作を追加** — 詳細・画像取得、ユーザー別適用/取得/削除、デフォルト取得/削除を追加する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [x] **Bot・ドメイン・リッチメニュー一覧のpaginationを追加** — `count` / `cursor` / `responseMetaData.nextCursor`を公式仕様どおり扱い、転送・クエリ検証・契約テストを反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [x] **公開routeのHTTP status契約を公式準拠へ整理** — 201/204を返す作成・画像・デフォルト適用経路について、既存利用者互換を確認して契約テストを固定する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [x] **OAuth scopeの用途別選択を実装** — 環境変数 `OAUTH_SCOPE` (default: `bot`, 許容値: `bot.message` / `bot.read` / `bot`) を追加し、OAuth トークンリクエストへ反映。最小権限選択に対応した（[公式 Scope 仕様](https://developers.worksmobile.com/jp/docs/auth-scope)）。
-- [x] **CallbackのBot ID検証と非同期処理方針を確認** — 署名検証後の `X-WORKS-BotId` ヘッダ検証 (400 missing / 403 mismatch) を実装。非同期方針は Cloud Run / Workers 共通で同期 await 転送を維持する案 A を採用し、将来のイベント非消失キュー検討を別 TODO として整理した（[調査メモ](./docs/research/lineworks-callback-bot-id-async-2026-08-13.md)）。
+- [ ] **Durable Queue による非消失キューイング** — 現行は Cloud Run / Workers 共通で同期 await 転送、失敗時 500 + ログ出力とし、`unregister` は手動再投入用。転送先障害時にもイベントを確実に滞留・再処理する厳密な非消失保証が必要になった場合に Durable Queue を検討する（[調査メモ](./docs/research/lineworks-callback-bot-id-async-2026-08-13.md)）。
+- [ ] **dedup を共有ストア化** — Workers isolate 間や Cloud Run instance 間で wmbot 内 Map は共有されない。gateway 単体で厳密な一回処理が必要になった時だけ共有ストアまたは upstream 側 idempotency を導入する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
 
-### スケーリング
+### コードの整理・設計境界
 
-- [ ] **Callbackの厳密非同期化・耐久キュー (Durable Queue) 導入** — Cloud Run の request-based CPU allocation や Workers の応答/障害契約の対称性を保ちつつイベント非消失を担保するため、Cloud Tasks や Cloudflare Queues 等の durable queue を導入する（[調査メモ](./docs/research/lineworks-callback-bot-id-async-2026-08-13.md)）。
-- [ ] **dedupを共有ストア化** — Workers isolate間やCloud Run instance間でwmbot内Mapは共有されない。gateway単体で厳密な一回処理が必要になった時だけ共有ストアまたはupstream側idempotencyを導入する（`callback/dedup.ts`、[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。
-
-### コードの整理
-
-- [ ] **ローカルcallback handlerの責務を決める** — 現行callbackは設定済みupstreamへの転送（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）を主経路とする一方、公式Callbackに沿った本サーバ内応答の将来余地もある。削除せず、実装する要件が出た時にforwardとの責務境界を決める。
+- [ ] **ローカル callback handler の責務を決める** — 現行 callback は設定済み upstream への転送（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）を主経路とする一方、本サーバ内応答の将来余地もある。削除せず、実装する要件が出た時に forward との責務境界を決める。
 
 ### 拡張余地（必要になったら）
 
 - [ ] **メッセージ型の追加** — 新しい LINE WORKS メッセージ型が必要になったら `services/lineworks/messages/index.ts` の `messageSchemas` に Zod schema を 1 件足すだけ（route とディスパッチャは自動追従、[ADR-0007](./docs/adr/0007-message-type-dispatcher.md)）。
 - [ ] **新 callback event type への追従** — LINE WORKS 仕様変更で event type が増えたら `callback/schemas.ts` の `discriminatedUnion` に追加する（未知 type は現状 400 で reject）。
-- [x] **アクセストークンの追加スコープ** — 上記のOAuth scope選択実装で完了
 
 ### ワークフロー（任意）
 

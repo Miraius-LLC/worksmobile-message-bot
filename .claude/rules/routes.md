@@ -35,16 +35,18 @@ app.route('/foo', fooApp)
 ## レスポンス規約
 
 - 成功時:
-  - メッセージ送信系: `200` + 空 body (`c.body(null, 200)`)。LINE WORKS API の挙動に合わせる
-  - アップロード: `200` + `{ fileId }` (`c.json(...)`)
+  - メッセージ送信系: `201` + 空 body (`c.body(null, 201)`)。公式 LINE WORKS API 仕様に合わせる
+  - 作成系 (トークルーム作成・固定メニュー登録・リッチメニュー作成・デフォルト適用など): `201` + JSON
+  - アップロード (`/attachments`): `200` + `{ fileId }` (`c.json(...)`)
+  - リッチメニュー画像登録: `204 No Content`
   - ダウンロード: `new Response(stream, { headers })` で fetch のレスポンス body をそのまま流す。`Content-Type` / `Content-Disposition` を引き継ぐ
 - 失敗時: `c.json({ error: '...' }, <code>)`。error メッセージは可能なら原因まで含める
 - ヘッダ転送時の注意 (download): `transfer-encoding`, `connection`, `keep-alive`, `content-encoding` は **転送しない** (上流が再計算するため二重化する)
 
 ## エラー処理
 
-- route ハンドラ内で `try / catch` する。catch ブロックで `logger.error` → `c.json({ error }, 500)` を返す
-- グローバルエラーハンドラ (`app.onError`) は予期しない例外用。route 内で握り潰さない
+- 予期しない例外や `LineWorksApiError` は route ハンドラ内でむやみに try/catch して手動で 500 を返さず throw し、グローバルエラーハンドラ (`app.onError`) に拾わせて統一レスポンスを返す
+- バリデーションエラー (400) など明示的な期待エラーのみハンドラ内で返却する
 
 ## HTTP/2
 

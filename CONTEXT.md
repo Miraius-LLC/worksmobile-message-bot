@@ -30,15 +30,15 @@ _Avoid_: file（汎用すぎる）, media, upload（操作名であって対象�
 ### 受信 (inbound)
 
 **callback**:
-LINE WORKS から Bot 宛に届く Webhook イベント（`message` / `postback` / `join` / `leave` 等）。BASIC 認証ではなく **`X-WORKS-Signature`（raw body の HMAC-SHA256）** で真正性を検証する。
+LINE WORKS から Bot 宛に届く Webhook イベント（`message` / `postback` / `join` / `leave` 等）。BASIC 認証ではなく **`X-WORKS-Signature`（raw body の HMAC-SHA256）** および **`X-WORKS-BotId`（欠落 400 / 不一致 403）** で真正性を検証する。
 _Avoid_: webhook（本サーバ全体が webhook サーバなので曖昧）, event（callback の中身を指す語）
 
 **dedup**:
-callback の再送による副作用二重実行を防ぐ仕組み。**raw body の SHA-256** を key に、直近 **5 分 window** の重複を in-memory Map で検出する（`callback/dedup.ts`）。
+callback の重複受信や手動再投入による副作用二重実行を防ぐ仕組み。**raw body の SHA-256** を key に、直近 **5 分 window** の重複を in-memory Map で検出する（`callback/dedup.ts`）。転送失敗時は `unregister` して手動再投入を受け入れる。LINE WORKS の自動再送契約は前提にしない。
 _Avoid_: idempotency（より広い概念）, 重複排除（口語）
 
 **forward (転送)**:
-検証を通ったcallbackを、raw bodyと署名を保ったまま設定済みupstreamへ転送すること（`callback/forward.ts`、env `FORWARD_CALLBACK_URL`）。本サーバはgatewayとして接続・検証・転送に責務を絞る。
+検証を通った callback を、raw body と署名を保ったまま設定済み upstream へ同期 await 転送すること（`callback/forward.ts`、env `FORWARD_CALLBACK_URL`）。本サーバは gateway として接続・検証・転送に責務を絞る。
 _Avoid_: relay, proxy（HTTP proxy と紛らわしい）, dispatch（ローカル handler 雛形の語）
 
 ## Flagged ambiguities
