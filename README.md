@@ -945,7 +945,7 @@ callback dedupはどちらの基盤でもbest effortです。厳密な一回処�
    - URL: `https://<your-domain>/callback`（例: `https://bot.example.com/callback`）
    - 受信する Callback Event を必要なものだけ ON (`Message Event` / `Postback Event` / `Join` / `Leave` / `Joined` / `Left` / `Begin` / `End`)
 5. Bot ポリシーで「1:1 トーク」「複数人トーク」を許可 (受信するイベントに応じて)
-6. **保存** → LINE WORKS の自分宛 Bot にメッセージ `/help` を送って、ヘルプ文が返信されることを確認
+6. **保存** → LINE WORKS の自分宛 Bot から callback が届き、署名検証を通過して設定済み upstream で受信できることを確認（ローカル callback handler による自動返信は現行の主経路ではありません）
 
 > ⚠️ Callback URLをOnにする前に、選択したデプロイ先で`/callback`が応答することを確認してください。デプロイ前にOnにするとCallbackが404となり、イベントを失う可能性があります。
 
