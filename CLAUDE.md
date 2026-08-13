@@ -20,7 +20,7 @@ mattpocock/skills（develop-meta で導入済）の engineering skill 用 per-re
 
 ### Issue tracker
 
-専用 tracker は未使用（`TODO.md` も無い）。機能の SoT は [`README.md`](./README.md)（エンドポイント仕様）、履歴は git commits。`to-issues` / `triage` / `to-prd` は非アクティブ。詳細は [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)。
+専用 tracker は未使用。進行中・未着手作業の SoT は [`TODO.md`](./TODO.md)、機能の SoT は [`README.md`](./README.md)（エンドポイント仕様）、履歴は git commits。`to-issues` / `triage` / `to-prd` は非アクティブ。詳細は [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)。
 
 ### Domain docs
 
