@@ -16,7 +16,7 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 - [x] **Bot CRUDのchannelEvents・i18n schemaを公式仕様へ同期** — `message` / `postback`を含む8 channel event、i18nの公式field名、unique/integer制約を反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **リッチメニューの未対応操作を追加** — 詳細・画像取得、ユーザー別適用/取得/削除、デフォルト取得/削除を追加する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **Bot・ドメイン・リッチメニュー一覧のpaginationを追加** — `count` / `cursor` / `responseMetaData.nextCursor`を公式仕様どおり扱い、転送・クエリ検証・契約テストを反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [ ] **公開routeのHTTP status契約を公式準拠へ整理** — 201/204を返す作成・画像・デフォルト適用経路について、既存利用者互換を確認して契約テストを固定する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [x] **公開routeのHTTP status契約を公式準拠へ整理** — 201/204を返す作成・画像・デフォルト適用経路について、既存利用者互換を確認して契約テストを固定する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [ ] **OAuth scopeの用途別選択を設計** — `bot.message` / `bot` / `bot.read`をAPI用途と最小権限に応じて選択可能にする（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [ ] **CallbackのBot ID検証と非同期処理方針を確認** — 公式Callbackの `X-WORKS-BotId` ヘッダ検証と、後続イベントを滞留させない非同期転送を採用するか要件を確認する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 

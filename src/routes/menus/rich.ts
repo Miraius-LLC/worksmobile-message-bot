@@ -55,7 +55,7 @@ richMenuApp.post(
   async c => {
     const body = c.req.valid('json')
     const result = await createRichMenu(c.var.token, body)
-    return c.json(result)
+    return c.json(result, 201)
   },
 )
 
@@ -135,8 +135,8 @@ richMenuApp.post(
 /** POST /menus/rich/:id/set-default — 全ユーザー共通のデフォルトに設定 */
 richMenuApp.post('/:id/set-default', async c => {
   const id = c.req.param('id')
-  await setDefaultRichMenu(c.var.token, id)
-  return c.json({ richmenuId: id })
+  const result = await setDefaultRichMenu(c.var.token, id)
+  return c.json(result, 201)
 })
 
 /** POST /menus/rich/:id/users/:userId — 特定ユーザーにリッチメニューを設定 */

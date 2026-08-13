@@ -34,7 +34,7 @@ channelsApp.post(
   async c => {
     const body = c.req.valid('json')
     const result = await createChannel(c.var.token, body)
-    return c.json(result)
+    return c.json(result, 201)
   },
 )
 

@@ -103,13 +103,13 @@ describe('app: BASIC 認証', () => {
     expect(res.headers.get('www-authenticate')).toContain('Basic')
   })
 
-  test('正しい credentials なら通って 200 (LINE WORKS 送信まで完走)', async () => {
+  test('正しい credentials なら通って 201 (LINE WORKS 送信まで完走)', async () => {
     const res = await app.request('/channels/C1/messages/type/text', {
       method: 'POST',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify({ text: 'hi' }),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
   })
 
   test('間違った password は 401', async () => {

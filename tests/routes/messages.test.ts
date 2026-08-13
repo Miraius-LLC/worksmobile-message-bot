@@ -55,9 +55,10 @@ function findApiCall(): FetchCall | undefined {
 }
 
 describe('routes/messages: Hono integration', () => {
-  test('POST /channels/:id/messages/type/text → 200 + channels URL', async () => {
+  test('POST /channels/:id/messages/type/text → 201 + channels URL', async () => {
     const res = await postJson('/channels/C1/messages/type/text', { text: 'hi' })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
+    expect(await res.text()).toBe('')
     const apiCall = findApiCall()
     expect(apiCall?.url).toContain('/channels/C1/messages')
     const sent = JSON.parse((apiCall?.init?.body as string) ?? '{}')
@@ -66,7 +67,8 @@ describe('routes/messages: Hono integration', () => {
 
   test('POST /users/:id/messages/type/text → users URL に変わる', async () => {
     const res = await postJson('/users/U1/messages/type/text', { text: 'hello' })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
+    expect(await res.text()).toBe('')
     expect(findApiCall()?.url).toContain('/users/U1/messages')
   })
 
@@ -97,14 +99,41 @@ describe('routes/messages: Hono integration', () => {
     expect(res.status).toBe(400)
   })
 
-  test('flex に altText + contents が揃えば 200', async () => {
+  test('flex に altText + contents が揃えば 201', async () => {
     const res = await postJson('/channels/C1/messages/type/flex', {
       altText: 'a',
       contents: { type: 'bubble' },
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
+    expect(await res.text()).toBe('')
     const sent = JSON.parse((findApiCall()?.init?.body as string) ?? '{}')
     expect(sent.content.type).toBe('flex')
     expect(sent.content.altText).toBe('a')
+  })
+
+  test('全 messageType で 201 の空 body を返す横断テスト', async () => {
+    const messageFixtures: Record<string, unknown> = {
+      text: { text: 'test' },
+      sticker: { packageId: '1', stickerId: '2' },
+      image: { fileId: 'F1' },
+      file: { fileId: 'F1' },
+      audio: { fileId: 'F1' },
+      video: { fileId: 'F1' },
+      location: { title: 'T', address: 'A', latitude: 0, longitude: 0 },
+      link: { contentText: 'C', linkText: 'L', link: 'https://example.com' },
+      button_template: { contentText: 'C', actions: [{ type: 'message', label: 'L' }] },
+      list_template: { elements: [{ title: 'T' }] },
+      carousel: {
+        columns: [{ fileId: 'F1', text: 'T', actions: [{ type: 'message', label: 'L' }] }],
+      },
+      image_carousel: { columns: [{ fileId: 'F1' }] },
+      flex: { altText: 'A', contents: { type: 'bubble' } },
+    }
+
+    for (const [type, payload] of Object.entries(messageFixtures)) {
+      const res = await postJson(`/channels/C1/messages/type/${type}`, payload)
+      expect(res.status).toBe(201)
+      expect(await res.text()).toBe('')
+    }
   })
 })

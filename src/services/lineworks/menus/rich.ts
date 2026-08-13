@@ -245,8 +245,16 @@ export async function uploadRichMenuImage(
   })
 }
 
+export type SetDefaultRichMenuResult = {
+  botId: number
+  defaultRichmenuId: string
+}
+
 /** リッチメニューをデフォルト (全ユーザー共通) として適用 */
-export async function setDefaultRichMenu(token: string, richmenuId: string): Promise<void> {
+export async function setDefaultRichMenu(
+  token: string,
+  richmenuId: string,
+): Promise<SetDefaultRichMenuResult> {
   const url = `${richMenuBaseUrl()}/${richmenuId}/set-default`
   const response = await fetchWithTimeout(url, {
     method: 'POST',
@@ -255,10 +263,14 @@ export async function setDefaultRichMenu(token: string, richmenuId: string): Pro
 
   if (!response.ok) await throwUpstream(response, `${CALLER}.setDefaultRichMenu`)
 
+  const data = (await response.json()) as SetDefaultRichMenuResult
+
   logger.success('デフォルトリッチメニューを適用', {
     caller: `${CALLER}.setDefaultRichMenu`,
     id: richmenuId,
   })
+
+  return data
 }
 
 /** リッチメニューを削除。未登録時 (404) は idempotent に成功扱い */

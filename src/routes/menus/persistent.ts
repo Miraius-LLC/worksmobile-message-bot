@@ -32,7 +32,7 @@ persistentMenuApp.post(
   async c => {
     const menu = c.req.valid('json')
     const result = await setPersistentMenu(c.var.token, menu)
-    return c.json(result)
+    return c.json(result, 201)
   },
 )
 

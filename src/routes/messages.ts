@@ -41,7 +41,7 @@ for (const base of ['channels', 'users'] as const) {
 
         // throw されたエラーは index.ts の app.onError が拾って 500 を返す
         await sendMessageByType(config().botId, c.var.token, target, type, body)
-        return c.body(null, 200)
+        return c.body(null, 201)
       },
     )
   }

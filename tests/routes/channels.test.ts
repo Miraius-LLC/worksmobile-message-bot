@@ -42,7 +42,7 @@ afterEach(() => {
 })
 
 describe('POST /channels (作成)', () => {
-  test('正常 body は 200 + channelId', async () => {
+  test('正常 body は 201 + channelId', async () => {
     installFetch(
       () =>
         new Response(JSON.stringify({ channelId: 'ch-001', title: 'test' }), {
@@ -54,7 +54,7 @@ describe('POST /channels (作成)', () => {
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify({ members: ['u1'], title: 'test' }),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ channelId: 'ch-001', title: 'test' })
   })
 
@@ -171,14 +171,14 @@ describe('GET /channels/:id/members (メンバー一覧)', () => {
 })
 
 describe('既存 messages routes との path 共存', () => {
-  test('POST /channels/:id/messages/type/text は messagesApp 経由で 200 (Phase 4 と path 衝突なし)', async () => {
-    installFetch(() => new Response('', { status: 200 }))
+  test('POST /channels/:id/messages/type/text は messagesApp 経由で 201 (Phase 4 と path 衝突なし)', async () => {
+    installFetch(() => new Response('', { status: 201 }))
     const res = await app.request('/channels/ch-001/messages/type/text', {
       method: 'POST',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify({ text: 'hi' }),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
   })
 
   test('GET /channels/:id は channelsApp 経由で動く (POST / と方法違い)', async () => {

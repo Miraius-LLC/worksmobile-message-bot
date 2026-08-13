@@ -53,14 +53,14 @@ afterEach(() => {
 })
 
 describe('POST /menus/rich (作成)', () => {
-  test('正常 body は 200 + richmenuId', async () => {
+  test('正常 body は 201 + richmenuId', async () => {
     installFetch(() => new Response(JSON.stringify({ richmenuId: 'rm-001' }), { status: 201 }))
     const res = await app.request('/menus/rich', {
       method: 'POST',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify(sampleMenu),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ richmenuId: 'rm-001' })
     const apiCall = recorded.find(r => r.url.includes('/richmenus'))
     expect(apiCall?.init?.method).toBe('POST')
@@ -211,14 +211,15 @@ describe('POST /menus/rich/:id/image (画像登録)', () => {
 })
 
 describe('POST /menus/rich/:id/set-default', () => {
-  test('正常終了は 200 + richmenuId', async () => {
-    installFetch(() => new Response('', { status: 200 }))
+  test('正常終了は 201 + { botId: 12345, defaultRichmenuId: "rm-001" } を透過する', async () => {
+    const expectedBody = { botId: 12345, defaultRichmenuId: 'rm-001' }
+    installFetch(() => new Response(JSON.stringify(expectedBody), { status: 201 }))
     const res = await app.request('/menus/rich/rm-001/set-default', {
       method: 'POST',
       headers: { Authorization: BASIC_AUTH },
     })
-    expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ richmenuId: 'rm-001' })
+    expect(res.status).toBe(201)
+    expect(await res.json()).toEqual(expectedBody)
     const apiCall = recorded.find(r => r.url.includes('/set-default'))
     expect(apiCall?.init?.method).toBe('POST')
   })

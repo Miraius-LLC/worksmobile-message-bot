@@ -321,7 +321,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 
 | Endpoint | HTTP   | 説明                                                                                                   |
 | -------- | ------ | ------------------------------------------------------------------------------------------------------ |
-| `/`      | POST   | [固定メニューを登録](https://developers.worksmobile.com/jp/reference/bot-persistentmenu-create) (上書き) |
+| `/`      | POST   | [固定メニューを登録](https://developers.worksmobile.com/jp/reference/bot-persistentmenu-create) (上書き) → 201 + メニュー JSON |
 | `/`      | GET    | 固定メニューを取得 (未登録時は 200 + `null`)                                                            |
 | `/`      | DELETE | 固定メニューを削除 (未登録時も 204 で idempotent)                                                       |
 
@@ -334,7 +334,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 
 | Endpoint | HTTP | 説明 |
 | --- | --- | --- |
-| `/` | POST | リッチメニューを作成 → 200 + `{ richmenuId }` |
+| `/` | POST | リッチメニューを作成 → 201 + `{ richmenuId }` |
 | `/` | GET | 登録済リッチメニュー一覧 → 200 + `{ richmenus: [...] }` |
 | `/default` | GET | デフォルトリッチメニュー ID を取得 → 200 + `{ botId, defaultRichmenuId }` |
 | `/default` | DELETE | デフォルトリッチメニューの設定を解除 → 204 No Content |
@@ -344,12 +344,10 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 | `/{:richmenuId}` | DELETE | リッチメニューを削除 (未登録時も 204 で idempotent) |
 | `/{:richmenuId}/image` | GET | リッチメニュー画像情報 (fileId, i18nFileIds) を取得 → 200 + `{ fileId, i18nFileIds? }` |
 | `/{:richmenuId}/image` | POST | 事前アップロード済み `fileId` を JSON で画像登録 → 204 No Content |
-| `/{:richmenuId}/set-default` | POST | このリッチメニューを Bot 全員のデフォルトとして適用 → 200 + `{ richmenuId }` |
+| `/{:richmenuId}/set-default` | POST | このリッチメニューを Bot 全員のデフォルトとして適用 → 201 + `{ botId, defaultRichmenuId }` |
 | `/{:richmenuId}/users/{:userId}` | POST | 特定ユーザーにこのリッチメニューを適用 → 204 No Content |
 
-> 互換性注意: 画像登録は公式APIに合わせ、従来の multipart + `200 { richmenuId }` から
-> JSON `fileId` + `204 No Content` へ変更した。既存の呼び出し元は、先に `POST /attachments`
-> で画像をアップロードして `fileId` を取得してから画像登録を呼び出すこと。
+> 互換性注意: 公開 route の HTTP ステータスを公式 LINE WORKS API 仕様へ同期した。メッセージ送信 (`POST .../messages/type/*`) は 201 (空 body)、トークルーム作成 (`POST /channels`) は 201 + JSON、固定メニュー登録 (`POST /menus/persistent`) は 201 + JSON、リッチメニュー作成 (`POST /menus/rich`) は 201 + JSON、デフォルトリッチメニュー適用 (`POST /menus/rich/:id/set-default`) は 201 + `{ botId, defaultRichmenuId }` を返す。画像登録は公式 API に合わせ `204 No Content` を返す。
 
 ---
 
@@ -360,7 +358,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 
 | Endpoint           | HTTP   | 説明                                                                                         |
 | ------------------ | ------ | -------------------------------------------------------------------------------------------- |
-| `/`                | POST   | [トークルーム作成](https://developers.worksmobile.com/jp/reference/bot-channel-create) → `{ channelId }` |
+| `/`                | POST   | [トークルーム作成](https://developers.worksmobile.com/jp/reference/bot-channel-create) → 201 + `{ channelId }` |
 | `/{:channelId}`    | GET    | トークルーム情報取得 (`domainId` / `title` / `channelType`)。未登録は 200 + `null`              |
 | `/{:channelId}`    | DELETE | Bot をトークルームから退室 (未参加でも 204 で idempotent)                                       |
 | `/{:channelId}/members` | GET | メンバー一覧。`?count=1〜100&cursor=...` でページング                                          |
@@ -731,7 +729,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
     ]
   }
   ```
-- Response:
+- Response: 201 Created
   ```json
   { "richmenuId": "rm-001-xxx" }
   ```
@@ -758,6 +756,10 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 - Endpoint: `/menus/rich/{:richmenuId}/set-default`
 - HTTP: `POST`
 - Body: なし (URL の `:richmenuId` だけで完結)
+- Response: 201 Created
+  ```json
+  { "botId": 12345, "defaultRichmenuId": "rm-001-xxx" }
+  ```
 
 ##### 5. 詳細・画像情報取得 / ユーザー設定 / デフォルト取得・解除 / 削除
 
@@ -786,7 +788,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
     "title": "業務連絡 (任意, 最大 1000 文字)"
   }
   ```
-- Response: `{ "channelId": "ch-001", "title": "業務連絡" }`
+- Response: 201 Created `{ "channelId": "ch-001", "title": "業務連絡" }`
 
 ##### 情報取得 / 退室 / メンバー一覧
 

@@ -49,14 +49,14 @@ afterEach(() => {
 })
 
 describe('POST /menus/persistent', () => {
-  test('正常な body は 200 + menu を返す', async () => {
+  test('正常な body は 201 + menu を返す', async () => {
     installFetch(() => new Response(JSON.stringify(sampleMenu), { status: 201 }))
     const res = await app.request('/menus/persistent', {
       method: 'POST',
       headers: { 'content-type': 'application/json', Authorization: BASIC_AUTH },
       body: JSON.stringify(sampleMenu),
     })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
     expect(await res.json()).toEqual(sampleMenu)
     // upstream を POST で叩いたことを確認
     const apiCall = recorded.find(r => r.url.includes('/persistentmenu'))

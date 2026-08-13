@@ -254,9 +254,15 @@ describe('uploadRichMenuImage', () => {
 })
 
 describe('setDefaultRichMenu', () => {
-  test('POST /richmenus/{id}/set-default を叩く', async () => {
-    installFetch(() => new Response('', { status: 200 }))
-    await setDefaultRichMenu('tok', 'rm-001')
+  test('POST /richmenus/{id}/set-default を 201 で叩き公式 body { botId: 12345, defaultRichmenuId: "rm-001" } を返す', async () => {
+    installFetch(
+      () =>
+        new Response(JSON.stringify({ botId: 12345, defaultRichmenuId: 'rm-001' }), {
+          status: 201,
+        }),
+    )
+    const result = await setDefaultRichMenu('tok', 'rm-001')
+    expect(result).toEqual({ botId: 12345, defaultRichmenuId: 'rm-001' })
     expect(lastRequest?.init?.method).toBe('POST')
     expect(lastRequest?.url).toContain('/richmenus/rm-001/set-default')
   })
