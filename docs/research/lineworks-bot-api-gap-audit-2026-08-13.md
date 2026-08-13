@@ -84,4 +84,4 @@ Callbackは公式記載の8 event typeを実装している。公式ページは
 5. Bot一覧・ドメイン一覧・リッチメニュー一覧のpaginationを追加する。
 6. 公開routeのHTTP statusを公式準拠にするか、既存利用者互換を含めて契約を決定する。
 7. scopeをAPI用途別に選択可能にし、デフォルトを最小権限にする設計を決める。
-8. Callbackの `X-WORKS-BotId` 検証と、公式の非同期処理推奨を採用するか要件確認する（未確認のため保留）。
+8. Callbackの `X-WORKS-BotId` 検証は対応済み。非同期処理方針については、LINE WORKS公式仕様として自動再送が行われないため、当面は同期await転送（失敗時は手動再投入用dedup unregister）を基本とし、厳密なメッセージ到達保証に必要な耐久キュー（Durable Queue）構築は将来TODOとする。

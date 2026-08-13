@@ -47,7 +47,7 @@ export async function forwardEventToUpstream(
 
   if (response.status >= 400) {
     const body = await response.text().catch(() => '')
-    logger.warn('upstreamへのcallback転送が4xx（再送しない）', {
+    logger.warn('upstreamへのcallback転送が4xx（再試行対象外）', {
       caller: `${CALLER}.forwardEventToUpstream`,
       status: response.status,
       debug: body,

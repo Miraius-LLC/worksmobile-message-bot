@@ -13,6 +13,7 @@ import { createHmac } from 'node:crypto'
 
 const { app } = await import('@/app')
 const { _resetForTest: resetDedup } = await import('@/services/lineworks/callback/dedup')
+const { config } = await import('@/utils/config')
 
 // setup.tsのFORWARD_CALLBACK_URLと一致させる
 const FORWARD_URL = 'https://upstream.example.test/callback'
@@ -51,7 +52,7 @@ function sign(rawBody: string): string {
 async function postCallback(
   rawBody: string,
   signature?: string | null,
-  botId: string | null = 'test-bot-id',
+  botId: string | null = config().botId,
 ): Promise<Response> {
   const headers: Record<string, string> = { 'content-type': 'application/json' }
   if (typeof signature === 'string') headers['x-works-signature'] = signature
@@ -126,7 +127,7 @@ describe('POST /callback: Bot ID 検証', () => {
 
   test('正しい Bot ID + 正しい署名なら 200', async () => {
     const raw = JSON.stringify(messageEventFixture)
-    const res = await postCallback(raw, sign(raw), 'test-bot-id')
+    const res = await postCallback(raw, sign(raw), config().botId)
     expect(res.status).toBe(200)
   })
 

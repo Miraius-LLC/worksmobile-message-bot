@@ -27,7 +27,7 @@ export function buildDedupKey(rawBody: string): string {
 
 /**
  * key が直近 5 分以内に登録されていれば true (= duplicate)、未登録なら登録して false。
- * 戻り値が true の場合、呼び出し側は副作用無しで 200 を返すべき (LINE WORKS は再送を止める)。
+ * 戻り値が true の場合、呼び出し側は副作用無しで 200 を返すべき (重複イベントの処理スキップ)。
  *
  * 副作用のない pure な dedup check ではなく、check + register を 1 関数にまとめている。
  * 「check → 副作用 → register」の順だと副作用の途中で再送が来た時にすり抜けるため、

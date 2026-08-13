@@ -7,13 +7,13 @@ date: 2026-05-23
 
 ## Context and Problem Statement
 
-LINE WORKSのcallback再送による副作用の二重実行を、外部ストアを必須にせず軽減したい。callback payloadには一意なevent IDがない。
+LINE WORKS Callbackの重複受信・再投入による副作用の二重実行を、外部ストアを必須にせず軽減したい。callback payloadには一意なevent IDがない。
 
 ## Decision Drivers
 
 - 小規模な構成で追加インフラを要求しない
-- 同一runtime内の短時間の再送を除外する
-- 転送失敗時には再送を受け入れられること
+- 同一runtime内の短時間の重複イベントを除外する
+- 転送失敗時には手動再投入等での再実行を受け入れられること
 
 ## Considered Options
 
@@ -25,7 +25,7 @@ LINE WORKSのcallback再送による副作用の二重実行を、外部スト�
 
 Chosen option: 「raw bodyのhashをin-memoryで保持する」
 
-`callback/dedup.ts`でraw bodyのSHA-256をkeyに、直近5分windowの重複を検出する。転送に失敗した場合はkeyを解除 (unregister) し、手動再投入時等に再実行できるようにする (なお、LINE WORKS 公式仕様として Callback の自動再送は行われない)。
+`callback/dedup.ts`でraw bodyのSHA-256をkeyに、直近5分windowの重複を検出する。転送に失敗した場合はkeyを解除 (unregister) し、手動再投入時等に再実行できるようにする (なお、LINE WORKS 公式仕様として Callback の自動再送は行われない。現状は同期awaitで転送し、厳密な到達保証に必要な耐久キューは将来TODOとする)。
 
 ### Consequences
 
