@@ -12,6 +12,7 @@ export interface RuntimeEnv {
   BASIC_ID: string
   BASIC_PASS: string
   BOT_SECRET: string
+  OAUTH_SCOPE?: string
   FORWARD_CALLBACK_URL?: string
   PORT?: string
   NODE_ENV?: string
@@ -32,6 +33,8 @@ export function decodeBase64Utf8(value: string): string {
   return new TextDecoder().decode(bytes)
 }
 
+const oauthScopeEnum = z.enum(['bot.message', 'bot.read', 'bot'])
+
 const configSchema = z
   .object({
     CLIENT_ID: z.string().min(1),
@@ -40,6 +43,8 @@ const configSchema = z
     /** Base64 エンコード済みプライベートキー */
     PRIVATE_KEY: z.string().min(1),
     BOT_ID: z.string().min(1),
+    /** OAuth 認可スコープ (bot.message | bot.read | bot) */
+    OAUTH_SCOPE: oauthScopeEnum.default('bot'),
     PORT: z.coerce.number().int().positive().default(8080),
     NODE_ENV: z.string().default('development'),
     LOG_PRETTY: z.literal('1').optional(),
@@ -68,6 +73,7 @@ const configSchema = z
       serviceAccount: env.SERVICE_ACCOUNT,
       privateKey,
       botId: env.BOT_ID,
+      oauthScope: env.OAUTH_SCOPE,
       port: env.PORT,
       isProduction: env.NODE_ENV === 'production',
       logPretty: env.LOG_PRETTY === '1',
@@ -110,4 +116,9 @@ export function config(): Config {
     throw new Error('config.load() が呼ばれていません')
   }
   return cached
+}
+
+/** テスト用にキャッシュをリセットするフック (production からは呼ばない) */
+export function _resetConfigCacheForTest(): void {
+  cached = null
 }

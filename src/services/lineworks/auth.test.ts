@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, setSystemTime, test } from 'bun:test'
 import { _resetTokenCacheForTest, getServerToken } from '@/services/lineworks/auth'
 import { requireEnv } from '@/test-helpers/utils'
+import { _resetConfigCacheForTest, load } from '@/utils/config'
 
 function decodeJwtPayload(jwt: string): Record<string, unknown> {
   const [, payload] = jwt.split('.')
@@ -49,6 +50,50 @@ describe('services/lineworks/auth', () => {
     // JWT は 3 セクション (header.payload.signature)
     const assertion = params.get('assertion') ?? ''
     expect(assertion.split('.')).toHaveLength(3)
+  })
+
+  test('OAUTH_SCOPE 設定に応じた scope が OAuth トークンリクエストに指定される', async () => {
+    const origScope = process.env['OAUTH_SCOPE']
+    try {
+      // 1. デフォルト (bot)
+      delete process.env['OAUTH_SCOPE']
+      _resetConfigCacheForTest()
+      load()
+      _resetTokenCacheForTest()
+      const fetchSpy1 = installTokenResponse('token-bot')
+      await getServerToken()
+      const params1 = fetchSpy1.mock.calls[0]?.[1]?.body as URLSearchParams
+      expect(params1.get('scope')).toBe('bot')
+
+      // 2. bot.message
+      process.env['OAUTH_SCOPE'] = 'bot.message'
+      _resetConfigCacheForTest()
+      load()
+      _resetTokenCacheForTest()
+      const fetchSpy2 = installTokenResponse('token-message')
+      await getServerToken()
+      const params2 = fetchSpy2.mock.calls[0]?.[1]?.body as URLSearchParams
+      expect(params2.get('scope')).toBe('bot.message')
+
+      // 3. bot.read
+      process.env['OAUTH_SCOPE'] = 'bot.read'
+      _resetConfigCacheForTest()
+      load()
+      _resetTokenCacheForTest()
+      const fetchSpy3 = installTokenResponse('token-read')
+      await getServerToken()
+      const params3 = fetchSpy3.mock.calls[0]?.[1]?.body as URLSearchParams
+      expect(params3.get('scope')).toBe('bot.read')
+    } finally {
+      if (origScope !== undefined) {
+        process.env['OAUTH_SCOPE'] = origScope
+      } else {
+        delete process.env['OAUTH_SCOPE']
+      }
+      _resetConfigCacheForTest()
+      load()
+      _resetTokenCacheForTest()
+    }
   })
 
   test('2 回目以降はキャッシュを返し fetch を再呼び出ししない', async () => {

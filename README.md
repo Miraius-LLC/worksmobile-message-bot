@@ -60,6 +60,7 @@ BASIC_PASS=your_basic_auth_password
 # 任意
 PORT=8080         # listen ポート (default 8080)
 LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
+OAUTH_SCOPE=bot   # (任意) OAuth 認可スコープ: bot (default) | bot.message | bot.read
 ```
 
 | 変数 | 内容 |
@@ -73,10 +74,21 @@ LOG_PRETTY=1      # 開発時のみ。pino-pretty でカラー出力
 | `BASIC_ID` | webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
 | `BASIC_PASS` | BASIC 認証パスワード |
 | `FORWARD_CALLBACK_URL` | (任意) 受信Callbackを転送するupstream serviceのURL。未設定なら転送せず200を返す |
+| `OAUTH_SCOPE` | (任意) OAuth 認可スコープ (`bot` / `bot.message` / `bot.read`)。未設定時は `bot` |
 | `PORT` | listen ポート (省略時 `8080`) |
 | `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (4xx は warn で残しつつ Error Reporting には乗せない運用)。development では `debug` まで出す |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`cloudbuild.yaml` のデプロイ step で自動注入される) |
+
+### OAuth Scope の運用と注意点
+
+LINE WORKS API 呼び出しに使用する OAuth 認可スコープは環境変数 `OAUTH_SCOPE` で選択可能です。
+
+- **未設定時**: デフォルト値 `bot` が使用され、既存利用者の挙動を変更しません。
+- **`bot.message`**: メッセージ送信・メッセージ受信・メニュー（固定/リッチ）・トークルーム（チャンネル）操作・コンテンツ（添付ファイル）送受信を中心に利用する場合のスコープ。
+- **`bot`**: Bot CRUD やドメイン管理を含む現行すべての機能を利用する場合のスコープ。
+- **`bot.read`**: GET 可能な読み取り専用 API の範囲で[公式 API ドキュメント](https://developers.worksmobile.com/jp/docs/auth-scope)を確認のうえ利用するスコープ。
+  > ⚠️ **注意**: `bot.read` ではメッセージ送信や Bot 更新などの書き込み系 route (write route) は動作せず、公式 API から認可エラー (403 等) が返されます。本サーバーではローカル事前拒否を行わず公式 API のエラーをそのまま返却します。
 
 ---
 

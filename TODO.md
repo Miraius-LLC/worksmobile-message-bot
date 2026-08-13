@@ -17,7 +17,7 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 - [x] **リッチメニューの未対応操作を追加** — 詳細・画像取得、ユーザー別適用/取得/削除、デフォルト取得/削除を追加する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **Bot・ドメイン・リッチメニュー一覧のpaginationを追加** — `count` / `cursor` / `responseMetaData.nextCursor`を公式仕様どおり扱い、転送・クエリ検証・契約テストを反映した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 - [x] **公開routeのHTTP status契約を公式準拠へ整理** — 201/204を返す作成・画像・デフォルト適用経路について、既存利用者互換を確認して契約テストを固定する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- [ ] **OAuth scopeの用途別選択を設計** — `bot.message` / `bot` / `bot.read`をAPI用途と最小権限に応じて選択可能にする（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
+- [x] **OAuth scopeの用途別選択を実装** — 環境変数 `OAUTH_SCOPE` (default: `bot`, 許容値: `bot.message` / `bot.read` / `bot`) を追加し、OAuth トークンリクエストへ反映。最小権限選択に対応した（[公式 Scope 仕様](https://developers.worksmobile.com/jp/docs/auth-scope)）。
 - [ ] **CallbackのBot ID検証と非同期処理方針を確認** — 公式Callbackの `X-WORKS-BotId` ヘッダ検証と、後続イベントを滞留させない非同期転送を採用するか要件を確認する（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
 
 ### スケーリング
@@ -32,7 +32,7 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 - [ ] **メッセージ型の追加** — 新しい LINE WORKS メッセージ型が必要になったら `services/lineworks/messages/index.ts` の `messageSchemas` に Zod schema を 1 件足すだけ（route とディスパッチャは自動追従、[ADR-0007](./docs/adr/0007-message-type-dispatcher.md)）。
 - [ ] **新 callback event type への追従** — LINE WORKS 仕様変更で event type が増えたら `callback/schemas.ts` の `discriminatedUnion` に追加する（未知 type は現状 400 で reject）。
-- [ ] **アクセストークンの追加スコープ** — 現状 scope は `bot` 固定。用途別の最小権限選択は上記の「OAuth scopeの用途別選択」で設計する。
+- [ ] **アクセストークンの追加スコープ** — 上記「OAuth scopeの用途別選択」で `OAUTH_SCOPE` (`bot.message` / `bot.read` / `bot`) の動的選択を完了。将来別 OAuth flow や複数 scope 同時指定が必要になった際に対応を検討する。
 
 ### ワークフロー（任意）
 

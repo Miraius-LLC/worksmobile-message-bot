@@ -54,7 +54,7 @@ async function fetchAccessToken(jwtToken: string): Promise<CachedToken> {
     grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
     client_id: cfg.clientId,
     client_secret: cfg.clientSecret,
-    scope: 'bot',
+    scope: cfg.oauthScope,
   })
 
   const response = await fetchWithTimeout(AUTH_URL, {

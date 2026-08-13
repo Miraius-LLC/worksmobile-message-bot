@@ -1,10 +1,63 @@
 import { describe, expect, test } from 'bun:test'
 import { requireEnv } from '@/test-helpers/utils'
-import { config, isPemPrivateKey, load, parseConfig } from '@/utils/config'
+import {
+  _resetConfigCacheForTest,
+  config,
+  isPemPrivateKey,
+  load,
+  parseConfig,
+} from '@/utils/config'
 
 // test-helpers/setup.ts が PRIVATE_KEY (実 RSA 鍵) + CLIENT_ID 等を埋めて load() 済み
 
 describe('utils/config', () => {
+  test('OAUTH_SCOPE の設定に応じた enum バリデーションとデフォルト値 (bot)', () => {
+    const validEnv = {
+      CLIENT_ID: requireEnv('CLIENT_ID'),
+      CLIENT_SECRET: requireEnv('CLIENT_SECRET'),
+      SERVICE_ACCOUNT: requireEnv('SERVICE_ACCOUNT'),
+      PRIVATE_KEY: requireEnv('PRIVATE_KEY'),
+      BOT_ID: requireEnv('BOT_ID'),
+      BASIC_ID: requireEnv('BASIC_ID'),
+      BASIC_PASS: requireEnv('BASIC_PASS'),
+      BOT_SECRET: requireEnv('BOT_SECRET'),
+    }
+
+    // 未設定時はデフォルト bot
+    expect(parseConfig(validEnv).oauthScope).toBe('bot')
+
+    // 許容値: bot.message, bot.read, bot
+    expect(parseConfig({ ...validEnv, OAUTH_SCOPE: 'bot.message' }).oauthScope).toBe('bot.message')
+    expect(parseConfig({ ...validEnv, OAUTH_SCOPE: 'bot.read' }).oauthScope).toBe('bot.read')
+    expect(parseConfig({ ...validEnv, OAUTH_SCOPE: 'bot' }).oauthScope).toBe('bot')
+
+    // 不正値は拒否
+    expect(() => parseConfig({ ...validEnv, OAUTH_SCOPE: 'invalid' })).toThrow()
+    expect(() => parseConfig({ ...validEnv, OAUTH_SCOPE: 'bot.write' })).toThrow()
+    expect(() => parseConfig({ ...validEnv, OAUTH_SCOPE: '' })).toThrow()
+  })
+
+  test('OAUTH_SCOPE が load() 経由で Config.oauthScope へ反映される', () => {
+    const origScope = process.env['OAUTH_SCOPE']
+    try {
+      delete process.env['OAUTH_SCOPE']
+      _resetConfigCacheForTest()
+      expect(load().oauthScope).toBe('bot')
+
+      process.env['OAUTH_SCOPE'] = 'bot.message'
+      _resetConfigCacheForTest()
+      expect(load().oauthScope).toBe('bot.message')
+    } finally {
+      if (origScope !== undefined) {
+        process.env['OAUTH_SCOPE'] = origScope
+      } else {
+        delete process.env['OAUTH_SCOPE']
+      }
+      _resetConfigCacheForTest()
+      load()
+    }
+  })
+
   test('parseConfig() は明示された runtime env を変換する', () => {
     const validEnv = {
       CLIENT_ID: requireEnv('CLIENT_ID'),

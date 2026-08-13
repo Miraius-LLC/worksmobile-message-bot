@@ -28,6 +28,8 @@ function setupFixtureEnv() {
   process.env['BOT_SECRET'] = 'test-bot-secret'
   // callback転送先（forward.tsのテスト用）。実envがあれば尊重する
   process.env['FORWARD_CALLBACK_URL'] ??= 'https://upstream.example.test/callback'
+  // OAUTH_SCOPE もテスト時の環境変数依存を防ぐためクリア (未設定時 default: bot の挙動を担保)
+  delete process.env['OAUTH_SCOPE']
 }
 setupFixtureEnv()
 
