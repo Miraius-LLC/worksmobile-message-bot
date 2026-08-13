@@ -32,7 +32,7 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 - [ ] **メッセージ型の追加** — 新しい LINE WORKS メッセージ型が必要になったら `services/lineworks/messages/index.ts` の `messageSchemas` に Zod schema を 1 件足すだけ（route とディスパッチャは自動追従、[ADR-0007](./docs/adr/0007-message-type-dispatcher.md)）。
 - [ ] **新 callback event type への追従** — LINE WORKS 仕様変更で event type が増えたら `callback/schemas.ts` の `discriminatedUnion` に追加する（未知 type は現状 400 で reject）。
-- [ ] **アクセストークンの追加スコープ** — 上記「OAuth scopeの用途別選択」で `OAUTH_SCOPE` (`bot.message` / `bot.read` / `bot`) の動的選択を完了。将来別 OAuth flow や複数 scope 同時指定が必要になった際に対応を検討する。
+- [x] **アクセストークンの追加スコープ** — 上記のOAuth scope選択実装で完了
 
 ### ワークフロー（任意）
 
