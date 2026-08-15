@@ -67,3 +67,61 @@ describe('forwardEventToUpstream', () => {
     expect(headers.get('X-WORKS-Signature')).toBeNull()
   })
 })
+
+describe('forwardEventToUpstream: Cloudflare Access の service token', () => {
+  // upstream (501) を Access の内側に置くと、token 無しの転送は 403 で弾かれる。
+  // 「守っているつもりで素通り」「弾かれたのに 200 を返して callback が消える」の 2 つを潰す。
+  // config は load() 済みのキャッシュを配るので、env を入れ替えたら reset → load し直す。
+  async function reloadConfig(): Promise<void> {
+    const { _resetConfigCacheForTest, load } = await import('@/utils/config')
+    _resetConfigCacheForTest()
+    load(process.env)
+  }
+
+  afterEach(async () => {
+    Reflect.deleteProperty(process.env, 'CF_ACCESS_CLIENT_ID')
+    Reflect.deleteProperty(process.env, 'CF_ACCESS_CLIENT_SECRET')
+    await reloadConfig()
+  })
+
+  test('token が設定されていれば CF-Access-* ヘッダを付ける', async () => {
+    process.env['CF_ACCESS_CLIENT_ID'] = 'client-id.access'
+    process.env['CF_ACCESS_CLIENT_SECRET'] = 'client-secret'
+    await reloadConfig()
+
+    stubFetch(200)
+    await forwardEventToUpstream(RAW_BODY, SIGNATURE)
+    const headers = new Headers(calls[0]?.init?.headers)
+    expect(headers.get('CF-Access-Client-Id')).toBe('client-id.access')
+    expect(headers.get('CF-Access-Client-Secret')).toBe('client-secret')
+    // 署名は従来どおり素通しする
+    expect(headers.get('X-WORKS-Signature')).toBe(SIGNATURE)
+  })
+
+  test('token 未設定なら CF-Access-* を付けない', async () => {
+    stubFetch(200)
+    await forwardEventToUpstream(RAW_BODY, SIGNATURE)
+    const headers = new Headers(calls[0]?.init?.headers)
+    expect(headers.get('CF-Access-Client-Id')).toBeNull()
+  })
+
+  test('403 は throw する (黙って 200 を返すと callback が消える)', async () => {
+    stubFetch(403)
+    expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).rejects.toThrow(
+      /forward to upstream rejected: 403/,
+    )
+  })
+
+  test('401 も throw する', async () => {
+    stubFetch(401)
+    expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).rejects.toThrow(
+      /forward to upstream rejected: 401/,
+    )
+  })
+
+  test('404 は従来どおり warn して return (再送しても解決しない)', async () => {
+    stubFetch(404)
+    await forwardEventToUpstream(RAW_BODY, SIGNATURE)
+    expect(calls.length).toBe(1)
+  })
+})

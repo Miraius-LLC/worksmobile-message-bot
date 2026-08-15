@@ -227,9 +227,16 @@ bunx wrangler secret put BASIC_ID
 bunx wrangler secret put BASIC_PASS
 bunx wrangler secret put BOT_SECRET
 bunx wrangler secret put FORWARD_CALLBACK_URL
+bunx wrangler secret put CF_ACCESS_CLIENT_ID
+bunx wrangler secret put CF_ACCESS_CLIENT_SECRET
 ```
 
 `PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_CALLBACK_URL` は必要な場合のみ登録する。
+
+`CF_ACCESS_CLIENT_*` は転送先が Cloudflare Access の内側にいる場合だけ登録する (501 の callback を
+社内 LXC の Tunnel で受ける構成)。**両方揃える**必要があり、片方だけだと起動時に検証で落ちる。
+転送が 401 / 403 で弾かれた場合は 200 を返さず throw するので、token の誤り・失効はログに出る
+(黙って callback が消えない)。
 
 ```sh
 # bundle 生成まで。外部へ deploy しない

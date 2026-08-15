@@ -14,6 +14,8 @@ export interface RuntimeEnv {
   BOT_SECRET: string
   OAUTH_SCOPE?: string
   FORWARD_CALLBACK_URL?: string
+  CF_ACCESS_CLIENT_ID?: string
+  CF_ACCESS_CLIENT_SECRET?: string
   PORT?: string
   NODE_ENV?: string
   LOG_PRETTY?: string
@@ -61,6 +63,31 @@ const configSchema = z
       .union([z.string().url(), z.literal('')])
       .optional()
       .transform(value => value || undefined),
+    /**
+     * upstream が Cloudflare Access の内側にある場合の service token。
+     * 転送時に `CF-Access-Client-Id` / `CF-Access-Client-Secret` として付ける。
+     * 非対話の service token 専用で、ブラウザログインは介在しない。
+     */
+    CF_ACCESS_CLIENT_ID: z
+      .string()
+      .optional()
+      .transform(value => value || undefined),
+    CF_ACCESS_CLIENT_SECRET: z
+      .string()
+      .optional()
+      .transform(value => value || undefined),
+  })
+  .superRefine((env, ctx) => {
+    // 片方だけ設定されている状態は「守っているつもりで素通り」になるため弾く。
+    const hasId = Boolean(env.CF_ACCESS_CLIENT_ID)
+    const hasSecret = Boolean(env.CF_ACCESS_CLIENT_SECRET)
+    if (hasId !== hasSecret) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [hasId ? 'CF_ACCESS_CLIENT_SECRET' : 'CF_ACCESS_CLIENT_ID'],
+        message: 'CF_ACCESS_CLIENT_ID と CF_ACCESS_CLIENT_SECRET は両方揃える必要があります',
+      })
+    }
   })
   .transform(env => {
     const privateKey = decodeBase64Utf8(env.PRIVATE_KEY)
@@ -81,6 +108,8 @@ const configSchema = z
       basicAuthPassword: env.BASIC_PASS,
       botSecret: env.BOT_SECRET,
       forwardCallbackUrl: env.FORWARD_CALLBACK_URL,
+      cfAccessClientId: env.CF_ACCESS_CLIENT_ID,
+      cfAccessClientSecret: env.CF_ACCESS_CLIENT_SECRET,
     }
   })
 

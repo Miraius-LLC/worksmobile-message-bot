@@ -59,6 +59,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 | `BOT_SECRET` | **Secret Manager `lineworks-bot-secret:latest`** にマウント (本番) / `.env` (開発)。Callback の `X-WORKS-Signature` (HMAC-SHA256) 検証鍵。Developer Console の Bot 詳細から取得した値をそのまま入れる (Base64 デコード等は不要) |
 | `BASIC_ID` | **Secret Manager `lineworks-basic-id:latest`** にマウント (本番) / `.env` (開発)。webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
 | `BASIC_PASS` | **Secret Manager `lineworks-basic-pass:latest`** にマウント (本番) / `.env` (開発)。BASIC 認証パスワード |
+| `CF_ACCESS_CLIENT_ID` | upstream (501) が Cloudflare Access の内側にいる場合の service token。転送時に `CF-Access-Client-Id` として付ける。**`CF_ACCESS_CLIENT_SECRET` と両方揃わないと起動時に落ちる** (片方だけ = 守っているつもりで素通り、を防ぐ) |
+| `CF_ACCESS_CLIENT_SECRET` | 同上。`CF-Access-Client-Secret` として付ける。Workers は `wrangler secret put` で設定する |
 | `PORT` | リッスンポート (デフォルト 8080) |
 | `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (`logger-impl.ts`、4xx は warn で残し Error Reporting には乗せない)。`shouldUsePretty` が production では `LOG_PRETTY=1` を無視して JSON 出力に倒す |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
