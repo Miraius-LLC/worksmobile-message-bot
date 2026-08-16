@@ -1,6 +1,6 @@
 ---
 name: wizard
-description: Generate an interactive bash wizard for human-only dashboard, credential, CI-secret, migration, or cutover steps after provision-infra-safely has established ownership and the Human Gate. Do not use this skill to decide resource ownership or provisioning scope, and don't invoke it for steps the agent can perform itself.
+description: Generate an interactive bash wizard that walks a human through steps only they can perform. Use when provisioning infrastructure, setting up credentials or CI secrets, walking an unfamiliar third-party dashboard, or running a one-off migration or cutover. Don't invoke this for steps the agent can perform itself.
 ---
 
 # Wizard
