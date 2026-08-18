@@ -21,6 +21,8 @@ export type ResolveSecretsOptions = {
   ignoreEnv?: boolean
   concurrency?: number
   opReadFn?: (reference: string) => ReadResult | Promise<ReadResult>
+  /** 拾い直しの待機。テストから no-op を差し込むために注入可能にしている。 */
+  sleep?: (ms: number) => Promise<void>
 }
 
 export type ResolveSecretsResult = {
@@ -31,6 +33,8 @@ export type ResolveSecretsResult = {
 }
 
 export const DEFAULT_OP_READ_CONCURRENCY = 6
+// 拾い直しの待機 (ms)。要素数 = 最大リトライ回数。
+const RETRY_BACKOFF_MS = [500, 1500]
 
 export function parseTemplateReferences(template: string): Record<string, string> {
   const references: Record<string, string> = {}
@@ -110,6 +114,35 @@ export async function resolveSecretsToEnv(
     if (result.signinNeeded) signinNeeded = true
   }
 
+  // 並列読みは 1Password 側の詰まりで単発失敗することがある (dev で実測)。詰まりは即座には
+  // 解けないため、決定的でない失敗だけ間隔を空けて直列で拾い直す。
+  if (!signinNeeded) {
+    const sleep = options.sleep ?? ((ms: number) => Bun.sleep(ms))
+    for (const waitMs of RETRY_BACKOFF_MS) {
+      const retryTargets = failures.filter(failure => isRetriableFailure(failure))
+      if (retryTargets.length === 0) break
+
+      await sleep(waitMs)
+      for (const target of retryTargets) {
+        const index = failures.indexOf(target)
+        const retried = await opReadFn(target.reference)
+        if (retried.ok) {
+          values[target.envKey] = retried.value
+          failures.splice(index, 1)
+          continue
+        }
+        failures[index] = {
+          envKey: target.envKey,
+          reference: target.reference,
+          reason: retried.reason,
+          ...(retried.signinNeeded ? { signinNeeded: true } : {}),
+        }
+        if (retried.signinNeeded) signinNeeded = true
+      }
+      if (signinNeeded) break
+    }
+  }
+
   return { values, failures, signinNeeded, references }
 }
 
@@ -132,7 +165,15 @@ function publicFailureReason(failure: SecretReadFailure): string {
   if (failure.signinNeeded) return '認証が必要'
   if (failure.reason === 'op コマンドが見つかりません') return 'opコマンドなし'
   if (failure.reason === '値が空') return '値が空'
+  // 生 reason は出さず、原因の分かる既知パターンだけ固定分類へ寄せる。
+  if (/connecting to desktop app/i.test(failure.reason)) return 'デスクトップ接続失敗'
   return '取得失敗'
+}
+
+/** 一時的な失敗 = 拾い直す価値がある分類。決定的な失敗は再試行しない。 */
+function isRetriableFailure(failure: SecretReadFailure): boolean {
+  const category = publicFailureReason(failure)
+  return category === '取得失敗' || category === 'デスクトップ接続失敗'
 }
 
 async function mapWithConcurrency<T, U>(
@@ -162,11 +203,14 @@ async function mapWithConcurrency<T, U>(
 }
 
 async function opRead(reference: string): Promise<ReadResult> {
-  let proc: Bun.Subprocess<'ignore', 'pipe', 'pipe'>
+  let proc: Bun.Subprocess<'inherit', 'pipe', 'pipe'>
 
   try {
+    // stdin を継承する。Bun.spawn は既定で stdin を塞ぐが、塞ぐと op が 1Password
+    // デスクトップアプリの承認待ちへ入れず「connecting to desktop app timed out」で失敗する。
+    // 承認がキャッシュ済みの端末では成功してしまうため、承認が要る端末で初めて露見する。
     proc = Bun.spawn(['op', 'read', reference], {
-      stdin: 'ignore',
+      stdin: 'inherit',
       stdout: 'pipe',
       stderr: 'pipe',
     })

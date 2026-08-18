@@ -7,7 +7,7 @@ import {
 
 describe('secret injection conformance adapter', () => {
   test('contract v2 の template target を宣言する', () => {
-    expect(SECRET_INJECTION_ADAPTER.contractVersion).toBe(2)
+    expect(SECRET_INJECTION_ADAPTER.contractVersion).toBe(3)
     expect(SECRET_INJECTION_ADAPTER.kind).toBe('template')
     expect(SECRET_INJECTION_ADAPTER.targets).toEqual([
       {
@@ -25,8 +25,10 @@ describe('secret injection conformance adapter', () => {
       'merge-quotes-values',
       'resolve-env-wins',
       'resolve-ignore-env',
+      'read-inherits-stdin',
       'resolve-signin-short-circuit',
       'resolve-bounded-concurrency',
+      'resolve-transient-retry',
       'check-deterministic-output',
       'check-redacts-values',
       'check-read-only',

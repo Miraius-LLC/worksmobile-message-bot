@@ -6,8 +6,10 @@ export const SECRET_INJECTION_SCENARIO_IDS = [
   'merge-quotes-values',
   'resolve-env-wins',
   'resolve-ignore-env',
+  'read-inherits-stdin',
   'resolve-signin-short-circuit',
   'resolve-bounded-concurrency',
+  'resolve-transient-retry',
   'check-deterministic-output',
   'check-redacts-values',
   'check-read-only',
@@ -17,7 +19,7 @@ export const SECRET_INJECTION_SCENARIO_IDS = [
 ] as const
 
 export const SECRET_INJECTION_ADAPTER = {
-  contractVersion: 2,
+  contractVersion: 3,
   kind: 'template',
   targets: [
     {

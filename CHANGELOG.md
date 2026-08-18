@@ -2,6 +2,12 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## secret 注入の承認待ちと拾い直し — ✅ 2026-08-18
+
+- **`op read` の stdin を継承**: `Bun.spawn` は既定で stdin を塞ぐため、`op` が 1Password デスクトップアプリの承認待ちへ入れず `connecting to desktop app timed out` で失敗していた。承認がキャッシュ済みの端末では成功するので、承認が要る Linux の dev 機で初めて露見する（501 が 2026-08-13、asunaro が 2026-08-18 に実測）。`stdin: 'inherit'` へ変更し、spawn option を固定する回帰テストを追加した。
+- **一時的失敗の拾い直し**: 並列読みで単発失敗した参照を 500ms・1500ms と間隔を空けて直列で最大 2 回読み直す。`connecting to desktop app` は専用分類にし、生 reason は従来どおり表示しない。`認証が必要` は即中断、`opコマンドなし` と `値が空` は再試行しない。
+- **共通契約 v3**: develop-meta の secret 注入契約へ `read-inherits-stdin` / `resolve-transient-retry` を追加し、対象 4 repo で揃えた。
+
 ## 公式 Bot API 追従・Callback 契約整理 — ✅ 2026-08-13
 
 - **公式 Bot API 契約の同期**: リッチメニュー画像登録を公式 `fileId` / `i18nFileIds` JSON API（`204 No Content`）へ変更し、ドメイン別 Bot 設定、Bot テナント設定の schema を公式仕様へ同期した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
