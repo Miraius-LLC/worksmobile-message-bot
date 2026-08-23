@@ -88,3 +88,7 @@ logs/
 coverage/
 *.lcov
 .nyc_output/
+
+# Local CodeGraph index and Graphify cache
+.codegraph/
+graphify-out/
