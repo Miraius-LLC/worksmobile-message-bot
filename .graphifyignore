@@ -1,0 +1,11 @@
+# Graphifyの自動更新は --code-only でコード構造だけを対象にする。
+# docs / SQL / RLS / TODO / CHANGELOG の意味論は直接確認し、graphで代用しない。
+# 生成物・依存・ビルド成果物はgraphへ入れない。
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/.next/
+**/.react-router/
+**/.wrangler/
+**/graphify-out/

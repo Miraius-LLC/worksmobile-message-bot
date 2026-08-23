@@ -2,11 +2,15 @@ post-merge:
   commands:
     install:
       run: scripts/with-dev-env bun i
+    graphify-refresh:
+      run: "$HOME/Develop/bin/graphify-refresh --repo-root ."
 
 post-rebase:
   commands:
     install:
       run: scripts/with-dev-env bun i
+    graphify-refresh:
+      run: "$HOME/Develop/bin/graphify-refresh --repo-root ."
 
 pre-commit:
   parallel: true
