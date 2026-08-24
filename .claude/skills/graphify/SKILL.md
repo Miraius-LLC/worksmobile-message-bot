@@ -24,6 +24,20 @@ description: "既に graphify-out/graph.json があるrepoで、既存graphの�
 - 変更影響がない、安全である、testでcover済みという完了判定
 - graphが無い、古い、空、またはtruncatedな状態からの推測
 
+## SQL nodeの収録範囲（2026-08-24 実測）
+
+`graphifyy[sql]` 導入後、SQLから収録されるのは `CREATE TABLE` / `VIEW` / `FUNCTION` / `PROCEDURE` / `TRIGGER` に限られる。
+
+**`CREATE POLICY` と `ENABLE ROW LEVEL SECURITY` は収録されない。** `tree-sitter-sql` がこの構文をERROR nodeとして落とし、extractor側にも回収経路が無いため。Asunaroの `post-migrate/03_rls.sql` は1,251行・198箇所のRLS定義を持つが、graphに入るのは**ファイルnode 1個だけ**である。
+
+したがって次を守る。
+
+- **RLS・GRANT・権限まわりは、このskillの対象外**として扱い、必ず `.sql` を直接開いて確認する。
+- テーブルnodeの近傍を見て「このテーブルに関わるものは揃った」と読まない。ポリシーは最初からgraphに存在しない。
+- graphにテーブルとDB関数が入っていることは、**RLSを確認した根拠にならない**。
+
+この欠落は警告を出さない。`extract` はRLSファイルを走査し、成功として終了する。
+
 ## Safety boundary
 
 このskillの実行中は既存graphを**読み取るだけ**にする。次の導線は扱わない。
