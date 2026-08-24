@@ -56,7 +56,7 @@ describe('CI workflow', () => {
       'cancel-in-progress': true,
     })
     expect(externalActions).toEqual([
-      'actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803',
+      'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
       'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6',
       'cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0',
     ])
