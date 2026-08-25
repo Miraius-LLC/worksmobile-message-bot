@@ -37,3 +37,5 @@ pre-push:
   commands:
     full-test:
       run: scripts/with-dev-env bun test
+    openspec-validate:
+      run: scripts/with-dev-env bun run spec:validate

@@ -9,12 +9,14 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 ## ルール (常時適用)
 
 - 共通開発規約（commit / git-log / coding-conventions / tests / worktree / routes / services / tests-lineworks）の詳細は `.claude/rules/*.md`（Claude は `CLAUDE.md` 経由で @import、Codex / agy は同ディレクトリを直接参照）。
+- **SoT マップ**: 長期的な設計判断 = `docs/adr/` / 全 Agent 共通ルール = `AGENTS.md` / 現在の構成と用語 = `README.md`・`CONTEXT.md` / active change の要求・設計・手順 = `openspec/changes/<change>/` / archive 後の現行仕様 = `openspec/specs/<capability>/` / 実行可能な仕様 = テスト / 進行管理 = `TODO.md` / 完了履歴 = `CHANGELOG.md`。詳細は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md) を正とする。
 
 ## トピック別ルール (作業に応じて読む)
 
 - ルート (HTTP エンドポイント) を追加・修正する → `.claude/rules/routes.md`
 - service 層 (LINE WORKS API ラッパ) を触る → `.claude/rules/services.md`
 - LINE WORKS 関連のテストパターン (典型モック / app.request / multipart) → `.claude/rules/tests-lineworks.md`
+- HTTP API contract、入力 validation、状態・不変条件、認証境界、callback・外部 API 連携の観測可能な挙動を変える → 実装前に OpenSpec active change を作る。適用基準は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md)
 
 ## 主要コマンド
 
@@ -25,6 +27,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 | 1Password 参照の疎通確認 | `bun run secrets:check` |
 | 型チェック | `bunx tsc --noEmit` |
 | Lint/format (auto-fix) | `bunx biome check --write ./src ./tests ./scripts` |
+| OpenSpec | `bun run spec -- <command>` / `bun run spec:validate` |
 | 本番ビルド | `bun run build` |
 | Docker イメージビルド | `bun run docker:build` |
 

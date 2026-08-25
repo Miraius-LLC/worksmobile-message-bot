@@ -43,6 +43,9 @@ jobs:
         env:
           SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
 
+      - name: Validate OpenSpec
+        run: bun run spec:validate
+
       - name: TypeScript type check
         run: bunx tsc --noEmit
 
@@ -50,6 +53,7 @@ jobs:
         run: >-
           bunx biome check ./src ./tests ./scripts
           ci-config.test.ts wrangler-config.test.ts operations-config.test.ts
+          openspec-config.test.ts
 
       - name: Tests
         run: bun test

@@ -2,6 +2,12 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## OpenSpec・コード探索基盤 — ✅ 2026-08-25
+
+- **OpenSpecを段階導入**: OpenSpec 1.10.0をrepository-localに固定し、API contract、入力validation、状態・不変条件、認証境界、外部連携の観測可能な変更をactive changeで管理する。既存仕様はbackfillせず、導入後のdelta specだけを蓄積する（[workflow spec](./openspec/specs/change-specification-workflow/spec.md)）。
+- **検証経路を統一**: `bun run spec:validate`をlocal、pre-push、CIの共通入口にし、telemetry無効のstrict validationを実行する。
+- **CodeGraph設定をportable化**: 既存のGraphify / CodeGraph連携を維持し、fresh worktreeでもlocal DBを追跡しない`.codegraph/.gitignore`とAgent配布物を除外する`codegraph.json`を追加した。
+
 ## pagination共通化とcallback責務整理 — ✅ 2026-08-25
 
 - **一覧queryの共通化**: Bot、Botドメイン、リッチメニュー、トークルームメンバー、ドメインメンバーの`count` / `cursor` schemaと400応答hookを共通化した。IFTTT / Makeが送る空の`count`は未指定として扱い、`1..100`の範囲制約は維持する。

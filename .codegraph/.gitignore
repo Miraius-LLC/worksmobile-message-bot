@@ -1,0 +1,3 @@
+# CodeGraph data files are local to each machine and are not committed.
+*
+!.gitignore
