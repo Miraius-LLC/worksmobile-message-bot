@@ -5,7 +5,7 @@ post-merge:
     graphify-refresh:
       run: "$HOME/Develop/bin/graphify-refresh --repo-root ."
 
-post-rebase:
+post-rewrite:
   commands:
     install:
       run: scripts/with-dev-env bun i

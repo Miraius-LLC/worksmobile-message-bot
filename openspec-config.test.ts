@@ -76,5 +76,7 @@ describe('OpenSpec repository contract', () => {
     expect(gitignore.split('\n')).not.toContain('.codegraph/')
     expect(gitignore).toContain('graphify-out/')
     expect(lefthook.match(/graphify-refresh:/g)).toHaveLength(2)
+    expect(lefthook).toContain('post-rewrite:')
+    expect(lefthook).not.toContain('post-rebase:')
   })
 })
