@@ -1,8 +1,16 @@
-## ADDED Requirements
+# dual-runtime-deployment Specification
+
+## Purpose
+
+WorkersとCloud Runで共通Hono appを動かしながら、各runtimeのentrypoint、container、build・deploy制約を維持する。
+
+## Requirements
 
 ### Requirement: 共通Hono appをWorkersとCloud Runから起動する
 
 worksmobile-message-botはruntime非依存のHono appを`src/app.ts`に保持し、Cloudflare Workers用entrypointとCloud Run用entrypointから同じappを起動しなければならない（SHALL）。
+
+Source ADRs: [ADR-0001](../../../docs/adr/0001-cloud-run-hono-bun.md)、[ADR-0002](../../../docs/adr/0002-container-http1-only-no-h2c.md)、[ADR-0008](../../../docs/adr/0008-docker-cloud-build-constraints.md)、[ADR-0010](../../../docs/adr/0010-dual-cloud-deployment.md)
 
 #### Scenario: Workersで起動する
 

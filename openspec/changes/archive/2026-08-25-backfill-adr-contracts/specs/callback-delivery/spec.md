@@ -2,7 +2,9 @@
 
 ### Requirement: Callbackを検証してから処理する
 
-callback endpointはraw bodyの署名、`X-WORKS-BotId`、JSON shapeを検証した後にだけdedupとupstream転送を進めなければならない（SHALL）。
+callback endpointはraw bodyの署名と`X-WORKS-BotId`を検証し、dedupを確認した後にJSON / Zod validationとupstream転送を進めなければならない（SHALL）。
+
+Source ADRs: [ADR-0004](../../../../../docs/adr/0004-callback-dedup-in-memory-5min.md)、[ADR-0005](../../../../../docs/adr/0005-forward-callback-to-upstream.md)
 
 #### Scenario: Bot ID headerが欠落する
 
@@ -44,7 +46,7 @@ callbackはraw bodyのSHA-256 digestをkeyとするin-memory Mapで5分間dedupl
 
 #### Scenario: Upstream転送に失敗する
 
-- **WHEN** upstream requestが失敗するか非成功応答を返す
+- **WHEN** upstream requestがnetwork error、5xx、または認証拒否の401 / 403で失敗する
 - **THEN** endpointは500を返してdedup keyを解除し、同じcallbackの手動再投入を受け入れる
 
 ### Requirement: Callbackのbusiness logicをupstreamへ委譲する

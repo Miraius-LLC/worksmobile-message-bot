@@ -5,6 +5,8 @@ date: 2026-05-23
 
 # ADR-0009: 専用 runtime SA + 公開リポ向け secret 運用
 
+OpenSpec capability: [`deployment-security`](../../openspec/specs/deployment-security/spec.md)
+
 ## Context and Problem Statement
 
 このADRは共通テンプレート導入前に作成された。移行前の判断記録は末尾の「Original Record」に内容を変更せず保存する。

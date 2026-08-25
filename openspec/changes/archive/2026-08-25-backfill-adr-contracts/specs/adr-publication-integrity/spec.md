@@ -4,6 +4,8 @@
 
 公開repositoryのADRに秘密値または公開不適切なenvironment固有値を含むOriginal Recordがある場合、公開版ADRは内容を復元せずSanitized Original Recordを保持しなければならない（SHALL）。
 
+Source ADR: [ADR-0011](../../../../../docs/adr/0011-sanitized-original-record-for-public-repository.md)
+
 #### Scenario: Protected ADRを公開する
 
 - **WHEN** private originalに公開できない値が含まれる
@@ -31,3 +33,12 @@ ADRのnavigation linkやstatus等、digest対象record外のmetadataはprotected
 
 - **WHEN** ADRへ対応capabilityのlinkを追加する
 - **THEN** Original RecordまたはSanitized Original Recordとそのdigestは変更されない
+
+### Requirement: 二層digestのsanitized exceptionを明示対象だけに限定する
+
+private原文とpublic sanitized本文の二層digestで保護する例外はADR-0001、ADR-0004、ADR-0005だけへ適用し、他のADRを無制限に同じ検証対象として扱ってはならない（MUST NOT）。
+
+#### Scenario: 二層digest対象を検証する
+
+- **WHEN** repository validatorがprivate / public digestの対応を検査する
+- **THEN** 明示対象のADR-0001、ADR-0004、ADR-0005だけへ二層digest contractを適用する

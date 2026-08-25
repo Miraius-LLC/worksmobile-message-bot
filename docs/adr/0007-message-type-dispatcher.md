@@ -5,6 +5,8 @@ date: 2026-05-23
 
 # ADR-0007: メッセージ型 dispatcher（個別 sender なし）
 
+OpenSpec capability: [`message-type-dispatch`](../../openspec/specs/message-type-dispatch/spec.md)
+
 ## Context and Problem Statement
 
 このADRは共通テンプレート導入前に作成された。移行前の判断記録は末尾の「Original Record」に内容を変更せず保存する。

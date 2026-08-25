@@ -12,7 +12,7 @@ worksmobile-message-botの文書は目的ごとにSoT（Single Source of Truth�
 | 今回の変更要求 | `openspec/changes/<change>/specs/` | 現行仕様に対する要求差分とscenario |
 | 今回の実装方針 | `openspec/changes/<change>/design.md` | change内で採る方針、影響、rollback |
 | 今回の実装手順 | `openspec/changes/<change>/tasks.md` | red→green→refactor/verifyの縦スライス |
-| archive後の現行仕様 | `openspec/specs/<capability>/` | OpenSpec導入後に変更した仕様のsubset |
+| archive後の現行仕様 | `openspec/specs/<capability>/` | accepted ADR由来のcurated baselineと、導入後に変更した仕様のsubset |
 | 実行可能な仕様 | テストコード | 受入条件、境界値、回帰防止 |
 | 未着手・進行中 | [`TODO.md`](../../TODO.md) | 次の行動、依存、完了条件 |
 | 完了履歴 | [`CHANGELOG.md`](../../CHANGELOG.md) | 完了した変更の短い要約とSoTへのリンク |
@@ -44,7 +44,7 @@ worksmobile-message-botの文書は目的ごとにSoT（Single Source of Truth�
 - `tasks.md`はテストphaseと実装phaseに分けず、各項目をred→green→refactor/verifyで完結させる。
 - archive前に実装、テスト、README / CONTEXT / ADRなど影響する現行SoTを同期する。
 
-`openspec/specs/`はリポジトリ全仕様の網羅表ではない。既存仕様を一括backfillせず、OpenSpec導入後に変更したdelta specだけを段階的に蓄積する。
+`openspec/specs/`はリポジトリ全仕様の網羅表ではない。既存文書を無差別にbackfillせず、accepted ADRで確定したテスト可能な現行contractだけを一度限りのcurated baselineとして収録する。その後はOpenSpec導入後に変更したdelta specだけを段階的に蓄積する。ADRは判断理由、OpenSpecは現行contractを保持し、双方をlinkして全文を重複させない。superseded ADRは判断の系譜として参照し、独立したcurrent requirementへ復活させない。
 
 ## 検証
 

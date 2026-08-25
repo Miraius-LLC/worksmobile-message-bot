@@ -5,6 +5,8 @@ date: 2026-08-10
 
 # ADR-0010: WorkersとCloud Runの両方へデプロイ可能にする
 
+OpenSpec capability: [`dual-runtime-deployment`](../../openspec/specs/dual-runtime-deployment/spec.md)
+
 ## Context and Problem Statement
 
 同じLINE WORKS Webhookアプリケーションを、エッジruntimeとコンテナruntimeのどちらでも運用できるようにしたい。

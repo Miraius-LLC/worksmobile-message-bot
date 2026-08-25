@@ -1,8 +1,16 @@
-## ADDED Requirements
+# message-type-dispatch Specification
+
+## Purpose
+
+メッセージ型のschema registry、汎用dispatcher、channels / users route生成contractを固定する。
+
+## Requirements
 
 ### Requirement: Message typeとvalidation schemaを単一mapで管理する
 
 対応するmessage typeは`messageSchemas` mapをregistryとして管理し、typeごとの個別sender functionを作ってはならない（MUST NOT）。
+
+Source ADR: [ADR-0007](../../../docs/adr/0007-message-type-dispatcher.md)
 
 #### Scenario: Message typeを追加する
 

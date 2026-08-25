@@ -5,6 +5,8 @@ date: 2026-05-23
 
 # ADR-0004: callback dedupはin-memory Map・5分window
 
+OpenSpec capability: [`callback-delivery`](../../openspec/specs/callback-delivery/spec.md)
+
 ## Context and Problem Statement
 
 LINE WORKS Callbackの重複受信・再投入による副作用の二重実行を、外部ストアを必須にせず軽減したい。callback payloadには一意なevent IDがない。

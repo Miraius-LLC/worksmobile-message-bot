@@ -5,6 +5,8 @@ date: 2026-05-23
 
 # ADR-0005: callbackを設定可能なupstreamへ転送する
 
+OpenSpec capability: [`callback-delivery`](../../openspec/specs/callback-delivery/spec.md)
+
 ## Context and Problem Statement
 
 LINE WORKS callbackの認証とpayload検証は本サーバで行い、業務固有の応答処理は別サービスへ委譲できるようにしたい。

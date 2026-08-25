@@ -8,9 +8,24 @@
 - ファイル名は連番 `0001-slug.md`。新規は最大番号 + 1 とし、欠番を再利用しない。
 - `status: accepted` になった ADR は原則として書き換えず、新しい判断で置き換える場合は後継 ADR を追加して supersede 関係を記録する。
 - 新規 ADR を追加した変更では、本 README の索引も同時に更新する。
+- accepted ADRがテスト可能な現行contractを決定する場合は、対応する[`openspec/specs/`](../../openspec/specs/)と双方向linkする。ADRは判断理由、OpenSpecは現行contractを保持し、内容を全文コピーしない。
 - ADR を起こすのは **3 条件すべてが真のとき**: ①後から変えるコストが大きい ②文脈なしでは「なぜこうした?」と訝られる ③本物のトレードオフの結果。どれか欠ければ起こさない（純粋な運用ゴッチャは CLAUDE.md に残す）。
 
 新しい決定は `grill-with-docs` skill で詰める過程で確定したら、その場で ADR を emit する（lazy）。
+
+## OpenSpec capability対応
+
+| Capability | Source ADR |
+|---|---|
+| [`dual-runtime-deployment`](../../openspec/specs/dual-runtime-deployment/spec.md) | 0001（superseded）、0002、0008、0010 |
+| [`lineworks-jwt-authentication`](../../openspec/specs/lineworks-jwt-authentication/spec.md) | 0003 |
+| [`callback-delivery`](../../openspec/specs/callback-delivery/spec.md) | 0004、0005 |
+| [`public-http-authentication`](../../openspec/specs/public-http-authentication/spec.md) | 0006 |
+| [`message-type-dispatch`](../../openspec/specs/message-type-dispatch/spec.md) | 0007 |
+| [`deployment-security`](../../openspec/specs/deployment-security/spec.md) | 0009 |
+| [`adr-publication-integrity`](../../openspec/specs/adr-publication-integrity/spec.md) | 0011 |
+
+ADR-0001はADR-0010へ至る判断の系譜として`dual-runtime-deployment`から参照し、独立したcurrent specにはしない。
 
 ## Index
 

@@ -53,7 +53,7 @@ jobs:
         run: >-
           bunx biome check ./src ./tests ./scripts
           ci-config.test.ts wrangler-config.test.ts operations-config.test.ts
-          openspec-config.test.ts
+          openspec-config.test.ts openspec-adr-coverage.test.ts
 
       - name: Tests
         run: bun test

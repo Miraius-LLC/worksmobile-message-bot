@@ -2,9 +2,14 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## ADR contractのOpenSpec baseline — ✅ 2026-08-25
+
+- **既存ADRを7 capabilityへ整理**: ADR-0001〜0011の現行contractを、判断理由を複製しないcurated baselineとしてOpenSpecへ反映した。supersededのADR-0001は独立specへ復活させず、ADR-0010へ至る系譜として`dual-runtime-deployment`から参照する。
+- **双方向coverageを固定**: 各ADRと対応current specを双方向linkし、11 ADRの過不足ないmappingとADR-0001の非独立化をrepository testで検証する。
+
 ## OpenSpec・コード探索基盤 — ✅ 2026-08-25
 
-- **OpenSpecを段階導入**: OpenSpec 1.10.0をrepository-localに固定し、API contract、入力validation、状態・不変条件、認証境界、外部連携の観測可能な変更をactive changeで管理する。既存仕様はbackfillせず、導入後のdelta specだけを蓄積する（[workflow spec](./openspec/specs/change-specification-workflow/spec.md)）。
+- **OpenSpecを段階導入**: OpenSpec 1.10.0をrepository-localに固定し、API contract、入力validation、状態・不変条件、認証境界、外部連携の観測可能な変更をactive changeで管理する。導入時点では既存仕様をbackfillせず、後続changeでaccepted ADR由来のcurated baselineを追加した（[workflow spec](./openspec/specs/change-specification-workflow/spec.md)）。
 - **検証経路を統一**: `bun run spec:validate`をlocal、pre-push、CIの共通入口にし、telemetry無効のstrict validationを実行する。
 - **CodeGraph設定をportable化**: 既存のGraphify / CodeGraph連携を維持し、fresh worktreeでもlocal DBを追跡しない`.codegraph/.gitignore`とAgent配布物を除外する`codegraph.json`を追加した。
 

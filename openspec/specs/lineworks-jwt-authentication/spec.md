@@ -1,8 +1,16 @@
-## ADDED Requirements
+# lineworks-jwt-authentication Specification
+
+## Purpose
+
+LINE WORKS server token取得に使うJWTの署名方式、audience、秘密鍵入力contractを固定する。
+
+## Requirements
 
 ### Requirement: LINE WORKS server token用JWTをRS256で署名する
 
 worksmobile-message-botは外部JWT libraryを使わず、`node:crypto`のRSA-SHA256署名でLINE WORKS server token用JWTを生成しなければならない（SHALL）。
+
+Source ADR: [ADR-0003](../../../docs/adr/0003-jwt-node-crypto-rs256.md)
 
 #### Scenario: JWTを生成する
 

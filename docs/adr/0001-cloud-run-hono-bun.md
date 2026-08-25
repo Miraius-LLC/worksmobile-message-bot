@@ -5,6 +5,8 @@ date: 2026-05-11
 
 # ADR-0001: webhookサーバをCloud Run + Hono + Bunで実行する
 
+OpenSpec capability: [`dual-runtime-deployment`](../../openspec/specs/dual-runtime-deployment/spec.md)
+
 ## Context and Problem Statement
 
 Webhookサーバをコンテナとして運用しながら、Web標準のRequest / Responseを使うアプリケーション構造を維持したい。

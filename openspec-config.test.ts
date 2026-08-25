@@ -28,7 +28,8 @@ describe('OpenSpec repository contract', () => {
     ])
 
     expect(config).toContain('schema: spec-driven')
-    expect(config).toContain('既存仕様を一括 backfill しない')
+    expect(config).toContain('一度限りのcurated baseline')
+    expect(config).toContain('その後はdelta specだけを蓄積する')
     expect(workflowSpec).toContain('API contract')
     expect(workflowSpec).toContain('依存関係だけの更新')
     expect(workflowSpec).toContain('OpenSpec 1.10.0')

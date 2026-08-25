@@ -1,8 +1,16 @@
-## ADDED Requirements
+# public-http-authentication Specification
+
+## Purpose
+
+公開HTTP pathのBASIC認証境界、health / callback除外、認証error statusの保持を固定する。
+
+## Requirements
 
 ### Requirement: Public path以外へBASIC認証を要求する
 
 applicationは全pathに対するmiddlewareでBASIC認証を適用し、明示したpublic pathだけを除外しなければならない（SHALL）。BASIC auth middlewareは有効な設定を確認してからlazyに初期化する。
+
+Source ADR: [ADR-0006](../../../docs/adr/0006-basic-auth-except-health-and-callback.md)
 
 #### Scenario: 保護対象endpointへ認証なしでaccessする
 
