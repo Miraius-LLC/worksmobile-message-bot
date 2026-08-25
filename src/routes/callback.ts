@@ -22,7 +22,7 @@ const CALLER = 'routes/callback'
  * 7. 正常時は 200 (空 body 返却)
  *
  * BASIC 認証は `app.ts` の PUBLIC_PATHS で除外済。署名検証および Bot ID 検証で真正性を担保する。
- * ローカルhandler（dispatch.ts / handlers/）は転送経路では呼ばれない。
+ * 業務固有の応答処理は ADR-0005 に従い upstream の責務とする。
  */
 export const callbackApp = new Hono()
 

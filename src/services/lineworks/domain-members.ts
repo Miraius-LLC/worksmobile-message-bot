@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
+import { type PaginationQuery, paginationQuerySchema } from '@/services/lineworks/pagination'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'services/lineworks/domain-members'
@@ -20,12 +21,9 @@ export const registerDomainMemberSchema = z.object({
 export type RegisterDomainMemberInput = z.infer<typeof registerDomainMemberSchema>
 
 /** ページング query */
-export const listDomainMembersQuerySchema = z.object({
-  count: z.coerce.number().int().min(1).max(100).optional(),
-  cursor: z.string().optional(),
-})
+export const listDomainMembersQuerySchema = paginationQuerySchema
 
-export type ListDomainMembersQuery = z.infer<typeof listDomainMembersQuerySchema>
+export type ListDomainMembersQuery = PaginationQuery
 
 // =============================================================================
 // レスポンス型

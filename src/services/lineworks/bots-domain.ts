@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, LineWorksApiError } from '@/services/lineworks/api'
+import { type PaginationQuery, paginationQuerySchema } from '@/services/lineworks/pagination'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'services/lineworks/bots-domain'
@@ -69,12 +70,9 @@ export async function registerBotDomain(
   })
 }
 
-export const listBotDomainsQuerySchema = z.object({
-  count: z.coerce.number().int().min(1).max(100).optional(),
-  cursor: z.string().optional(),
-})
+export const listBotDomainsQuerySchema = paginationQuerySchema
 
-export type ListBotDomainsQuery = z.infer<typeof listBotDomainsQuerySchema>
+export type ListBotDomainsQuery = PaginationQuery
 
 export type BotDomainListResult = {
   domains: unknown[]

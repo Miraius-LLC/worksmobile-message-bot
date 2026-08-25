@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
+import { type PaginationQuery, paginationQuerySchema } from '@/services/lineworks/pagination'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'services/lineworks/menus/rich'
@@ -168,12 +169,9 @@ export async function createRichMenu(
   return data
 }
 
-export const listRichMenusQuerySchema = z.object({
-  count: z.coerce.number().int().min(1).max(100).optional(),
-  cursor: z.string().optional(),
-})
+export const listRichMenusQuerySchema = paginationQuerySchema
 
-export type ListRichMenusQuery = z.infer<typeof listRichMenusQuerySchema>
+export type ListRichMenusQuery = PaginationQuery
 
 export type RichMenuListResult = {
   richmenus: RichMenu[]

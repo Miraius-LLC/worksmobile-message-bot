@@ -2,6 +2,12 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## pagination共通化とcallback責務整理 — ✅ 2026-08-25
+
+- **一覧queryの共通化**: Bot、Botドメイン、リッチメニュー、トークルームメンバー、ドメインメンバーの`count` / `cursor` schemaと400応答hookを共通化した。IFTTT / Makeが送る空の`count`は未指定として扱い、`1..100`の範囲制約は維持する。
+- **callbackをgateway責務へ限定**: ADR-0005に従い、実行経路から呼ばれないローカルdispatch / reply / handler雛形と専用テストを削除した。署名・Bot ID検証、dedup、upstreamへの同期await転送は維持する。
+- **依存更新**: Honoを4.13.4へ更新した。
+
 ## secret 注入の承認待ちと拾い直し — ✅ 2026-08-18
 
 - **`op read` の stdin を継承**: `Bun.spawn` は既定で stdin を塞ぐため、`op` が 1Password デスクトップアプリの承認待ちへ入れず `connecting to desktop app timed out` で失敗していた。承認がキャッシュ済みの端末では成功するので、承認が要る Linux の dev 機で初めて露見する（501 が 2026-08-13、asunaro が 2026-08-18 に実測）。`stdin: 'inherit'` へ変更し、spawn option を固定する回帰テストを追加した。

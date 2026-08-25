@@ -136,6 +136,16 @@ describe('GET /bots (一覧)', () => {
     })
     expect(resMax.status).toBe(400)
   })
+
+  test('空の count は未指定として扱う', async () => {
+    installFetch(() => new Response(JSON.stringify({ bots: [] }), { status: 200 }))
+    const res = await app.request('/bots?count=', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    const apiCall = recorded.find(r => r.url.includes('/bots'))
+    expect(apiCall?.url).not.toContain('count=')
+  })
 })
 
 describe('GET /bots/:botId', () => {

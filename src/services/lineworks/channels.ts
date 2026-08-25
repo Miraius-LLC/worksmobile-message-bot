@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, getBotId, LineWorksApiError } from '@/services/lineworks/api'
+import { type PaginationQuery, paginationQuerySchema } from '@/services/lineworks/pagination'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'services/lineworks/channels'
@@ -22,12 +23,9 @@ export const createChannelSchema = z
 export type CreateChannelInput = z.infer<typeof createChannelSchema>
 
 /** members 一覧の query パラメータ */
-export const listMembersQuerySchema = z.object({
-  count: z.coerce.number().int().min(1).max(100).optional(),
-  cursor: z.string().optional(),
-})
+export const listMembersQuerySchema = paginationQuerySchema
 
-export type ListMembersQuery = z.infer<typeof listMembersQuerySchema>
+export type ListMembersQuery = PaginationQuery
 
 // =============================================================================
 // レスポンス型

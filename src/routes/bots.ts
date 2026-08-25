@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { type AuthenticatedEnv, tokenMiddleware } from '@/routes/_middleware'
+import { queryValidationHook } from '@/routes/_validation'
 import {
   botDomainPatchSchema,
   botDomainSchema,
@@ -60,20 +61,11 @@ botsApp.post(
 )
 
 /** GET /bots — テナント内 Bot 一覧 */
-botsApp.get(
-  '/',
-  zValidator('query', listBotsQuerySchema, (result, c) => {
-    if (!result.success) {
-      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
-      return c.json({ error: message }, 400)
-    }
-  }),
-  async c => {
-    const query = c.req.valid('query')
-    const result = await listBots(c.var.token, query)
-    return c.json(result)
-  },
-)
+botsApp.get('/', zValidator('query', listBotsQuerySchema, queryValidationHook), async c => {
+  const query = c.req.valid('query')
+  const result = await listBots(c.var.token, query)
+  return c.json(result)
+})
 
 /** GET /bots/:botId — Bot 取得 (未登録は 200 + null) */
 botsApp.get('/:botId', async c => {
@@ -195,12 +187,7 @@ botsApp.post('/:botId/secret', async c => {
 /** GET /bots/:botId/domains — Bot が登録されているドメイン一覧 */
 botsApp.get(
   '/:botId/domains',
-  zValidator('query', listBotDomainsQuerySchema, (result, c) => {
-    if (!result.success) {
-      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
-      return c.json({ error: message }, 400)
-    }
-  }),
+  zValidator('query', listBotDomainsQuerySchema, queryValidationHook),
   async c => {
     const botId = c.req.param('botId')
     const query = c.req.valid('query')

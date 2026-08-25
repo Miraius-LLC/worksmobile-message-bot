@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { type AuthenticatedEnv, tokenMiddleware } from '@/routes/_middleware'
+import { queryValidationHook } from '@/routes/_validation'
 import {
   cancelDefaultRichMenu,
   createRichMenu,
@@ -62,12 +63,7 @@ richMenuApp.post(
 /** GET /menus/rich — 一覧 (count/cursor pagination 対応) */
 richMenuApp.get(
   '/',
-  zValidator('query', listRichMenusQuerySchema, (result, c) => {
-    if (!result.success) {
-      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
-      return c.json({ error: message }, 400)
-    }
-  }),
+  zValidator('query', listRichMenusQuerySchema, queryValidationHook),
   async c => {
     const query = c.req.valid('query')
     const result = await listRichMenus(c.var.token, query)

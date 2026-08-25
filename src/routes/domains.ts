@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { type AuthenticatedEnv, tokenMiddleware } from '@/routes/_middleware'
+import { queryValidationHook } from '@/routes/_validation'
 import {
   listDomainMembers,
   listDomainMembersQuerySchema,
@@ -40,12 +41,7 @@ domainsApp.post(
 /** GET /domains/:domainId/members — Bot 利用ユーザー一覧 (count/cursor) */
 domainsApp.get(
   '/:domainId/members',
-  zValidator('query', listDomainMembersQuerySchema, (result, c) => {
-    if (!result.success) {
-      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
-      return c.json({ error: message }, 400)
-    }
-  }),
+  zValidator('query', listDomainMembersQuerySchema, queryValidationHook),
   async c => {
     const domainId = c.req.param('domainId')
     const query = c.req.valid('query')

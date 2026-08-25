@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { API_BASE, LineWorksApiError } from '@/services/lineworks/api'
+import { type PaginationQuery, paginationQuerySchema } from '@/services/lineworks/pagination'
 import { logger } from '@/utils/logger'
 
 const CALLER = 'services/lineworks/bots-tenant'
@@ -114,12 +115,9 @@ export type BotInfo = BotCreateInput & {
   modifiedTime?: string
 }
 
-export const listBotsQuerySchema = z.object({
-  count: z.coerce.number().int().min(1).max(100).optional(),
-  cursor: z.string().optional(),
-})
+export const listBotsQuerySchema = paginationQuerySchema
 
-export type ListBotsQuery = z.infer<typeof listBotsQuerySchema>
+export type ListBotsQuery = PaginationQuery
 
 export type BotListResult = {
   bots: BotInfo[]

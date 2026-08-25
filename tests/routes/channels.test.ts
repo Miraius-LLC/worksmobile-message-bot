@@ -164,6 +164,16 @@ describe('GET /channels/:id/members (メンバー一覧)', () => {
     expect(res.status).toBe(400)
   })
 
+  test('空の count は未指定として扱う', async () => {
+    installFetch(() => new Response(JSON.stringify({ members: [] }), { status: 200 }))
+    const res = await app.request('/channels/ch-001/members?count=', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    const apiCall = recorded.find(r => r.url.includes('/members'))
+    expect(apiCall?.url).not.toContain('count=')
+  })
+
   test('BASIC 認証なしは 401', async () => {
     const res = await app.request('/channels/ch-001/members')
     expect(res.status).toBe(401)

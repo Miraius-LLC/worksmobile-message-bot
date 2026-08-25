@@ -469,6 +469,7 @@ LINE WORKS 側で 400 になるため、この表に揃えている:
 | リッチメニュー画像 | JPEG / PNG、2500x843 または 2500x1686、最大 **1 MB** |
 | トークルーム作成 `members` | 1〜100 件、重複不可 |
 | トークルーム作成 `title` | 最大 1000 文字 |
+| 一覧APIの空の `?count=` | 未指定として扱い、upstreamへ転送しない |
 | `channels/:id/members` `?count` | 1〜100 (デフォルト 50)、`cursor` でページング |
 | `domains/:domainId/members` `?count` | 1〜100 (デフォルト 50)、`cursor` でページング |
 | Bot `botName` / `description` | 各 1〜100 文字 |
@@ -952,7 +953,7 @@ callback dedupはどちらの基盤でもbest effortです。厳密な一回処�
    - URL: `https://<your-domain>/callback`（例: `https://bot.example.com/callback`）
    - 受信する Callback Event を必要なものだけ ON (`Message Event` / `Postback Event` / `Join` / `Leave` / `Joined` / `Left` / `Begin` / `End`)
 5. Bot ポリシーで「1:1 トーク」「複数人トーク」を許可 (受信するイベントに応じて)
-6. **保存** → LINE WORKS の自分宛 Bot から callback が届き、署名検証を通過して設定済み upstream で受信できることを確認（ローカル callback handler による自動返信は現行の主経路ではありません）
+6. **保存** → LINE WORKS の自分宛 Bot から callback が届き、署名検証を通過して設定済み upstream で受信できることを確認（業務固有の応答処理は upstream 側で行います）
 
 > ⚠️ Callback URLをOnにする前に、選択したデプロイ先で`/callback`が応答することを確認してください。デプロイ前にOnにするとCallbackが404となり、イベントを失う可能性があります。
 

@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { type AuthenticatedEnv, tokenMiddleware } from '@/routes/_middleware'
+import { queryValidationHook } from '@/routes/_validation'
 import {
   createChannel,
   createChannelSchema,
@@ -55,12 +56,7 @@ channelsApp.delete('/:id', async c => {
 /** GET /channels/:id/members — メンバー一覧 (count / cursor ページング) */
 channelsApp.get(
   '/:id/members',
-  zValidator('query', listMembersQuerySchema, (result, c) => {
-    if (!result.success) {
-      const message = result.error.issues[0]?.message ?? 'クエリパラメータが不正です'
-      return c.json({ error: message }, 400)
-    }
-  }),
+  zValidator('query', listMembersQuerySchema, queryValidationHook),
   async c => {
     const id = c.req.param('id')
     const query = c.req.valid('query')

@@ -86,7 +86,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
 - **callback 検証と同期 await 転送**: 署名検証 → Bot ID 検証 (`X-WORKS-BotId` 欠落 400 / 不一致 403) → dedup チェック → JSON/Zod 検証 → upstream へ同期 await 転送を行う。失敗時は 500 + ログ出力とし、dedup key を `unregister` して手動再投入を受け入れる。これは LINE WORKS の自動再送契約を前提としない。
 - **callback dedup は in-memory Map で 5 分 window の best effort** ([ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md))。Workers isolate 間や Cloud Run instance 間で Map は共有されない。
-- **callback は設定可能な upstream へ転送する** ([ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md))。`callback/forward.ts` が env `FORWARD_CALLBACK_URL` へ raw body と `X-WORKS-Signature` を転送する。wmbot 内の `dispatch.ts` / `handlers/` は現在呼ばれない (将来のローカル応答用雛形として残置)
+- **callback は設定可能な upstream へ転送する** ([ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md))。`callback/forward.ts` が env `FORWARD_CALLBACK_URL` へ raw body と `X-WORKS-Signature` を転送する。業務固有の応答処理は upstream の責務であり、wmbot 内にはローカル handler を持たない
 
 ### Docker / デプロイ
 

@@ -39,12 +39,12 @@ _Avoid_: idempotency（より広い概念）, 重複排除（口語）
 
 **forward (転送)**:
 検証を通った callback を、raw body と署名を保ったまま設定済み upstream へ同期 await 転送すること（`callback/forward.ts`、env `FORWARD_CALLBACK_URL`）。本サーバは gateway として接続・検証・転送に責務を絞る。
-_Avoid_: relay, proxy（HTTP proxy と紛らわしい）, dispatch（ローカル handler 雛形の語）
+_Avoid_: relay, proxy（HTTP proxy と紛らわしい）, dispatch（現行gatewayの責務を表さない）
 
 ## Flagged ambiguities
 
 - **callback vs event**: 受信単位の HTTP リクエストが「callback」、その body 内の 1 件（`type` を持つ discriminated union 要素）が「event」。両者を混ぜない。
-- **forward vs dispatch**: 現行はforward（設定済みupstreamへ転送）に一本化。`callback/{dispatch,handlers,reply}.ts`のローカルhandler雛形は残置だが**呼ばれない**（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）。「dispatch」はその雛形に閉じた語で、現行フローには使わない。
+- **forward vs dispatch**: 現行はforward（設定済みupstreamへ転送）に一本化し、業務固有の処理はupstreamが担う（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）。wmbot内にローカルdispatchは置かない。
 
 ## 用語が会話で交わる例
 
