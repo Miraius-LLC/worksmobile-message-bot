@@ -69,13 +69,7 @@ describe('OpenSpec repository contract', () => {
       },
     })
     expect(codeGraph).toEqual({
-      exclude: [
-        '.claude/',
-        '.Codex/',
-        '.agent-room-worktrees/',
-        '.codegraph/',
-        'graphify-out/',
-      ],
+      exclude: ['.claude/', '.Codex/', '.agent-room-worktrees/', '.codegraph/', 'graphify-out/'],
     })
     expect(graphifyIgnore).toContain('**/graphify-out/')
     expect(codeGraphIgnore.trim().split('\n').slice(-2)).toEqual(['*', '!.gitignore'])
