@@ -16,8 +16,12 @@ fallbackConfig="./.github/bunfig.ci-no-scanner.toml"
 # リトライ間隔。テストから 0 を渡して待たずに分岐だけ検証する。
 retrySleep="${CI_INSTALL_RETRY_SLEEP:-5}"
 
+# scanner の失敗は error 行として出る。出力全体の部分一致にすると、scanner が成功時に出す
+# `⚠ Socket Security Scanner free mode.` や依存の postinstall 出力を拾い、
+# **scanner と無関係の失敗まで fallback させてしまう** (= 迂回が意図せず広がる)。
+# 取りこぼした場合はリトライも fallback もしない = 安全側に倒れる。
 isScannerFailure() {
-  printf '%s\n' "$1" | grep -q -e 'ScannerFailed' -e 'Security scanner failed' -e 'Socket Security Scanner'
+  printf '%s\n' "$1" | grep -qE '^error: [Ss]ecurity scanner failed'
 }
 
 attempt=1

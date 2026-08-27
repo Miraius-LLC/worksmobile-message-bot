@@ -9,7 +9,8 @@ const SCRIPT = path.join(ROOT, 'scripts/ci-install.sh')
 
 // scanner 障害を模した bun スタブ。STUB_MODE で挙動を切り替え、呼び出し引数を STUB_LOG へ残す。
 const STUB_SOURCE = `#!/usr/bin/env bash
-printf '%s\\n' "$*" >> "$STUB_LOG"
+if [ -n "\${SOCKET_API_KEY:-}" ]; then keyState=present; else keyState=absent; fi
+printf '%s\\tkey=%s\\n' "$*" "$keyState" >> "$STUB_LOG"
 case "$STUB_MODE" in
   scanner)
     case "$*" in
@@ -20,6 +21,13 @@ case "$STUB_MODE" in
     exit 1
     ;;
   other)
+    echo "error: lockfile had changes, but lockfile is frozen"
+    exit 1
+    ;;
+  free-mode-other)
+    # scanner が成功したときの警告を出しつつ、別の理由で落ちる。
+    # 出力の部分一致で scanner 由来と誤判定してはいけない。
+    echo "⚠ Socket Security Scanner free mode. Set SOCKET_API_KEY to use your Socket org settings."
     echo "error: lockfile had changes, but lockfile is frozen"
     exit 1
     ;;
@@ -44,7 +52,7 @@ afterAll(() => {
 })
 
 async function runInstall(options: {
-  mode: 'scanner' | 'other' | 'ok'
+  mode: 'scanner' | 'other' | 'free-mode-other' | 'ok'
   event?: string
   socketApiKey?: string
 }) {
@@ -74,9 +82,11 @@ async function runInstall(options: {
     stderr: 'pipe',
   })
   const [stdout, exitCode] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
-  const calls = readFileSync(logPath, 'utf8').split('\n').filter(Boolean)
+  const lines = readFileSync(logPath, 'utf8').split('\n').filter(Boolean)
+  const calls = lines.map(line => line.split('\t')[0] ?? '')
+  const apiKeyStates = lines.map(line => line.split('\t')[1] ?? '')
 
-  return { stdout, exitCode, calls }
+  return { stdout, exitCode, calls, apiKeyStates }
 }
 
 describe('scripts/ci-install.sh', () => {
@@ -106,6 +116,24 @@ describe('scripts/ci-install.sh', () => {
       '--config=./.github/bunfig.ci-no-scanner.toml install --frozen-lockfile',
     )
     expect(result.stdout).toContain('retrying without SOCKET_API_KEY')
+  })
+
+  test('SOCKET_API_KEY は 1 回目だけ渡り、2 回目以降は実際に外れる', async () => {
+    const result = await runInstall({ mode: 'scanner', event: 'push', socketApiKey: 'dummy' })
+
+    // 表示メッセージではなく、偽 bun が実際に受け取った env で検証する
+    expect(result.apiKeyStates).toEqual(['key=present', 'key=absent', 'key=absent', 'key=absent'])
+  })
+
+  test('scanner 成功時の free mode 警告を scanner 由来の失敗と誤判定しない', async () => {
+    const result = await runInstall({ mode: 'free-mode-other', event: 'push' })
+
+    // 出力に "Socket Security Scanner" の語が含まれても、error 行が scanner でなければ
+    // リトライも fallback もしない (本物の失敗を薄めない / 迂回を広げない)
+    expect(result.exitCode).toBe(1)
+    expect(result.calls.length).toBe(1)
+    expect(result.calls.join('\n')).not.toContain('bunfig.ci-no-scanner')
+    expect(result.stdout).toContain('Socket Security Scanner free mode')
   })
 
   test('pull_request は scanner を迂回せず落ちる', async () => {
