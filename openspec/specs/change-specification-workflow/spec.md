@@ -59,12 +59,12 @@ OpenSpecのtasksは、テスト作成と実装を別phaseに分離せず、各�
 
 ### Requirement: OpenSpecをrepository-localに検証する
 
-worksmobile-message-botはOpenSpec 1.10.0をexact devDependencyとして保持し、repository scriptからtelemetryを無効化してstrict validationを実行できなければならない（SHALL）。
+worksmobile-message-botはOpenSpec 1.11.0をexact devDependencyとして保持し、repository scriptからtelemetryを無効化してstrict validationを実行できなければならない（SHALL）。
 
 #### Scenario: 仕様を検証する
 
 - **WHEN** 開発者、pre-push hook、またはCIが`bun run spec:validate`を実行する
-- **THEN** repository-localのOpenSpec 1.10.0がtelemetry無効で全active changeとcurrent specをstrict validationする
+- **THEN** repository-localのOpenSpec 1.11.0がtelemetry無効で全active changeとcurrent specをstrict validationする
 
 ### Requirement: 導入後の仕様だけを段階的に蓄積する
 

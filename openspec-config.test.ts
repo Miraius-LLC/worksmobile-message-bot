@@ -7,12 +7,13 @@ type PackageJson = {
 }
 
 describe('OpenSpec repository contract', () => {
-  test('repository-localのOpenSpec 1.10.0をtelemetry無効で実行する', async () => {
+  test('repository-localのOpenSpecをexact pinしtelemetry無効で実行する', async () => {
     const packageJson = (await file(
       new URL('./package.json', import.meta.url),
     ).json()) as PackageJson
 
-    expect(packageJson.devDependencies?.['@fission-ai/openspec']).toBe('1.10.0')
+    // exact pin (range 記号なし) であること自体が契約。版そのものは package.json が SoT
+    expect(packageJson.devDependencies?.['@fission-ai/openspec']).toMatch(/^\d+\.\d+\.\d+$/)
     expect(packageJson.scripts?.spec).toBe('OPENSPEC_TELEMETRY=0 openspec')
     expect(packageJson.scripts?.['spec:validate']).toBe(
       'OPENSPEC_TELEMETRY=0 openspec validate --all --strict --no-interactive',
@@ -20,19 +21,21 @@ describe('OpenSpec repository contract', () => {
   })
 
   test('OpenSpec projectはspec-driven schemaと段階導入境界を宣言する', async () => {
-    const [config, workflowSpec] = await Promise.all([
+    const [config, workflowSpec, packageJson] = await Promise.all([
       file(new URL('./openspec/config.yaml', import.meta.url)).text(),
       file(
         new URL('./openspec/specs/change-specification-workflow/spec.md', import.meta.url),
       ).text(),
+      file(new URL('./package.json', import.meta.url)).json() as Promise<PackageJson>,
     ])
+    const openspecVersion = packageJson.devDependencies?.['@fission-ai/openspec']
 
     expect(config).toContain('schema: spec-driven')
     expect(config).toContain('一度限りのcurated baseline')
     expect(config).toContain('その後はdelta specだけを蓄積する')
     expect(workflowSpec).toContain('API contract')
     expect(workflowSpec).toContain('依存関係だけの更新')
-    expect(workflowSpec).toContain('OpenSpec 1.10.0')
+    expect(workflowSpec).toContain(`OpenSpec ${openspecVersion}`)
   })
 
   test('pre-pushとCIは同じstrict validationを実行する', async () => {

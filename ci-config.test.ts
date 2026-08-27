@@ -39,7 +39,15 @@ describe('CI workflow', () => {
   })
 
   test('CI成功済みmainだけをSHA pinしたWrangler actionでdeployする', async () => {
-    const source = await file(new URL('./.github/workflows/ci.yml', import.meta.url)).text()
+    const [source, packageJson] = await Promise.all([
+      file(new URL('./.github/workflows/ci.yml', import.meta.url)).text(),
+      file(new URL('./package.json', import.meta.url)).json() as Promise<{
+        devDependencies?: Record<string, string>
+      }>,
+    ])
+    // dry-run が使う devDependency と実 deploy のバイナリ版を一致させる
+    const wranglerVersion = packageJson.devDependencies?.wrangler
+    expect(wranglerVersion).toMatch(/^\d+\.\d+\.\d+$/)
     const workflow = YAML.parse(source) as WorkflowConfig
     const deploy = workflow.jobs?.deploy
     const deployStep = deploy?.steps?.find(step => step.id === 'deploy')
@@ -67,7 +75,7 @@ describe('CI workflow', () => {
     expect(deployStep?.with).toMatchObject({
       apiToken: `\${{ secrets.CLOUDFLARE_API_TOKEN }}`,
       accountId: `\${{ vars.CLOUDFLARE_ACCOUNT_ID }}`,
-      wranglerVersion: '4.120.0',
+      wranglerVersion,
       packageManager: 'bun',
       command:
         'deploy --config wrangler.production.json --message "GitHub Actions $' +
