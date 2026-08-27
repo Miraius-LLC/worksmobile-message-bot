@@ -12,6 +12,8 @@ type RunSecretInjectionOptions = {
   existsSyncFn?: (path: string) => boolean
   writeFileFn?: (path: string, content: string, options: { mode: number }) => Promise<void>
   opReadFn?: (reference: string) => ReadResult | Promise<ReadResult>
+  /** 拾い直しの待機。テストから no-op を差し込めるよう素通しする。 */
+  sleep?: (ms: number) => Promise<void>
   stdoutWrite?: (text: string) => void
   stderrWrite?: (text: string) => void
 }
@@ -37,6 +39,7 @@ export async function runSecretInjection(options: RunSecretInjectionOptions = {}
     env: options.env,
     ignoreEnv: !preferEnv,
     opReadFn: options.opReadFn,
+    sleep: options.sleep,
   })
 
   stdoutWrite(`${formatCheckLines(result).join('\n')}\n`)

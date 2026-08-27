@@ -2,6 +2,12 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## secret injection テストの実 sleep を落とした — ✅ 2026-08-27
+
+- **`dump-secrets-to-env.test.ts` が 6.1 秒 → 91ms**（全件 626 テストで 488ms）。全部モックのテストなのに **0.10s user / 6.1s real / 2% CPU** で、実体は `_op-secrets.ts` のリトライ backoff（`Bun.sleep(500)` + `Bun.sleep(1500)`）だった。取得失敗を返すモックが 3 ケースあり、そのたびに実時間で 2 秒寝ていた。
+- **`sleep` の注入口は最初から在った**（`ResolveSecretsOptions.sleep`、コメントに「テストから no-op を差し込むために注入可能にしている」と明記）。`runSecretInjection` が受け取って渡していなかっただけなので、options に `sleep` を足して素通しし、失敗系のテストへ no-op を渡した。`_op-secrets.test.ts` は元から注入済みで、漏れていたのはこの 1 ファイル。
+- 発見の経緯は develop-meta 側の日次 health の遅さから。lane 全体 6.5 秒のうち 93% がこのファイル 1 本だった（他 3 repo は 27〜197ms）。`op` は呼ばれておらず（PATH を fake に差し替えて確認）、CPU も使っていないことから待ちと特定した。
+
 ## Bunツールチェーン横断監査の反映 — ✅ 2026-08-27
 
 - **Socket scanner をCIの単一障害点から外した**: `bun install` 前段のscannerはネットワーク失敗でthrowしinstallごと落とす（fail-openの設定は無い）。workflow直書きの迂回は「429のときだけ`SOCKET_API_KEY`を外して1回リトライ」という**denylist**で、証明書エラーや503は素通りで即赤だった。scanner由来の失敗だけをリトライし3回全滅時のみscanner抜きbunfigで入れる`scripts/ci-install.sh`へcheck / deploy両jobを寄せ、迂回条件を`GITHUB_EVENT_NAME = push`の**allowlist**にした。偽の`bun`をPATH先頭に置く契約テストで6分岐を実挙動として固定した。

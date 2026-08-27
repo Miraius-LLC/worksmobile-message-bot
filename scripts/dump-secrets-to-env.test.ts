@@ -5,7 +5,32 @@ const template = ['Z_SECRET="{{ op://Vault/Item/z }}"', 'A_SECRET="{{ op://Vault
   '\n',
 )
 
+/** 取得失敗は backoff (500ms + 1500ms) に入る。テストを実時間で待たせない。 */
+const noSleep = async () => {}
+
 describe('runSecretInjection', () => {
+  test('sleep を resolveSecretsToEnv へ渡す (テストが実時間で待たないため)', async () => {
+    const waits: number[] = []
+
+    const exitCode = await runSecretInjection({
+      args: ['--check'],
+      env: {},
+      readFileFn: async () => template,
+      existsSyncFn: () => false,
+      writeFileFn: async () => {},
+      // 取得失敗は retriable なので backoff 経路に入る
+      opReadFn: async () => ({ ok: false, reason: 'not found' }),
+      sleep: async ms => {
+        waits.push(ms)
+      },
+      stdoutWrite: () => {},
+      stderrWrite: () => {},
+    })
+
+    expect(exitCode).toBe(1)
+    expect(waits).toEqual([500, 1500])
+  })
+
   test('check は決定的な key 順で値を伏せ、ファイルを書かない', async () => {
     const writes: string[] = []
     const stdout: string[] = []
@@ -40,6 +65,7 @@ describe('runSecretInjection', () => {
       writeFileFn: async path => {
         writes.push(path)
       },
+      sleep: noSleep,
       opReadFn: async reference =>
         reference.endsWith('/z')
           ? { ok: false, reason: 'not found' }
@@ -67,6 +93,7 @@ describe('runSecretInjection', () => {
       existsSyncFn: () => false,
       writeFileFn: async () => {},
       opReadFn: async () => ({ ok: false, reason: `upstream leaked ${sentinel}` }),
+      sleep: noSleep,
       stdoutWrite: text => stdout.push(text),
       stderrWrite: text => stderr.push(text),
     })
