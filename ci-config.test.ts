@@ -45,7 +45,9 @@ describe('CI workflow', () => {
         devDependencies?: Record<string, string>
       }>,
     ])
-    // dry-run が使う devDependency と実 deploy のバイナリ版を一致させる
+    // dry-run が使う devDependency と実 deploy のバイナリ版を一致させる。
+    // action は版を自前で決めるため、workflow へ直書きせず install 済みの実体から引く
+    // (Renovate は workflow 内の wranglerVersion を拾わないので、直書きは次の更新で割れる)。
     const wranglerVersion = packageJson.devDependencies?.wrangler
     expect(wranglerVersion).toMatch(/^\d+\.\d+\.\d+$/)
     const workflow = YAML.parse(source) as WorkflowConfig
@@ -75,7 +77,7 @@ describe('CI workflow', () => {
     expect(deployStep?.with).toMatchObject({
       apiToken: `\${{ secrets.CLOUDFLARE_API_TOKEN }}`,
       accountId: `\${{ vars.CLOUDFLARE_ACCOUNT_ID }}`,
-      wranglerVersion,
+      wranglerVersion: '$' + '{{ steps.wrangler.outputs.version }}',
       packageManager: 'bun',
       command:
         'deploy --config wrangler.production.json --message "GitHub Actions $' +
@@ -87,6 +89,12 @@ describe('CI workflow', () => {
     expect(productionConfigStep?.env?.OAUTH_SCOPE).toBe('$' + '{{ vars.OAUTH_SCOPE }}')
     expect(productionConfigStep?.run).toContain('test -n "$WORKER_CUSTOM_DOMAIN"')
     expect(productionConfigStep?.run).toContain('bun scripts/create-wrangler-production-config.ts')
+
+    // 版は install 済みの実体から引き、版として読めない出力はその場で落とす
+    const resolveStep = deploy?.steps?.find(step => step.id === 'wrangler')
+    expect(resolveStep?.run).toContain('bunx wrangler --version')
+    expect(resolveStep?.run).toContain('>> "$GITHUB_OUTPUT"')
+    expect(resolveStep?.run).toContain('exit 1')
   })
 
   test('Biome gateはrootのconfig contract testsも検査する', async () => {

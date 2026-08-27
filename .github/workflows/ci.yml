@@ -82,13 +82,28 @@ jobs:
           test -n "$WORKER_CUSTOM_DOMAIN"
           bun scripts/create-wrangler-production-config.ts
 
+      # wrangler-action は版を自前で決めるため、直書きすると package.json (= dry-run で
+      # 検証した版) と割れる。install 済みの実体から引いて渡す。Renovate は workflow 内の
+      # wranglerVersion を拾わないので、直書きのままだと次の更新で黙って割れる。
+      - name: Resolve wrangler version
+        id: wrangler
+        run: |
+          set -eu
+          version="$(bunx wrangler --version | tail -1 | tr -d '\r')"
+          # 版として読めない出力をそのまま action へ渡さない (壊れた値だと action が別版を install する)
+          case "$version" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::wrangler の版を解決できませんでした: '${version}'"; exit 1 ;;
+          esac
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Deploy Worker
         id: deploy
         uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '4.126.0'
+          wranglerVersion: ${{ steps.wrangler.outputs.version }}
           packageManager: bun
           command: deploy --config wrangler.production.json --message "GitHub Actions ${{ github.sha }}"
 
