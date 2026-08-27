@@ -17,7 +17,7 @@ Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポ�
 ### 技術スタック
 
 - **実行基盤**: Cloudflare Workers / Google Cloud Run
-- **ランタイム**: Workers runtime / [Bun](https://bun.sh/) 1.3.x（Cloud Run・ローカル）
+- **ランタイム**: Workers runtime / [Bun](https://bun.sh/) 1.4.x（Cloud Run・ローカル）
 - **言語**: TypeScript (ESM, strict)
 - **HTTP フレームワーク**: [Hono](https://hono.dev/)（Workers と Cloud Run で共通 app を実行）
 - **検証**: [Zod](https://zod.dev/) + [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)

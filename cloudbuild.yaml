@@ -62,7 +62,7 @@ steps:
   #     - image の bun バージョンは Dockerfile の `ARG BUN_VERSION` と `.tool-versions`
   #       に合わせる (3 箇所揃えること、片方だけ上げない)
   - id: test
-    name: oven/bun:1.3.14-debian
+    name: oven/bun:1.4.0-debian
     entrypoint: bash
     args:
       - -c

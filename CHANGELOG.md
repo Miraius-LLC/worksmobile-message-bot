@@ -80,7 +80,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新*
 
 | 層 | 採用 |
 |---|---|
-| ランタイム / 実行 | Cloudflare Workers / Bun 1.3.x + Cloud Run |
+| ランタイム / 実行 | Cloudflare Workers / Bun 1.4.x + Cloud Run |
 | HTTP フレームワーク | Hono（Workers）+ @hono/node-server（Cloud Run） |
 | Validation | Zod + @hono/zod-validator |
 | Linter / Formatter | Biome 2.x |
