@@ -2,6 +2,12 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## Bunツールチェーン横断監査の反映 — ✅ 2026-08-27
+
+- **Socket scanner をCIの単一障害点から外した**: `bun install` 前段のscannerはネットワーク失敗でthrowしinstallごと落とす（fail-openの設定は無い）。workflow直書きの迂回は「429のときだけ`SOCKET_API_KEY`を外して1回リトライ」という**denylist**で、証明書エラーや503は素通りで即赤だった。scanner由来の失敗だけをリトライし3回全滅時のみscanner抜きbunfigで入れる`scripts/ci-install.sh`へcheck / deploy両jobを寄せ、迂回条件を`GITHUB_EVENT_NAME = push`の**allowlist**にした。偽の`bun`をPATH先頭に置く契約テストで6分岐を実挙動として固定した。
+- **deployするwrangler版をinstall済みの実体から引くようにした**: `wrangler-action`は版を自前で決めるため、`wranglerVersion`の直書きは`package.json`（= dry-runで検証した版）と割れる。**Renovateはworkflow内の`wranglerVersion`を拾わない**ので、直書きのままだと次の更新で黙って割れる。`bunx wrangler --version`から引いて渡し、版として読めない出力はその場でexit 1する（壊れた値を渡すとactionは黙って別版をinstallする）。`deployment-url`を後続のjob summaryが使っているため、action自体は残す対処Bを採った。
+- **あわせて閉じたもの**: `bun.lock`のヘッダ（v2 / configVersion 1）を固定するtest、biomeの`$schema`のCLI版へのdrift解消。横断監査の指示書はdevelop-metaの`docs/bun-toolchain-audit.md`。
+
 ## ADR contractのOpenSpec baseline — ✅ 2026-08-25
 
 - **既存ADRを7 capabilityへ整理**: ADR-0001〜0011の現行contractを、判断理由を複製しないcurated baselineとしてOpenSpecへ反映した。supersededのADR-0001は独立specへ復活させず、ADR-0010へ至る系譜として`dual-runtime-deployment`から参照する。
