@@ -37,7 +37,8 @@ jobs:
       - name: Biome lint / format check
         run: >-
           bunx biome check ./src ./tests ./scripts
-          ci-config.test.ts ci-install.test.ts wrangler-config.test.ts operations-config.test.ts
+          ci-config.test.ts ci-install.test.ts lockfile-config.test.ts
+          wrangler-config.test.ts operations-config.test.ts
           openspec-config.test.ts openspec-adr-coverage.test.ts
 
       - name: Tests
