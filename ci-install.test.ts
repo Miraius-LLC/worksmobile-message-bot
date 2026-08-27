@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import Bun from 'bun'
 
 const ROOT = import.meta.dirname
 const SCRIPT = path.join(ROOT, 'scripts/ci-install.sh')
