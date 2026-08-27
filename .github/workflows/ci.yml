@@ -24,22 +24,7 @@ jobs:
           bun-version-file: .tool-versions
 
       - name: Install dependencies
-        run: |
-          set +e
-          installOutput="$(bun install --frozen-lockfile 2>&1)"
-          installStatus=$?
-          set -e
-          printf '%s\n' "$installOutput"
-          if [ "$installStatus" -eq 0 ]; then
-            exit 0
-          fi
-          if printf '%s\n' "$installOutput" | grep -q 'Socket Security Scanner: Received 429 from server'; then
-            echo "::warning::Socket authenticated scan hit 429; retrying bun install without SOCKET_API_KEY."
-            unset SOCKET_API_KEY
-            bun install --frozen-lockfile
-          else
-            exit "$installStatus"
-          fi
+        run: ./scripts/ci-install.sh --frozen-lockfile
         env:
           SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
 
@@ -52,7 +37,7 @@ jobs:
       - name: Biome lint / format check
         run: >-
           bunx biome check ./src ./tests ./scripts
-          ci-config.test.ts wrangler-config.test.ts operations-config.test.ts
+          ci-config.test.ts ci-install.test.ts wrangler-config.test.ts operations-config.test.ts
           openspec-config.test.ts openspec-adr-coverage.test.ts
 
       - name: Tests
@@ -85,22 +70,7 @@ jobs:
           bun-version-file: .tool-versions
 
       - name: Install dependencies
-        run: |
-          set +e
-          installOutput="$(bun install --frozen-lockfile 2>&1)"
-          installStatus=$?
-          set -e
-          printf '%s\n' "$installOutput"
-          if [ "$installStatus" -eq 0 ]; then
-            exit 0
-          fi
-          if printf '%s\n' "$installOutput" | grep -q 'Socket Security Scanner: Received 429 from server'; then
-            echo "::warning::Socket authenticated scan hit 429; retrying bun install without SOCKET_API_KEY."
-            unset SOCKET_API_KEY
-            bun install --frozen-lockfile
-          else
-            exit "$installStatus"
-          fi
+        run: ./scripts/ci-install.sh --frozen-lockfile
         env:
           SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
 

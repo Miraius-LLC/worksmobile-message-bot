@@ -1,0 +1,6 @@
+# CI 専用フォールバック設定。Socket Security Scanner が停止している間だけ
+# `scripts/ci-install.sh` が `bun --config=` でこのファイルを使う。
+# root の bunfig.toml から scanner の設定を落としたもの (install 時に効く設定のみ)。
+# 常用しない (通常の install は必ず root bunfig を使う)。
+
+[install]

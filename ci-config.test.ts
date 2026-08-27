@@ -95,6 +95,7 @@ describe('CI workflow', () => {
     const biomeStep = workflow.jobs?.check?.steps?.find(step => step.run?.startsWith('bunx biome'))
 
     expect(biomeStep?.run).toContain('ci-config.test.ts')
+    expect(biomeStep?.run).toContain('ci-install.test.ts')
     expect(biomeStep?.run).toContain('wrangler-config.test.ts')
     expect(biomeStep?.run).toContain('operations-config.test.ts')
   })
