@@ -9,9 +9,7 @@
 ## ルール (常時適用)
 
 @./.claude/rules/coding-conventions.md
-@./.claude/rules/commit.md
 @./.claude/rules/worktree.md
-@./.claude/rules/git-log.md
 @./.claude/rules/tests.md
 
 ## Agent skills
