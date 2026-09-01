@@ -63,7 +63,7 @@ app.use('*', secureHeaders())
 // `/` と health probe 系パス (`/healthz` / `/health` / `/readyz` / `/livez`)
 // 以外の全リクエストに BASIC 認証を要求する。
 // webhook 公開エンドポイントを保護するための最低限の認証で、credentials は
-// Secret Manager から `BASIC_AUTH_USERNAME` / `BASIC_AUTH_PASSWORD` で注入する。
+// Secret Manager から `BASIC_ID` / `BASIC_PASS` で注入する。
 app.use('*', async (c, next) => {
   if (PUBLIC_PATHS.has(c.req.path)) return next()
   return getAuthMiddleware()(c, next)
