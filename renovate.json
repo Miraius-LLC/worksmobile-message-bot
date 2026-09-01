@@ -1,5 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "依存更新は Renovate 単独。Dependabot は併用しない (2026-09-02 に .github/dependabot.yml を削除)。",
+    "理由: Dependabot は package.json だけを書き換えて bun.lock を更新しないため、CI の `bun install --frozen-lockfile` が `lockfile had changes, but lockfile is frozen` で必ず落ちる。",
+    "Renovate は lockfile も同じ PR で更新するので通る。GitHub Actions の更新も config:recommended が含む。"
+  ],
   "extends": ["config:recommended", ":timezone(Asia/Tokyo)"],
   "schedule": ["before 6am on monday"],
   "labels": ["renovate"],

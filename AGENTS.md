@@ -9,7 +9,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 ## ルール (常時適用)
 
 - repo の開発規約（coding-conventions / tests / worktree / routes / services / tests-lineworks）の詳細は `.claude/rules/*.md`（Claude は `CLAUDE.md` 経由で @import、Codex / agy は同ディレクトリを直接参照）。
-- commit / git-log / source-file-naming は全島共通で、`~/.agents/AGENTS.md` §7 が Codex / agy の経路、Claude は `~/.claude/rules/` の user scope が常に載る。**repo には置かない**。
+- commit / git-log / source-file-naming は全島共通。判断 hook は `~/.agents/AGENTS.md` §7、詳細は `~/.agents/rules/*.md` を該当時に読む。**repo には置かない**。
 - **SoT マップ**: 長期的な設計判断 = `docs/adr/` / 全 Agent 共通ルール = `AGENTS.md` / 現在の構成と用語 = `README.md`・`CONTEXT.md` / active change の要求・設計・手順 = `openspec/changes/<change>/` / archive 後の現行仕様 = `openspec/specs/<capability>/` / 実行可能な仕様 = テスト / 進行管理 = `TODO.md` / 完了履歴 = `CHANGELOG.md`。詳細は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md) を正とする。
 
 ## トピック別ルール (作業に応じて読む)
