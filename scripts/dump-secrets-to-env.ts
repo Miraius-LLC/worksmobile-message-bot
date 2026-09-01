@@ -1,9 +1,10 @@
 #!/usr/bin/env bun
 
 import { existsSync } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { mergeEnvContent } from './_env-merge'
 import { formatCheckLines, type ReadResult, resolveSecretsToEnv } from './_op-secrets'
+import { writeSecretFile } from './_secret-file'
 
 type RunSecretInjectionOptions = {
   args?: string[]
@@ -28,8 +29,8 @@ export async function runSecretInjection(options: RunSecretInjectionOptions = {}
   const existsSyncFn = options.existsSyncFn ?? existsSync
   const writeFileFn =
     options.writeFileFn ??
-    (async (path, content, writeOptions) => {
-      await writeFile(path, content, writeOptions)
+    (async (path, content) => {
+      await writeSecretFile(path, content)
     })
   const stdoutWrite = options.stdoutWrite ?? (text => process.stdout.write(text))
   const stderrWrite = options.stderrWrite ?? (text => process.stderr.write(text))

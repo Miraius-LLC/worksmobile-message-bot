@@ -2,6 +2,10 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## secret注入の出力を0600・atomic置換へ強化した — ✅ 2026-09-02
+
+- `.env` は同一ディレクトリの0600一時ファイルから置換し、既存の緩いmodeを修復する。書込みまたはrenameの失敗時は既存ファイルを保持し、symlinkの出力先を拒否する。共通secret注入契約をv4へ更新し、実filesystemテストで固定した。
+
 ## secret injection テストの実 sleep を落とした — ✅ 2026-08-27
 
 - **`dump-secrets-to-env.test.ts` が 6.1 秒 → 91ms**（全件 626 テストで 488ms）。全部モックのテストなのに **0.10s user / 6.1s real / 2% CPU** で、実体は `_op-secrets.ts` のリトライ backoff（`Bun.sleep(500)` + `Bun.sleep(1500)`）だった。取得失敗を返すモックが 3 ケースあり、そのたびに実時間で 2 秒寝ていた。

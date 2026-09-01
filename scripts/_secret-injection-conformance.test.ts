@@ -6,8 +6,8 @@ import {
 } from './_secret-injection-adapter'
 
 describe('secret injection conformance adapter', () => {
-  test('contract v2 の template target を宣言する', () => {
-    expect(SECRET_INJECTION_ADAPTER.contractVersion).toBe(3)
+  test('contract v4 の template target を宣言する', () => {
+    expect(SECRET_INJECTION_ADAPTER.contractVersion).toBe(4)
     expect(SECRET_INJECTION_ADAPTER.kind).toBe('template')
     expect(SECRET_INJECTION_ADAPTER.targets).toEqual([
       {
@@ -19,7 +19,7 @@ describe('secret injection conformance adapter', () => {
     expect(SECRET_INJECTION_ADAPTER.scenarioIds).toBe(SECRET_INJECTION_SCENARIO_IDS)
   })
 
-  test('contract v2 の scenario ID と順序を固定する', () => {
+  test('contract v4 の scenario ID と順序を固定する', () => {
     expect(SECRET_INJECTION_SCENARIO_IDS).toEqual([
       'merge-preserves-unmanaged',
       'merge-quotes-values',
@@ -35,6 +35,10 @@ describe('secret injection conformance adapter', () => {
       'inject-no-write-on-read-failure',
       'scripts-canonical-entrypoints',
       'key-drift',
+      'write-owner-only',
+      'write-repairs-loose-mode',
+      'write-atomic-preserves-existing',
+      'write-rejects-symlink',
     ])
   })
 

@@ -16,10 +16,14 @@ export const SECRET_INJECTION_SCENARIO_IDS = [
   'inject-no-write-on-read-failure',
   'scripts-canonical-entrypoints',
   'key-drift',
+  'write-owner-only',
+  'write-repairs-loose-mode',
+  'write-atomic-preserves-existing',
+  'write-rejects-symlink',
 ] as const
 
 export const SECRET_INJECTION_ADAPTER = {
-  contractVersion: 3,
+  contractVersion: 4,
   kind: 'template',
   targets: [
     {
