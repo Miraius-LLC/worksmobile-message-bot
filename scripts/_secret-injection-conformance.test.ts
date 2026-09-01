@@ -1,9 +1,15 @@
 import { describe, expect, test } from 'bun:test'
+import { execFile } from 'node:child_process'
+import path from 'node:path'
+import { promisify } from 'node:util'
 import Bun from 'bun'
 import {
   SECRET_INJECTION_ADAPTER,
   SECRET_INJECTION_SCENARIO_IDS,
 } from './_secret-injection-adapter'
+
+const execFileAsync = promisify(execFile)
+const repoRoot = path.resolve(import.meta.dir, '..')
 
 describe('secret injection conformance adapter', () => {
   test('contract v4 の template target を宣言する', () => {
@@ -64,5 +70,17 @@ describe('secret injection conformance adapter', () => {
     ).sort()
 
     expect(referenceKeys).toEqual(assignedKeys)
+  })
+
+  test('secret一時ファイルの明示suffixはgitignoreされる', async () => {
+    await expect(
+      execFileAsync(
+        'git',
+        ['check-ignore', '--no-index', '--quiet', '--', '.env.deadbeef.secret-tmp'],
+        {
+          cwd: repoRoot,
+        },
+      ),
+    ).resolves.toBeDefined()
   })
 })

@@ -29,7 +29,7 @@ export async function writeSecretFile(
 
   const temporaryPath = path.join(
     path.dirname(targetPath),
-    `.${path.basename(targetPath)}.${randomUUID()}.tmp`,
+    `.${path.basename(targetPath).replace(/^\./, '')}.${randomUUID()}.secret-tmp`,
   )
   const writeTempFile =
     options.writeTempFile ??
