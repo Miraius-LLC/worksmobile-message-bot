@@ -45,6 +45,7 @@ describe('secret injection conformance adapter', () => {
       'write-repairs-loose-mode',
       'write-atomic-preserves-existing',
       'write-rejects-symlink',
+      'write-ignores-temp',
     ])
   })
 

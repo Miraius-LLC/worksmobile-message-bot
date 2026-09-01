@@ -20,6 +20,7 @@ export const SECRET_INJECTION_SCENARIO_IDS = [
   'write-repairs-loose-mode',
   'write-atomic-preserves-existing',
   'write-rejects-symlink',
+  'write-ignores-temp',
 ] as const
 
 export const SECRET_INJECTION_ADAPTER = {
