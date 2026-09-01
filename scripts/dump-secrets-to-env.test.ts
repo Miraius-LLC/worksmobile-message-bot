@@ -119,6 +119,20 @@ describe('runSecretInjection', () => {
 })
 
 describe('writeSecretFile', () => {
+  test('既定production writer経路の新規作成も0600になる', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'worksmobile-secret-file-'))
+    const target = path.join(directory, '.env')
+    try {
+      await writeSecretFile(target, 'TOKEN=sentinel\n')
+
+      expect((await stat(target)).mode & 0o777).toBe(SECRET_FILE_MODE)
+      expect(await readFile(target, 'utf8')).toBe('TOKEN=sentinel\n')
+    } finally {
+      await unlink(target).catch(() => undefined)
+      await rmdir(directory)
+    }
+  })
+
   test('新規作成ファイルは0600で、親ディレクトリのmodeを変更しない', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'worksmobile-secret-file-'))
     const target = path.join(directory, '.env')

@@ -45,6 +45,7 @@ export async function writeSecretFile(
   let operationError: unknown
   try {
     await writeTempFile(temporaryPath, content)
+    // 作成時modeに加え、注入されたwriterやumask差異があっても所有者限定を保証する。
     await chmod(temporaryPath, SECRET_FILE_MODE)
     await renameFile(temporaryPath, targetPath)
   } catch (error) {
