@@ -1,7 +1,7 @@
 # コーディング規約 (Develop 共通) — 常駐 index
 
 ベース: [TypeScript命名規則コーディング規約 (Qiita)](https://qiita.com/mistylady/items/21843c01f0b7289a6c83)。
-ファイル名・ディレクトリ名のケースは `source-file-naming.md` が SoT (kebab-case)。
+ファイル名・ディレクトリ名のケースは `~/.agents/rules/source-file-naming.md` が SoT (kebab-case)。
 
 **根拠・コード例・Biome / EditorConfig / lefthook の詳細は `~/Develop/docs/develop-coding.md`。**
 
