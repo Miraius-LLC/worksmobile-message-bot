@@ -92,3 +92,10 @@ coverage/
 
 # Local CodeGraph index and Graphify cache
 graphify-out/
+
+# =============================================================================
+# Codex (Claude と対等。worktree / local 設定はローカル生成物ゆえ ignore。AGENTS.md は tracked)
+# =============================================================================
+
+.Codex/
+.codex/settings.local.json
