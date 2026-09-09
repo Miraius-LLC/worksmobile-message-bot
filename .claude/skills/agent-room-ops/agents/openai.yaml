@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Room Ops"
+  short_description: "Use agent-room CLI commands to coordinate agents."
+  default_prompt: "Use agent-room-ops to coordinate with other agents through agent-room."

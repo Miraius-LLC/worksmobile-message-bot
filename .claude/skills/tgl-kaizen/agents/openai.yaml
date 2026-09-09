@@ -1,0 +1,4 @@
+interface:
+  display_name: "TGL Kaizen"
+  short_description: "Close a TGL session with repo and workflow improvement notes."
+  default_prompt: "Use TGL Kaizen to extract improvements after a TGL slice or session."

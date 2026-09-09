@@ -1,3 +1,4 @@
+agent-room-ops
 archify
 code-review
 codebase-design
@@ -14,5 +15,6 @@ research
 resolving-merge-conflicts
 tdd
 tgl
+tgl-kaizen
 wizard
 worktree-start
