@@ -51,7 +51,7 @@ Domain / Applicationで実装済み:
 - Picker / Commanderへのeffective model・effort・tier snapshot
 - 軽量Shipperの自動routing
 
-model不明は`unknown`とし、実測値と観測時刻を記録する。未実装境界はowner指示、control pulse、手動assignmentで守る。後続実装は[ADR-0053](../../docs/adr/0053-formation-member-first-flow-and-bounded-shipping.md)とOpenSpec change `define-formation-member-first-flow`を参照する。
+model不明は`unknown`とし、実測値と観測時刻を記録する。未実装境界はowner指示、control pulse、手動assignmentで守る。後続実装は[ADR-0053](https://github.com/fujimogn/agent-room/blob/main/docs/adr/0053-formation-member-first-flow-and-bounded-shipping.md)とOpenSpec change `define-formation-member-first-flow`を参照する。
 
 ## Contract lookup
 

@@ -138,7 +138,7 @@ Formation
 
 snapshot未実装中の一次記録の読み方は、Claudeは`~/.claude/projects/<project>/<session>.jsonl`の`message.model`、Codexは`~/.codex/sessions/<date>/rollout-*-<session>.jsonl`の最新`turn_context`の`payload.model`と`payload.effort`（`session_meta`やconfig既定は権威にしない。実装は`src/formation/pane-capability-source.ts`）、Antigravityは`~/.gemini/antigravity-cli/log/cli-*.log`のmodel endpointを見る。読めない時だけ`unknown`とし、実測値と観測時刻を記録に残す。
 
-現行Herdr / Formation metadataはagent kindとstatusを扱うが、このeffective model snapshotは未実装である。HerdrのTTL・sequence付きpane metadata tokenをagent integration / hookから報告できるかagent別conformanceするまで、terminal footerやagent名をauthorityにしない。目標contractとPicker表示は[ADR-0053](../../../docs/adr/0053-formation-member-first-flow-and-bounded-shipping.md)を参照する。
+現行Herdr / Formation metadataはagent kindとstatusを扱うが、このeffective model snapshotは未実装である。HerdrのTTL・sequence付きpane metadata tokenをagent integration / hookから報告できるかagent別conformanceするまで、terminal footerやagent名をauthorityにしない。目標contractとPicker表示は[ADR-0053](https://github.com/fujimogn/agent-room/blob/main/docs/adr/0053-formation-member-first-flow-and-bounded-shipping.md)を参照する。
 
 control pulseはcommanderの実装batch前後、`BLOCKED` / `CANDIDATE_READY` / `DECISION_REQUIRED`受信時、Herdrのdone / idle / blocked / vanished変化時、timeout境界、integration / push / deploy / close直前に行う。毎回次を確認する。
 
