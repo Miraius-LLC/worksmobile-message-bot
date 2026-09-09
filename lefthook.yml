@@ -1,3 +1,17 @@
+commit-msg:
+  commands:
+    # attribution trailer は AGENTS.md §7.1 で禁止。harness の session 開始指示が
+    # 毎回これを足すため、規約を読んでいても守り切れない (2026-09-09 に 49 件の違反)。
+    # 規律ではなく機械で止める。正本は agent-room の lefthook.yml。
+    forbidden-trailers:
+      run: |
+        if grep -qiE '^(Co-Authored-By|Claude-Session):' {1}; then
+          echo "commit-msg: 禁止 trailer が含まれています (AGENTS.md §7.1)" >&2
+          echo "  削除する行: Co-Authored-By: / Claude-Session: の両方" >&2
+          grep -inE '^(Co-Authored-By|Claude-Session):' {1} | sed 's/^/  検出 /' >&2
+          exit 1
+        fi
+
 post-merge:
   commands:
     install:
