@@ -1,0 +1,6 @@
+interface:
+  display_name: "Formation"
+  short_description: "Coordinate selected Herdr panes toward one repository goal."
+  default_prompt: "Use $formation to assign every selected Herdr member pane as a top-level lane for this repository goal; members may use subordinate tools within their own lanes, and Commander implementation follows the owner contract."
+policy:
+  allow_implicit_invocation: true

@@ -3,6 +3,7 @@ code-review
 codebase-design
 diagnosing-bugs
 domain-modeling
+formation
 graphify
 grill-with-docs
 implement
@@ -12,5 +13,6 @@ prototype
 research
 resolving-merge-conflicts
 tdd
+tgl
 wizard
 worktree-start

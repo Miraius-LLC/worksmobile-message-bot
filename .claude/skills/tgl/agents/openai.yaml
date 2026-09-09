@@ -1,0 +1,4 @@
+interface:
+  display_name: "TGL"
+  short_description: "Run Triangle-Gated Lead Loop work in agent-room."
+  default_prompt: "Use TGL to coordinate a Triangle-Gated Lead Loop session."
