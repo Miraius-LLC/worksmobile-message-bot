@@ -60,7 +60,20 @@ skill 側で `worktree-<suffix>` 形式に整形し、最終確認:
 git worktree add .claude/worktrees/<suffix> -b worktree-<suffix>
 ```
 
-### Step 4.5: fresh worktree の初期化 (依存 + secret)
+### Step 4.5: 作成直後の skills / settings 配布
+
+作成した worktree 内で `git rev-parse --show-toplevel` を実行し、実測した絶対 path を `<path>` に使う。`<name>` は `~/Develop/.claude/sync-targets.json` の `targets` に登録された対象名を確認して使う（branch 名ではない）。
+
+develop-meta自身は `targets` の対象外なので、この2コマンドを省略し、checkout内のSoT skillsとtracked `.claude/settings.json` のSessionStart設定を確認してStep 4.6へ進む。対象名が台帳に無い他repoも推測で指定せず、担当repoの配布契約を確認する。
+
+```bash
+~/Develop/bin/sync-claude-skills --target="<name>" --target-root="<path>" --yes
+~/Develop/bin/sync-claude-settings --target="<name>" --target-root="<path>" --yes
+```
+
+両コマンドの成功を確認して次へ進む。失敗時は対象名・実測 path とエラーを報告する。Claude Code の worktree 生成 hook event の有無は要確認のため、この手順で配布を確認する。
+
+### Step 4.6: fresh worktree の初期化 (依存 + secret)
 
 新規 worktree は gitignore 成果物 (`node_modules` / `.env` / `.dev.vars` / `.wrangler/`) を引き継がない。立ち上げ直後に以下を実行する (lessons L16 / L26):
 

@@ -2,6 +2,8 @@
 
 コード編集タスクは常に **git worktree で分離** する。`main` を直接編集しない。新規 worktree は `.claude/worktrees/<name>` 配下に作る (`.gitignore` 済)。
 
+herdr 経路の予定配置は `~/Develop/.worktrees/<repo>/<branch>`（設定変更は配布到達改善の A6 で実施予定・未実施）。
+
 ## 基本フロー
 
 1. **開始**: 新しい worktree とブランチを切る
