@@ -2,7 +2,7 @@
 
 コード編集タスクは常に **git worktree で分離** する。`main` を直接編集しない。新規 worktree は `.claude/worktrees/<name>` 配下に作る (`.gitignore` 済)。
 
-herdr 経路の予定配置は `~/Develop/.worktrees/<repo>/<branch>`（設定変更は配布到達改善の A6 で実施予定・未実施）。
+herdr が切る worktree は `~/Develop/.worktrees/<repo>/<branch>` に置く（`~/.config/herdr/config.toml` の `[worktrees] directory`、2026-09-10）。親階層に `~/Develop` が入るので島の CLAUDE.md / lessons が継承され、`worktree.created` event（agent-room herdr-plugin）が git 管理外の配布物（skillsLocal / `settings.local.json`）を撒く。欠けたまま起動すると user scope の SessionStart hook が degraded 警告を出す。
 
 ## 基本フロー
 
