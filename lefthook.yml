@@ -29,6 +29,11 @@ post-rewrite:
 pre-commit:
   parallel: true
   commands:
+    adr-structure:
+      glob: "docs/adr/**"
+      run: |
+        for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
+        exec "$HOME/Develop/bin/check-staged-adr"
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
     biome:
