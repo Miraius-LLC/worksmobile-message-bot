@@ -4,7 +4,9 @@
 
 herdr が切る worktree は `~/Develop/.worktrees/<repo>/<branch>` に置く（`~/.config/herdr/config.toml` の `[worktrees] directory`、2026-09-10）。親階層に `~/Develop` が入るので島の CLAUDE.md / lessons が継承され、`worktree.created` event（agent-room herdr-plugin）が git 管理外の配布物（skillsLocal / `settings.local.json`）を撒く。欠けたまま起動すると user scope の SessionStart hook が degraded 警告を出す。
 
-Herdr eventの `worktree-init` への切替と、user-scope検査のdevelop-meta対応は外部残作業。現時点では作成後に同じ初期化入口を実行する。`targets` の子repoと `metaRoot` のDevelop自身が対象で、Macでも初期化でき、toolをmise shim → Homebrew → 既存PATHで解決し、Bun/direnv不在はhint付きskip、git不在は `blocked` / exit 2とする。開発・commitはdevで行う。台帳はcanonicalが既定で、bootstrap時だけ `--ledger <absolute-path>` を明示する。診断の `--check --json` / `--dry-run --json` は無書込みで `would_*` を返し、exit 0でも準備完了とは限らない。子コマンド120秒・全体360秒、`timeout` / `failed` / `blocked` とskipのreasonは `~/Develop/docs/develop-operations.md` のworktree節で復旧手順を確認する。
+Herdr eventは `worktree-init` を呼び、user-scope検査もdevelop-metaを含む（2026-09-10 完了）。**Herdr の TUI（`new_worktree` キー / sidebar の +）は workspace を開いた時の cwd で repo を決める**（upstream herdrdev/herdr#3214）ので、`~/Develop` で開いた workspace から子 repo へ `cd` して作ると develop-meta の worktree になる。子 repo の worktree は `~/Develop/bin/herdr-worktree-create [<branch>]`（pane の実 cwd から主 checkout を引き、`git worktree add` → `worktree-init` → `herdr worktree open` の順で開く。先に初期化するので初回 prompt の `.envrc is blocked` も出ない。`prefix+shift+g` の popup も同じ）で作るか、workspace 自体を子 repo の cwd で開く。
+
+`worktree-init` は `targets` の子repoと `metaRoot` のDevelop自身が対象で、Macでも初期化でき、toolをmise shim → Homebrew → 既存PATHで解決し、Bun/direnv不在はhint付きskip、git不在は `blocked` / exit 2とする。開発・commitはdevで行う。台帳はcanonicalが既定で、bootstrap時だけ `--ledger <absolute-path>` を明示する。診断の `--check --json` / `--dry-run --json` は無書込みで `would_*` を返し、exit 0でも準備完了とは限らない。子コマンド120秒・全体360秒、`timeout` / `failed` / `blocked` とskipのreasonは `~/Develop/docs/develop-operations.md` のworktree節で復旧手順を確認する。
 
 ## 基本フロー
 
