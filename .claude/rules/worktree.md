@@ -4,9 +4,11 @@
 
 herdr が切る worktree は `~/Develop/.worktrees/<repo>/<branch>` に置く（`~/.config/herdr/config.toml` の `[worktrees] directory`、2026-09-10）。親階層に `~/Develop` が入るので島の CLAUDE.md / lessons が継承され、`worktree.created` event（agent-room herdr-plugin）が git 管理外の配布物（skillsLocal / `settings.local.json`）を撒く。欠けたまま起動すると user scope の SessionStart hook が degraded 警告を出す。
 
+Herdr eventの `worktree-init` への切替と、user-scope検査のdevelop-meta対応は外部残作業。現時点では作成後に同じ初期化入口を実行する。`targets` の子repoと `metaRoot` のDevelop自身が対象で、Macでも初期化でき、toolをmise shim → Homebrew → 既存PATHで解決し、Bun/direnv不在はhint付きskip、git不在は `blocked` / exit 2とする。開発・commitはdevで行う。台帳はcanonicalが既定で、bootstrap時だけ `--ledger <absolute-path>` を明示する。診断の `--check --json` / `--dry-run --json` は無書込みで `would_*` を返し、exit 0でも準備完了とは限らない。子コマンド120秒・全体360秒、`timeout` / `failed` / `blocked` とskipのreasonは `~/Develop/docs/develop-operations.md` のworktree節で復旧手順を確認する。
+
 ## 基本フロー
 
-1. **開始**: 新しい worktree とブランチを切る
+1. **開始**: devで新しい worktree とブランチを切り、worktree内で `~/Develop/bin/worktree-init "$(git rev-parse --show-toplevel)"` を実行する。failedと必要なrepo固有準備を解消してから作業する
 2. **作業**: worktree の中で読み書き → テスト → commit (pre-commit hook が走る)
 3. **離脱**: 変更を残したままセッションを main 側に戻す
 4. **取り込み**: `main` から ff-only でマージ
@@ -17,7 +19,7 @@ Claude Code から実行する時の対応:
 
 | ステップ | 操作 |
 |---|---|
-| 1. 開始 | `EnterWorktree` ツール (`name` を渡す) |
+| 1. 開始 | `EnterWorktree` ツール (`name` を渡す) → `worktree-start` の初期化・repo固有分岐 |
 | 2. 作業 | 通常通り Edit / Write / Bash |
 | 3. 離脱 | `ExitWorktree` ツール (`action: "keep"`) |
 | 4. 取り込み | `git merge --ff-only worktree-<name>` |

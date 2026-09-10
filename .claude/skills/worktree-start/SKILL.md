@@ -10,7 +10,7 @@ description: 藤井の ~/Develop/ 配下の開発プロジェクトで作業を�
 
 ## 前提
 
-- 対象: `~/Develop/<project>/` 配下のプロジェクト (cwd が git repo)
+- 対象: dev上の `~/Develop` 自身と `~/Develop/<project>/` 配下のプロジェクト (cwd が git repo)
 - 配置先: `.claude/worktrees/<name>/` (`.gitignore` で除外済の想定)
 - ブランチ命名: `worktree-<name>` (worktree.md の慣習)
 - 守る原則: **main を直接編集しない**。緊急 hotfix でも worktree を切る (worktree.md §「守るべきこと」)
@@ -26,7 +26,7 @@ git worktree list                # 既存 worktree 一覧
 git status --short               # 未コミット変更の有無
 ```
 
-- repo root が `~/Develop/<project>/` 配下でなければ警告して中止 (本 skill のスコープ外)
+- repo root が `~/Develop` 自身またはその配下の対象repoか、git common dirで確認する。対象外なら警告して中止する。
 - 未コミット変更がある場合は AskUserQuestion で対応を確認 (stash / そのまま continue / 中止)
 
 ### Step 2: 既存 worktree の確認
@@ -60,28 +60,28 @@ skill 側で `worktree-<suffix>` 形式に整形し、最終確認:
 git worktree add .claude/worktrees/<suffix> -b worktree-<suffix>
 ```
 
-### Step 4.5: 作成直後の skills / settings 配布
+### Step 4.5: 作成直後の初期化
 
-作成した worktree 内で `git rev-parse --show-toplevel` を実行し、実測した絶対 path を `<path>` に使う。`<name>` は `~/Develop/.claude/sync-targets.json` の `targets` に登録された対象名を確認して使う（branch 名ではない）。
-
-develop-meta自身は `targets` の対象外なので、この2コマンドを省略し、checkout内のSoT skillsとtracked `.claude/settings.json` のSessionStart設定を確認してStep 4.6へ進む。対象名が台帳に無い他repoも推測で指定せず、担当repoの配布契約を確認する。
+作成した worktree 内で、実測した絶対pathを初期化の単一入口へ渡す。
 
 ```bash
-~/Develop/bin/sync-claude-skills --target="<name>" --target-root="<path>" --yes
-~/Develop/bin/sync-claude-settings --target="<name>" --target-root="<path>" --yes
+~/Develop/bin/worktree-init "$(git rev-parse --show-toplevel)"
 ```
 
-両コマンドの成功を確認して次へ進む。失敗時は対象名・実測 path とエラーを報告する。Claude Code の worktree 生成 hook event の有無は要確認のため、この手順で配布を確認する。
+canonical台帳の `targets` / `metaRoot` で対象を識別する。bootstrap検証だけ `--ledger <確認済み台帳の絶対path>` を明示し、省略時にworktree台帳へfallbackしない。settingsが既存ならskills配布もskipし、欠落時は子repoへskills/settings配布、develop-metaへcanonical settingsコピーを行う。続いて `.env` / `.dev.vars` コピー、条件付きdirenv allow、lock digestに対応した依存installを行う。
 
-### Step 4.6: fresh worktree の初期化 (依存 + secret)
+事前確認は `--check --json` または `--dry-run --json`。どちらも無書込みで `would_run` / `would_copy` / `would_allow` を返す。実行後は `done` / `skipped` / `failed`、preflight拒否と全体上限超過で開始しなかった段は `blocked` を確認し、exit 0でもskip/予定のreasonから準備の不足を確認する。git欠落は `git_missing_install_tool`（exit 2）、HOME欠落は `home_missing`（exit 1）。Bun/direnv欠落はhint付きskip。tool探索はmise shim → Homebrew → 既存PATH、子コマンド120秒・全体360秒が上限で `timeout` は復旧対象。binaryがなければdevの `bin/install-tools` による導入を確認する。
 
-新規 worktree は gitignore 成果物 (`node_modules` / `.env` / `.dev.vars` / `.wrangler/`) を引き継がない。立ち上げ直後に以下を実行する (lessons L16 / L26):
+### Step 4.6: repo固有の残作業を確認
 
-- **`bun install`** — `node_modules` が無いと「export 不在」「大量テスト失敗」として現れる (L16)。テスト/typecheck の前に必須。
-- **secret 注入** — op inject 採用済の repo (root に `.env.tpl` / `package.json` に `secrets:inject` がある) は **`bun run secrets:inject`** で `.env` / `.dev.vars` を 1Password から生成 (旧来の「`.env` を手コピー」は不要 = `.tpl` が tracked なので worktree に既に存在する、L26)。op 未採用の repo は従来どおり実体を手当て。
+初期化のskip理由を確認し、必要な分岐だけを実施する。
+
+- **secret未生成** — `.env` が無く、tracked templateと `package.json` の `secrets:inject` scriptがあるrepoだけ **`bun run secrets:inject`** を対話下で案内する。scriptが無いrepoはそのrepoのsecret手順へ進む。secret内容は出力しない。
 - **CF (wrangler) 系** は必要に応じ `wrangler d1 migrations apply --local` + seed で `.wrangler/` のローカル DB を再生成 (コピーすると stale 連番で事故る、L15/L26)。
 
-> secret 注入は op の Touch ID アンロックを伴うので、この skill ステップ (= 対話下) で回す。非対話な hook で自動実行するとアンロック待ちでハングしうる (`bun install` は認証不要なので hook 化可)。
+- **direnv** — allowは現paneのenvを変更しない。`no_envrc` は直接allow対象外で、必要なら親からの継承を確認する。未allow・不一致・tool不在のhintを解消し、次のshell反映を確認してから作業する。
+
+必要なsecret・依存とrepo固有のlocal DB準備が揃った時点でStep 5へ進む。詳細なskip / failureと診断方法は `~/Develop/docs/develop-operations.md` のworktree節を参照する。
 
 ### Step 5: 作業開始の合図
 
