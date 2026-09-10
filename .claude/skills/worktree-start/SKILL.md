@@ -13,6 +13,7 @@ description: 藤井の ~/Develop/ 配下の開発プロジェクトで作業を�
 - 対象: dev上の `~/Develop` 自身と `~/Develop/<project>/` 配下のプロジェクト (cwd が git repo)
 - 配置先: `.claude/worktrees/<name>/` (`.gitignore` で除外済の想定)
 - ブランチ命名: `worktree-<name>` (worktree.md の慣習)
+- 補足: 本 skill は Claude Code セッション内から `EnterWorktree` で切る経路。Herdr ターミナル環境から切る場合は `~/Develop/bin/herdr-worktree-create`（`prefix+shift+g`、置き場 `~/Develop/.worktrees/`）を使う（worktree.md 参照）。
 - 守る原則: **main を直接編集しない**。緊急 hotfix でも worktree を切る (worktree.md §「守るべきこと」)
 
 ## フロー

@@ -149,7 +149,7 @@ control pulseはcommanderの実装batch前後、`BLOCKED` / `CANDIDATE_READY` / 
 5. available laneと安全なwork在庫
 6. 次にcommanderが行う1アクション
 
-緊急でない判断は、`decision id / question / choices / commander recommendation / affected lanes / waiting impact / reversible or irreversible`を一つのdecision digestへ集約する。迷いが無く根拠を示せる判断（指定漏れの訂正など）は即答してよいが、その根拠を報告に残す。不可逆または全lane停止だけは直ちにownerへ尋ねる。Herdrのidleは、active assignment、required report、pending decision、roster admittedを満たすまでavailableの根拠にしない。
+緊急でない判断は、`decision id / question / choices / commander recommendation / affected lanes / waiting impact / reversible or irreversible`を一つのdecision digestへ集約する。迷いが無く根拠を示せる判断（指定漏れの訂正など）は即答してよいが、その根拠を報告に残す（`formation note`で対象laneへ台帳付きに届ける）。不可逆または全lane停止だけは直ちにownerへ尋ねる。Herdrのidleは、active assignment、required report、pending decision、roster admittedを満たすまでavailableの根拠にしない。
 
 availability monitorの対象集合はactiveなlane attachmentだけである。開始前の候補検出ではworkspace metadataを列挙できるが、admit後は保存済みexact targetごとのHerdr `agent wait`を有限timeoutで並行待受し、state changeまたはtimeoutで`agent get`を再取得する。選外・未登録・別Formationのagentへwait / get / read / promptを広げない。観測はstatusと時刻を組にし、stale / unknownは再取得までavailableとしない。
 
