@@ -68,7 +68,7 @@ git worktree add .claude/worktrees/<suffix> -b worktree-<suffix>
 ~/Develop/bin/worktree-init "$(git rev-parse --show-toplevel)"
 ```
 
-canonical台帳の `targets` / `metaRoot` で対象を識別する。bootstrap検証だけ `--ledger <確認済み台帳の絶対path>` を明示し、省略時にworktree台帳へfallbackしない。settingsが既存ならskills配布もskipし、欠落時は子repoへskills/settings配布、develop-metaへcanonical settingsコピーを行う。続いて `.env` / `.dev.vars` コピー、条件付きdirenv allow、lock digestに対応した依存installを行う。
+canonical台帳の `targets` / `metaRoot` で対象を識別する。bootstrap検証だけ `--ledger <確認済み台帳の絶対path>` を明示し、省略時にworktree台帳へfallbackしない。`skills` 段は台帳 `skillsLocal` の `SKILL.md` が欠けていれば子repoへ `sync-claude-skills` を呼び（develop-metaは `tracked` でskip）、`settings` 段は既存なら保持し、欠落時に子repoへ `sync-claude-settings`、develop-metaへcanonical settingsコピーを行う。続いて `.env` / `.dev.vars` コピー、条件付きdirenv allow、lock digestに対応した依存installを行う。
 
 事前確認は `--check --json` または `--dry-run --json`。どちらも無書込みで `would_run` / `would_copy` / `would_allow` を返す。実行後は `done` / `skipped` / `failed`、preflight拒否と全体上限超過で開始しなかった段は `blocked` を確認し、exit 0でもskip/予定のreasonから準備の不足を確認する。git欠落は `git_missing_install_tool`（exit 2）、HOME欠落は `home_missing`（exit 1）。Bun/direnv欠落はhint付きskip。tool探索はmise shim → Homebrew → 既存PATH、子コマンド120秒・全体360秒が上限で `timeout` は復旧対象。binaryがなければdevの `bin/install-tools` による導入を確認する。
 
