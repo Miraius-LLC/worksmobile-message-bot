@@ -1,6 +1,6 @@
 ---
 name: formation
-description: userが最初のpaneへ、同じHerdr workspaceで自分が開いた2〜5の選択paneを、1 repoのgoalに向けて編成・連携・監視するよう依頼した時に使う。同一workspaceの選択rosterだけを対象にするため、ordinary subagent delegation、単独pane、plain terminal、選外pane、cross-repo Program workには使わない。
+description: userが最初のpaneへ、同じHerdr workspaceで自分が開いた2〜7の選択paneを、1 repoのgoalに向けて編成・連携・監視するよう依頼した時に使う。同一workspaceの選択rosterだけを対象にするため、ordinary subagent delegation、単独pane、plain terminal、選外pane、cross-repo Program workには使わない。
 ---
 
 # Formation
@@ -26,7 +26,37 @@ description: userが最初のpaneへ、同じHerdr workspaceで自分が開い�
 
 Formationは参加membershipと物理lane attachmentまでを担う。admit後は同じ`laneId`を既存TGLの親lane identityとして渡し、各窓がTGL / PLD / subagent等を使って実装・検証・reviewを進める。TGL側へroster、challenge、receiptの状態を複製しない。
 
-Formationは**その場だけの組織**である。最終操作から48hを超えて無操作なら、次に誰かが台帳をwrite-openした時点で行ごと解散する（`status` / `candidates`はread-only、`migrate`はschema操作なので掃かない）。判断・採否・証跡はclose時点でrepoの文書へ昇格しており、台帳が持つのは組織が動いている間だけ要るlane / challenge / receiptなので、`disbanded`のような終端状態を残さない。**closeし忘れを借金にしないための仕組みであり、closeを省いてよいという意味ではない**。goal達成の締めは引き続きcloseで行う。48hを超えて中断する見込みがある時は、解散を前提にhandoffをrepo側へ残す。
+Formationは**その場だけの組織**である。最終操作から48hを超えて無操作なら、次に誰かが台帳をwrite-openした時点で行ごと解散する（`status` / `candidates`はread-only、`migrate`はschema操作なので掃かない）。判断・採否・証跡はclose時点でrepoの文書へ昇格しており、台帳が持つのは組織が動いている間だけ要るlane / challenge / receiptなので、`disbanded`のような終端状態を残さない。**closeし忘れを借金にしないための仕組みであり、closeを省いてよいという意味ではない**。goal達成の締めは引き続きcloseで行う。
+
+### 48h超中断時のhandoff手順
+
+48hを超えて中断する見込みがある時は、台帳の自動解散によって組織状態が消失しても成果を失わないよう、司令塔が既存のhandoff機構へ状態を退避し、次の司令塔が回収する（藤井決定 2026-09-11: 新しい仕組みは作らず既存経路を活用する）。
+
+1. **保存先**: `~/Develop/.agent-room/<project>/handoffs/`（既存handoff置き場。session起動時に`session-start-dispatch`が未消化として自動検知・列挙する既存経路）。
+   ファイル名は `<date>-formation-<formationId>-handoff.md` とする。
+2. **残す内容**:
+   - YAML frontmatter（必須）:
+     ```yaml
+     ---
+     status: open
+     date: YYYY-MM-DD
+     resolved_commit:
+     ---
+     ```
+   - 本文:
+     - Formation ID、goal、acceptance criteria
+     - 各laneの最終状態（laneId、担当agent、pane、status、assignmentId、最新report）
+     - touching paths（各laneが触っていたファイル一覧）
+     - commit and dirty state（各worktreeのHEAD commit SHA、未コミット差分の有無、worktreeパス）
+     - verification（実施済みテスト・検証結果、未検証事項）
+     - remaining work（未完了assignment、次に再開・割当すべきwork在庫）
+     - evidence refs（dossier下書き、レビュー記録、ログファイル等の参照パス）
+3. **回収確認者**: **次に起動した司令塔**。
+4. **回収完了の判定**:
+   - 次に起動した司令塔が`session-start-dispatch`（または `rg -l '^status: open$' ~/Develop/.agent-room/<project>/handoffs/`）で未消化handoffを検知する。
+   - 前回のFormationが台帳から自動解散されていることを確認し、各worktreeのcommit/dirty状態を点検する。
+   - 残作業を新しいFormationのgoal/assignmentとして再開、またはmain統合・TODO更新を完了した時点で、handoffファイルのfrontmatterを `status: resolved` に変更し、`resolved_commit` に着地先コミットSHAを記入する。frontmatterが `resolved` になることで`session-start-dispatch`の未消化列挙から外れ、回収完了となる。
+
 
 freezeは即時停止の事実ではなくbarrierである。司令塔が`freeze_requested`を記録し、各laneの受領または消失判定を回収して`frozen`へ遷移する。通知到着前に開始済みだった操作はin-flightとして記録し、巻き戻さず、重複操作だけを止める。
 

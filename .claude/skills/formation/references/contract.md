@@ -4,7 +4,7 @@ Formationはownerが明示した一つのgoalを、同じHerdr workspaceの選�
 
 ## Scope and contract fields
 
-v1の編成規模はPairまたはSiteとし、commanderを含む2〜5 pane、1 Herdr workspace、1 repoに固定する。Soloは通常作業として扱い、cross-repoのProgramは別契約にする。`laneLimit`は2〜5の整数で、開始時の選択roster数と一致させる。rosterと`laneLimit`はCommander 1 paneを含み、本文書でいう`member`はCommanderを除くため、member数は`laneLimit - 1`である。Commander control laneを追加laneとして二重計上しない。
+v1の編成規模はPairまたはSiteとし、commanderを含む2〜7 pane、1 Herdr workspace、1 repoに固定する。Soloは通常作業として扱い、cross-repoのProgramは別契約にする。`laneLimit`は2〜7の整数（contractsの`FORMATION_MIN_ROSTER_PANES` / `FORMATION_MAX_ROSTER_PANES`）で、開始時の選択roster数と一致させる。rosterと`laneLimit`はCommander 1 paneを含み、本文書でいう`member`はCommanderを除くため、member数は`laneLimit - 1`（最大6）である。Commander control laneを追加laneとして二重計上しない。
 
 開始時に次を固定する。
 
@@ -215,6 +215,40 @@ evidence refs:
 freezeは`freeze_requested → frozen`のbarrierとして扱う。`freeze_requested`以後は新規dispatch / send / integrationを発行せず、各laneのfreeze受領、受領前からのin-flight操作、dirty / commit / pending runをcheckpointへ回収する。通知の配送前またはlaneのfreeze ACK前に開始済みだった操作は違反やrollback対象にせずin-flightとして保全し、同じ操作の再発行だけを止める。全admitted laneの受領または消失判定が揃った時に`frozen`とする。frozen中はread-only status、report回収、owner decisionだけを許す。
 
 全lane idleでもcloseしない。close dossierにはcontract、rosterとexcluded理由、eventとreceipt、採用range、ownership、review / verification、残Human Gate、未完了事項を含め、acceptanceと証跡が説明できる時だけ`INTEGRATION_ACCEPTED`としてcloseする。不足時は`INTEGRATION_REJECTED`またはreplanへ戻す。
+
+### 48h automatic disband and suspension handoff procedure
+
+Formation台帳は最終操作から48hを超えて無操作のまま経過すると、次回台帳のwrite-open操作時に行ごと自動解散（レコード削除）される。この自動解散はcloseし忘れを借金にしないための安全弁であり、close手続きの省略ではない。
+
+48hを超えて作業を中断する見込みがある場合、司令塔は台帳消失に備えて以下の手順でhandoffを記録し、次回再開時の司令塔へ確実に引き継ぐ（藤井決定 2026-09-11: 新規の永続化機構を作らず、既存のhandoff置き場と起動フックを活用する）。
+
+1. **保存先**: `~/Develop/.agent-room/<project>/handoffs/`
+   - `session-start-dispatch` がセッション開始時に未消化（`status: open`）のファイルを自動検知・列挙する既存経路に一致させる。
+   - 命名規則: `<YYYY-MM-DD>-formation-<formationId>-handoff.md`
+2. **残す内容**:
+   - YAML frontmatter（必須。`agent-room-ops` の Handoff Documents 規約に準拠）:
+     ```yaml
+     ---
+     status: open
+     date: YYYY-MM-DD
+     resolved_commit:
+     ---
+     ```
+   - 本文の必須記録項目:
+     - `formationId`、goal、acceptance criteria
+     - 全laneの状態一覧（`laneId`、担当agent、pane、状態、assignmentId、最新report）
+     - `touching paths`: 変更対象・接触中のファイル一覧
+     - `commit and dirty state`: 各worktreeのHEAD commit SHA、branch名、未コミット変更（dirty）の有無とworktreeパス
+     - `verification`: 実施済みテスト・検証証跡、未検証項目
+     - `remaining work`: 未着手・未完了のassignment、次に割り当てるべきwork在庫
+     - `evidence refs`: close dossier下書き、レビューログ、PR/ブランチ等の参照先
+3. **回収確認者**: **次に起動した司令塔（`lane_commander`）**
+4. **回収完了の判定基準**:
+   - 次に起動した司令塔が `session-start-dispatch`（または `rg -l '^status: open$' ~/Develop/.agent-room/<project>/handoffs/`）で未消化handoffを検知・確認する。
+   - 前回のFormationが台帳上で自動解散されていることを確認し、残存worktree・ブランチ・コミット状態を点検する。
+   - 残存作業を新しいFormationのgoal/assignmentとして再編するか、main統合・TODO更新を完了する。
+   - 引き継ぎ・着地が完了した時点で、司令塔がhandoffファイルのfrontmatterを `status: resolved` に更新し、`resolved_commit: <SHA>` に着地先コミットを記録する。
+   - frontmatterが `resolved` となることで未消化列挙から外れ、回収完了として確定する。
 
 Formationのroster外にいる実装者は、ownerが明示したdogfood範囲に限り`external canary controller`として状態確認、限定probe、異常系再現、安全補正を司令塔へ依頼できる。通常laneの割当、優先順位、freeze解除、review admission、統合、push、goal closeの権限は持たない。probeは目的、対象、期待結果、停止条件を必須とする。
 

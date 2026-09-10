@@ -2,7 +2,7 @@
 
 コード編集タスクは常に **git worktree で分離** する。`main` を直接編集しない。新規 worktree は `.claude/worktrees/<name>` 配下に作る (`.gitignore` 済)。
 
-herdr が切る worktree は `~/Develop/.worktrees/<repo>/<branch>` に置く（`~/.config/herdr/config.toml` の `[worktrees] directory`）。親階層に `~/Develop` が入るので島の CLAUDE.md / lessons が継承される。`worktree.created` の初期化は develop-meta 所有の `develop-meta.worktree-init` pluginへ移設中。第2段完了までは agent-room 版が稼働する。eventは `worktree-init <checkout> --json` を呼び、未配布はuser scopeのSessionStart hookがdegradedとして警告する。
+herdr が切る worktree は `~/Develop/.worktrees/<repo>/<branch>` に置く（`~/.config/herdr/config.toml` の `[worktrees] directory`）。親階層に `~/Develop` が入るので島の CLAUDE.md / lessons が継承される。`worktree.created` の初期化は develop-meta 所有の `develop-meta.worktree-init` pluginが担当する。2026-09-11 に切替済みで、agent-room 版は撤去済み（切替記録: `~/Develop/.agent-room/agent-room/formation/fm-herdr-stage2-20260911/switch-record.md`）。eventは `worktree-init <checkout> --json` を呼び、未配布はuser scopeのSessionStart hookがdegradedとして警告する。
 
 日常の作成は `herdr-worktree-create` で同期初期化し、eventは他経路の保険とする。配布CLIの `--target-root` はcommon-dir一致なら島外も許容するが、`worktree-init` は島内限定。新pluginは島外を `outside_island` でskipし通知しない。Codex `--worktree` の島外checkoutは非対応なので、島内worktreeを作成・初期化して `codex -C <path>` で入る。CLI生成先の設定変更可否は未確認。詳細・実測は `~/Develop/docs/develop-operations.md` のworktree節を参照する。
 

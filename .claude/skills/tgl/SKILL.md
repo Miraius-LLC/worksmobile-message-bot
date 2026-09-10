@@ -398,7 +398,7 @@ agent-room tgl review prevention --session <session_id> --choice <n> --action ad
 
 `tgl-kaizen` is a close-time path. It is not a substitute for prevention.
 
-**これは CLI で強制されない。破っても機械は止めない。** `tgl review resolve` may print the next prevention command; it does not run it. The next `tgl dispatch` does not require prevention keys. Director self-review is the only stop for a dispatch that has keys and omits them. A convention with no machine fire point does not fire. Candidate for later CLI enforcement: TODO.
+**pending prevention がある session では CLI が強制する。** `tgl dispatch` と、`--session` 付きの `tgl plan` は `--summary` / `--objective` に `file:line`・`skill:節名` または `prevention: none` が無いと拒否する。pending prevention が無い session では要求しない（誤拒否しない）。`tgl review resolve` は prevention コマンドを印字するだけで実行はしない。
 
 ## Ship
 

@@ -62,15 +62,13 @@ stage=ship head=<40-char sha> verification=<command> result=pass|fail|unable
 
 `tgl review resolve` の `adoption` が `accepted` または `adjusted` のとき、同じ会話で `tgl review prevention`。finding の安定キーは `file:line` か skill 節名。決定は `adopt-backlog` / `reject` / `defer`。
 
-次の `tgl dispatch` / `tgl plan` の `--summary` に、今回の touching に効くキーを列挙する。無ければ `prevention: none`。
+次の `tgl dispatch` / `tgl plan` の `--summary` に、今回の touching に効くキーを列挙する。無ければ `prevention: none`。pending prevention がある session では CLI がこれを強制する。pending が無い session では要求しない。
 
 ## CLI が強制しないもの
 
 次は skill 規約であり、**CLI で強制されない。破っても機械は止めない。**
 
 - dispatch / working / ship の stage note
-- 次 dispatch の prevention キーまたは `prevention: none`
 - verification 無し ship request を skill 上 ship-ready とみなさないこと
-- キーがあるのに書いていない dispatch を director が自己レビューで止めること
 
-`tgl dispatch` は run を台帳に載せ `run=` を印字する。stage note も prevention キーも要求しない。発火点の無い規約は発火しない。将来 CLI 強制へ上げる候補は TODO の 1 行。
+`tgl dispatch` は run を台帳に載せ `run=` を印字する。stage note は要求しない。pending prevention がある session の prevention キー / `prevention: none` は CLI が強制する。
