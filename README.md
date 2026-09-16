@@ -935,7 +935,15 @@ callback dedupはどちらの基盤でもbest effortです。厳密な一回処�
 | `begin`    | 1:1 トーク開始 (メンバーが Bot との 1:1 トークを開いた)     |
 | `end`      | 1:1 トーク終了                                              |
 
-未知 type は 400 を返す (Zod 検証で reject)。仕様変更で新 type が増えた場合は `schemas.ts` の union に追加。
+未知 type は 400 を返す (Zod 検証で reject)。
+
+#### 新 callback event type への追従手順
+
+LINE WORKS の仕様変更で event type が増えた場合は、`src/services/lineworks/callback/schemas.ts` だけを直す (route 層は `callbackEventSchema.safeParse` 1 回なので触らない):
+
+1. `<type>EventSchema` を定義し (`source` の構成は event 種別ごとに違うのでファイル冒頭コメントを参照)、`callbackEventSchema` の `discriminatedUnion('type', [...])` に追加する
+2. `callbackEventTypes` の配列にも type 名を足す (同ファイルの `schemas.test.ts` が種類数と横断検証で固定している)
+3. 上記「受信できる event 種別」の表に行を足す
 
 ### Callback転送
 

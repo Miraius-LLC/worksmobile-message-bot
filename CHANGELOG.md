@@ -2,6 +2,10 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## 「拡張余地」型 TODO 3 件を手順メモとして docs へ移した — ✅ 2026-09-16
+
+- メッセージ型の追加 → `.claude/rules/services.md`（既存手順に ADR-0007 参照を追加）、新 callback event type への追従 → `README.md` callback 節に手順を新設、AFK-agent ワークフローの有効化 → `docs/agents/issue-tracker.md` の既存節へ一本化。TODO.md は進行中・未着手だけを持つ。
+
 ## secret注入の出力を0600・atomic置換へ強化した — ✅ 2026-09-02
 
 - `.env` は同一ディレクトリの0600一時ファイルから置換し、既存の緩いmodeを修復する。書込みまたはrenameの失敗時は既存ファイルを保持し、symlinkの出力先を拒否する。共通secret注入契約をv4へ更新し、実filesystemテストで固定した。

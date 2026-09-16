@@ -44,7 +44,7 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 
 - 全 13 メッセージ type の Zod schema + 汎用 dispatcher `sendMessageByType` を **単一ファイルに集約**。type ごとの sender 関数は書かない
 - 送信先は route 層が `MessageTarget = { channelId } | { userId }` を組み立てて `sendMessageByType` に渡す
-- 新メッセージタイプを足す時:
+- 新メッセージタイプを足す時 (設計判断は [ADR-0007](../../docs/adr/0007-message-type-dispatcher.md)。route とディスパッチャは自動追従するので schema 1 件で完結する):
   1. `messages/index.ts` 内に Zod schema (`<type>BodySchema`) を定義
   2. 同ファイルの `messageSchemas` マップにキーを追加 (キーは LINE WORKS の URL の type 部分そのまま、スネークケース)
   3. `routes/messages.ts` のループが自動で `(channels|users)/:id/messages/type/<newType>` + zValidator を attach
