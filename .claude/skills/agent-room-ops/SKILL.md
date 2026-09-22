@@ -1,129 +1,41 @@
 ---
 name: agent-room-ops
-description: Agent-room operation guide for coordinating Claude, Codex, and agy through the room instead of direct agent CLI calls. Use when an agent needs to delegate work or review, respond back into LINE WORKS, watch or retrieve run results, inspect queue or health status, coordinate TGL lanes, avoid repo confusion, or choose between delegate/respond/watch/reply/run/status/post/say.
+description: Use when choosing agent-room commands for delegation, room replies, run recovery, queue health, Formation coordination, Council operations, the local management UI, or managed skill distribution.
 ---
 
 # Agent Room Ops
 
-Use agent-room as the coordination surface. Keep room history, run ids, repo labels, and artifacts traceable.
+対象repoのcwdで実行する。repo固有の依頼本文は日本語、先頭は `repo:<allowlist上のrepo名>` + 空行。branch / worktree名をrepo名にしない。
 
-## First Rule
+他agentへの依頼は `agent-room delegate`。藤井の明示指示なしにclaude / codex / agy / grok等を直接起動しない。本番chatはDiscord。LINE WORKS / Slack ingressとWorkerは停止中（repoの `docs/runbook/chat-transports.md` がSoT）。
 
-Do not call `claude -p`, `codex exec`, or `agy -p` directly to ask another agent for work unless Fujii explicitly asked for a direct local run. Use `agent-room delegate` or `agent-room respond` so the room can track the request.
+## コマンド選択
 
-Run `agent-room` from the target repo cwd. The agent-room implementation repo is not the target repo unless the work is for `repo:agent-room`.
+| 目的・条件 | 入口 / 判断 |
+|---|---|
+| 通常のreview・調査・実装依頼 | `delegate`。独立reviewは `--blind`、自動処理で待たない場合は `--no-watch` |
+| 対話sessionからroomへ返答 | `respond` |
+| runを待つ / 本文回収 / 状態・artifact | `watch` / `reply` / `run`。受付を完了と扱わない |
+| queue・配送障害・TGL稼働lane | `status --repo <repo>` / `status --health` / `tgl status --repo <repo>` |
+| Formation commander↔member | `formation assign` / `report`。delegate / respond / post / sayで代替しない |
+| TGL実装lane / final・integration | `tgl dispatch` / `tgl review`。TGL skillへ |
+| 低レベル投稿 | `post` / `say`。通常連携の既定にしない |
+| owner向けread-only管理画面 | `agent-room ui`。127.0.0.1のみ、token付きURL |
+| Council準備・gate切替・負例確認 | `council prepare` / `set-gates` / `canary`。secret・live操作は承認境界を守る |
+| skill配布差分 / 配置 | `skills status` / `skills install`。install既定はdry-run、書込みは `--yes` |
 
-## Command Choice
+## 操作前のhook
 
-Use these commands by default:
+- Formationはassign済みscopeを保持してSTARTED / RED / BLOCKED / CANDIDATE_READYをreportする。CAS操作直前にstatusでrevisionを取り直す。
+- 通常はcommanderがCANDIDATE_READYをACKしてから次を配る。CLIのsafe_checkpoint先行割当は既存責任の消失を意味しない。cancelとreleaseを混同しない。
+- Formation Shipper適格は検証済み `modern_cli` のみ。TGL ship requestはadvisory queueでありFormation shipを代替しない。
+- `accepted` とdelivery確認は別。未確認配送は保存失敗と扱わず、同じcommand-id・同じ引数の再送契約に従う。
+- reviewは固定range / path / hashで依頼し、判定と根拠を回収する。Formationでは成果の添付・inlineを使わず、repoの `skills/formation/references/review.md` を読む。
+- 長文はartifactへ。氏名以外の機微情報の出力境界を守り、マイナンバー・健康情報・銀行口座番号を出さない。
+- 手元のrepo変更はruntime deployまでlive CLIへ届かない。helpとrepo実装の版を分けて確認する。
 
-```bash
-agent-room delegate --from codex --to claude "repo:agent-room
+## 詳細へのrouting
 
-依頼本文..."
-```
-
-Delegate review, research, implementation consultation, or blind review to another agent. Use `--blind` when triangulating: it suppresses watch and omits Recent room context from each target prompt so another vote cannot leak in. Use `--no-watch` only for automation that should not block.
-
-To ask a separate headless run of the same logical agent for review, pass the same name explicitly. This is an owner-seeded new run, not recursive continuation:
-
-```bash
-agent-room delegate --from codex --to codex "repo:agent-room
-
-別のCodexとしてこの差分をレビューしてください"
-```
-
-Explicit `--to <self>` is allowed. `--to all`, inferred mentions, and reply-driven continuation still exclude the sender to avoid accidental recursive runs.
-
-```bash
-agent-room respond --from codex --to agy "repo:agent-room
-
-返答本文..."
-```
-
-Return an interactive session's answer to the room and optionally continue the discussion with another agent.
-
-```bash
-agent-room watch <run_id>
-agent-room reply <run_id>
-agent-room run <run_id>
-```
-
-Use `watch` while waiting, `reply` to fetch the reply body, and `run` when you need status plus full artifact links.
-
-```bash
-agent-room status --repo agent-room
-agent-room status --health
-agent-room tgl status --repo agent-room
-```
-
-Use `status` for queue / recent runs, `status --health` for silent failures or partial sends, and `tgl status` for active TGL sessions, lane owners, conflict risk, and ship queue.
-
-Use `agent-room post` / `agent-room say` only for low-level posting. Prefer `delegate` and `respond` for normal coordination.
-
-## Message Rules
-
-- Write request text in Japanese. Code, paths, commit ranges, and command names may stay as-is.
-- Include `repo:<name>` for repo-specific work. Do not use a branch, worktree, or directory name as the repo label.
-- If the message contains paths like `src/...` or `docs/...`, confirm the repo label is present.
-- Keep LINE WORKS replies compact. Put long review details in artifacts or `<<<DETAIL>>>` if writing a headless response.
-- Share run ids with the user when they may need to follow up later.
-
-## Review Patterns
-
-For triangular review:
-
-1. Write your own analysis first when independence matters.
-2. Send blind review requests with `delegate --blind`.
-3. Fetch the replies only after your own position is fixed.
-4. Record adopted and deferred points in the relevant issue, assignment, or TGL lane.
-
-For implementation handoff:
-
-1. State repo, objective, current branch/worktree if relevant, and exact files or diff range.
-2. Ask for the output you need: review findings, patch proposal, risk list, or verification plan.
-3. Use `--diff <range>` when the existing CLI supports it and the reviewer needs the actual diff.
-
-## Handoff Documents
-
-Handoff notes live in `~/Develop/.agent-room/<repo>/handoffs/`. **A resolved handoff must look
-different from an open one.** Without that, a reader has to read the whole document to learn
-whether the work is still waiting (2026-09-07: a resolved handoff was indistinguishable from an
-open one, and the resolution was hand-written at the end of the body).
-
-Start every handoff with YAML frontmatter:
-
-```yaml
----
-status: open          # open | resolved
-date: 2026-09-07      # when the handoff was written
-resolved_commit:      # fill in when status becomes resolved; leave empty while open
----
-```
-
-Rules:
-
-- `status: open` while the receiving side still has to act. `resolved` only after the work landed.
-- When you resolve it, set `status: resolved` **and** put the landing SHA in `resolved_commit`.
-  A resolution without a SHA is not resolvable back to what actually shipped.
-- Do not delete a resolved handoff. The frontmatter is what makes it skippable.
-- Keep the body as it is. The frontmatter is the index; the body is the record.
-
-To list what is still open:
-
-```bash
-rg -l '^status: open$' ~/Develop/.agent-room/<repo>/handoffs/
-```
-
-Existing handoffs written before this rule have no frontmatter. Add it when you next touch one;
-do not sweep them all at once.
-
-## TGL Interaction
-
-During TGL, update or check lane state before asking another agent to act:
-
-```bash
-agent-room tgl status --repo <repo>
-```
-
-When you are the lead, keep `status`, `next`, `touching`, and readiness current. Other agents should look at TGL status before touching nearby files or starting a competing slice.
+- 通常のdelegate/respond例、self宛て別run、blind review、run回収、TGL連携を行う前: [commands-and-review](references/commands-and-review.md)。
+- Formation assign / ACK / cancel / release、Shipper、Council、UI、skills配布を操作する前: [formation-and-owner-operations](references/formation-and-owner-operations.md)。
+- handoffを作成・解決する前: [handoffs](references/handoffs.md)。open / resolvedとlanding SHAを冒頭frontmatterで区別し、本文の記録を保持する。

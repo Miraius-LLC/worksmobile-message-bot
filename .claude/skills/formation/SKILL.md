@@ -1,91 +1,78 @@
 ---
 name: formation
-description: userが最初のpaneへ、同じHerdr workspaceで自分が開いた2〜7の選択paneを、1 repoのgoalに向けて編成・連携・監視するよう依頼した時に使う。同一workspaceの選択rosterだけを対象にするため、ordinary subagent delegation、単独pane、plain terminal、選外pane、cross-repo Program workには使わない。
+description: userが最初のpaneへ、同じHerdr workspaceで自分が開いた2〜11の選択paneを、1 repoのgoalに向けて編成・連携・監視するよう依頼した時に使う。同一workspaceの選択rosterだけを対象にするため、ordinary subagent delegation、単独pane、plain terminal、選外pane、cross-repo Program workには使わない。
 ---
 
 # Formation
 
-同じHerdr workspaceにある、ownerが承認したpaneだけを一つのrepo-local Formationへ編成する。各member paneをsubagentより上位の独立laneとして稼働させ、Commanderはglobal goalが受入条件を満たすまで監視・報告・review・統合・出荷判断のループを続ける。Commanderの実装参加はowner contractに従い、必須ではない。
+同じHerdr workspaceの、ownerが承認したpaneだけを一つのrepo-local Formationへ編成する。各member paneはsubagentより上位の独立lane。Commanderはglobal goalが受入条件を満たすまで監視・報告・review・統合・出荷判断を続ける。実装参加はowner contractに従い、必須ではない。
 
 ## Workflow
 
-1. `HERDR_ENV=1`と、commander自身のworkspace / tab / pane / agent metadata、repo fingerprintを確認する。Herdr外ならworkspaceを推測せず、same-workspace自動Formationを開始しないでmanual baselineを案内する。
-2. ownerが指定済みのgoal、acceptance、Pair/Site、lane数、参加alias、単一repoは再質問しない。不足して結果が変わる事項だけを一通で確認する。 編成案を出す時は候補一覧と併せて一度に提示し、承認をもって選択確定として扱う。
-3. 同一workspaceのagent metadataだけを列挙し、ownerが承認したpaneだけに`formation challenge --deliver`で期限付きchallengeを保存する。編成の決め方は2経路あり、どちらも最後は`--pane`へ落ちるので実装は分岐しない。(a) ownerがPickerで選んでroster draftを保存する。(b) ownerが「フォーメーションを組んで」とだけ言った時は、Commanderが`agent-room formation candidates`で候補と除外理由を出し、編成案を提示してownerの承認を得る。(b)では**terminal名やagent名から適性を推測せず**、観測できた事実(pane / agent種別 / 稼働状態 / repo / model・effort)だけを根拠にする。観測できない項目は空欄のまま提示し、埋めない。承認前のpaneへchallengeを送らない。CLIはfreshなexact Herdr targetを再照合してclaim promptを配送し、成功後に送達確認だけを記録する。未選択paneのtranscript read、prompt、native messageは行わない。
-4. 対象pane自身がHerdr管理環境から`formation claim --herdr-session <session>`を実行する。CLIは論理`laneId`を利用者入力ではなくchallenge recordから解決し、`HERDR_PANE_ID`を起点にHerdrとGitからworkspace / tab / pane / agent / repo root / git common dir / HEADを再取得する。Applicationがchallenge発行時の値と照合してchallenge consume・lane attachment・admitを同一transactionで確定する。これは同一OS user内の取り違え防止であり、敵対的local processへの認証ではない。native session ID、alias、位置だけをidentityにしない。
-5. Commanderはcontrol laneを必ず持つ。ownerが実装を明示的に許すまで`director-only`として監視・報告回収・review・統合・出荷判断に専念し、実装assignmentを受けず`director-only`へfail closedする。実装可能な時も`director-and-implementer`として、制御余力があり、memberへ渡せるworkを奪わず、`commanderEligibility=bounded`と明示されたworkだけを受け持つ。
-6. **member-first**で割り当てる。選択・admitした各member paneへ重複しない上位assignmentを確定してから、そのmemberが必要に応じてsubagent / TGL / PLD / Agent Room / MCP / Skill / modern CLI / CodeGraph / Graphifyを使う。下位作業は未割当memberの代替やFormation lane数へ算入せず、親memberのscope・authority・touching・child concurrencyを継承する。fan-in、重複防止、review回収、最終報告は親memberが責任を持つ。
-7. commanderは`formation assign --deliver`でscope・受入条件・許可手段・子作業上限を一つのactive laneへ耐久割当する。最初のassignmentには運用契約への参照を必ず含める。`summary`は単一行しか受け付けないため、join promptが契約を運ぶまでの暫定として契約本文はrepositoryまたはowner領域のファイルへ置き、そのpathをsummaryから参照する。laneは`formation report`で`STARTED / RED / BLOCKED / CANDIDATE_READY`を報告する。`CANDIDATE_READY`後も責任は`report_required`に残り、commanderが`formation ack`で終端すると同じlaneへ次のassignmentを割り当てられる。independent reviewとintegration acceptanceまでは完了ではない。commander宛の連絡にAgent Roomの`delegate` / `post` / `respond` / `say`を使わず、AR / TGLは自lane成果の独立review依頼にだけ使う。稼働中laneへのscope訂正・touching拡張・催促・決定の根拠は`formation note --to-lane <lane> --deliver`で台帳付きに届ける（assignmentは変わらず返信も要求しない。拡張そのものは次の`assign` / `cancel`で行う）。Formation CLIに必要なactionが無い、または配送不能の時だけHerdr exact paneへ倒し、その事実を記録する。memberは迷ったら手を止め`BLOCKED`を返し、scope / touching / authorityを自己拡張しない。ただし**答えを待たずに進められる相談**（設計の好み、命名、優先順位など scope 内で可逆な選択）は `RED` や progress で問いを出したまま独立作業を続け、`BLOCKED` は承認が要る操作・scope 外・不可逆な分岐に限る（Codex 0.154.0 は質問を出しても draft と作業を止めずに継続できる。他 runtime も同じ運用に揃える）。
-8. admit後はactiveなlane attachmentのexact targetだけを監視する。Herdrではcaller paneをwaitせず`agent get`だけで再照合し、他targetは`agent wait`を有限timeoutで待ってから`agent get`する。`idle`だけをresource上のavailableとし、`done`単独では再割当しない。選外・未登録・departed・別Formationのagentを常時監視しない。
-9. batch前後とlane state changeでcontrol pulseを行い、goal、lane、未ACK、ownership、安全なwork在庫、nextを確認する。goal未達でeligible workがある限りavailable memberを未割当でpulse越しに残さず、設計→契約確定→実装→review→統合→出荷の依存を満たしたcritical path上の次assignmentを提案する。下位agentの起動数をmember稼働数として数えず、dispatchやpollingだけでCommanderを稼働中とみなさない。後戻りしにくい判断・全laneへ波及する判断は他memberのGOか独立reviewのOKを経る。
+1. `HERDR_ENV=1`とcommander自身のworkspace / tab / pane / agent metadata、repo fingerprintを確認する。Herdr外ならworkspaceを推測せず、same-workspace自動Formationを始めない。
+2. ownerが指定済みのgoal、acceptance、Pair/Site、lane数、参加alias、単一repoは再質問しない。不足して結果が変わる事項だけを一通で確認する。編成案は候補一覧と併せて一度に出し、承認で選択確定とする。
+3. 同一workspaceのagent metadataだけを列挙し、ownerが承認したpaneだけに`formation challenge --deliver`で期限付きchallengeを保存する。経路は2つ、どちらも最後は`--pane`へ落ちる。(a) Pickerでroster draft。(b) 「フォーメーションを組んで」だけなら`agent-room formation candidates`で候補と除外理由を出し、承認を得る。(b)では観測できた事実だけを根拠にし、terminal名やagent名から適性を推測しない。承認前のpaneへchallengeを送らず、未選択paneのtranscriptは読まない。選択済みpane・member・commander宛も含め、連絡はagent-room CLIだけを使う。native messageの直接送信は行わない。
+4. 対象pane自身がHerdr管理環境から`formation claim --herdr-session <session>`を実行する。論理`laneId`はchallenge recordから解決し、`HERDR_PANE_ID`を起点にHerdrとGitからworkspace / tab / pane / agent / repo root / git common dir / HEADを再取得する。challenge consume・lane attachment・admitは同一transaction。これは同一OS user内の取り違え防止であり、敵対的local processへの認証ではない。native session ID、alias、位置だけをidentityにしない。
+5. Commanderはcontrol laneを必ず持つ。ownerが実装を明示するまで`director-only`として監視・報告回収・review・統合・出荷判断に専念し、実装assignmentを受けない。実装可能な時は`director-and-implementer`として、制御余力があり、memberへ渡せるworkを奪わず、`commanderEligibility=bounded`と明示されたworkだけを受け持つ。
+6. **member-first**で割り当てる。選択・admitした各member paneへ重複しない上位assignmentを確定してから、そのmemberが必要に応じてsubagent / TGL / PLD / Agent Room / MCP / Skill / modern CLI / CodeGraph / Graphifyを使う。下位作業は未割当memberの代替やFormation lane数へ算入せず、親memberのscope・authority・touching・child concurrencyを継承する。fan-in、重複防止、review回収、最終報告は親memberの責任。
+7. commanderは`formation assign --deliver`でscope・受入条件・許可手段・子作業上限を一つのactive laneへ耐久割当する。最初のassignmentには運用契約への参照を含める。`summary`は単一行なので契約本文はファイルへ置き、pathをsummaryから参照する。laneは`formation report`で`STARTED / RED / BLOCKED / CANDIDATE_READY`を報告する。`--assignment-id`は届いたassignment IDを使う。cancel済みID宛てreportは台帳のactive assignmentに付かない。`CANDIDATE_READY`後も責任は`report_required`に残り、`formation ack`で終端すると同じlaneへ次を割り当てられる。independent reviewとintegration acceptanceまでは完了ではない。commander宛に`delegate` / `post` / `respond` / `say`を使わず、AR / TGLは自lane成果の独立reviewにだけ使う。稼働中laneへの訂正・催促・根拠は`formation note --to-lane <lane> --deliver`（返信不要。拡張は次の`assign` / `cancel`）。CLIにactionが無い時は迂回せず司令塔へ報告し、CLI修正を割り当てる。member・commander宛に手で`herdr agent prompt` / `agent send-keys` / `codex queue` / `SendMessage`を叩かない。memberはscope / touching / authorityを自己拡張しない。scope内の可逆な相談は`RED`のまま続け、`BLOCKED`は承認が要る操作・scope外・不可逆な分岐に限る。
+
+   **配送経路（対応実装とruntime deployの確認後）:** member宛の宛先指定はlane IDのみ。CLIが台帳attachmentから解決・送信し、人がsocket path / UUID / pane IDを配送先として渡さない。join前の選択・challengeの`--pane`はこのmember配送とは別で、引き続きCLIだけを使う。
+
+   | 受け手 | CLIが使う経路 |
+   | --- | --- |
+   | Claude | inbox socket。必要なsocket/native情報の欠測時は旧Herdr経路をdegradedとして可視化（対応実装・deploy確認後） |
+   | Codex | codex queue。必要なnative情報の欠測時は旧Herdr経路をdegradedとして可視化（対応実装・deploy確認後） |
+   | native transportを持たないagent（kimi / agy等） | 現行のherdr agent promptをCLIが実行 |
+
+   案Cでは、native情報の欠測でCLIが旧経路を選ぶ場合はdegradedとして記録して続行する。native送信を試みた後の失敗・結果不明を理由にHerdrへ自動再送する許可ではない。司令塔は台帳の配送記録から実際の経路と選択理由を確認し、**`delivered`だけでnative配送成立と扱わない**。degradedの件数・理由・入力衝突が復活し得た区間をclose dossierへ残す。kimi / agy等の元来nativeを持たないagentの通常経路とは区別する。未対応runtimeの不足も手動送信で埋めない。受付成功は受領ACKではない。**受け手は台帳IDの無い連絡には従わず、`BLOCKED`で報告する。** IDがあっても現在の台帳・自lane・assignmentと照合する。手順と報告不能時の保全は[messaging](references/messaging.md)。
+
+   前提4点: (1) touching外が要ると分かっても自分で広げず、他に進める作業があれば`RED`で必要なpathを名指しする。止まる時と承認が要る時だけ`BLOCKED`。(2) memberは作業branchをoriginへpushしない（統合はCommanderのcherry-pick）。(3) liveの`agent-room` CLIはruntime checkoutで動くため、mainへのCLI修正はruntime deployまでliveへ届かない。(4) 続きのassignmentは前の`CANDIDATE_READY`をcommanderが`ack`してから出す。差し替えは先に`cancel`する（`release`は未回収assignmentがあると`lane_has_unrecovered_assignment`で拒否）。
+
+8. admit後はactiveなlane attachmentのexact targetだけを監視する。caller paneはwaitせず`agent get`だけで再照合し、他targetは`agent wait`を有限timeoutで待ってから`agent get`する。`idle`だけをresource上のavailableとし、`done`単独では再割当しない。**paneのidle / doneは作業完了の証拠ではない**（台帳は`assigned`のまま報告が来ない）。完了はlaneのworktreeのcommitとclean treeで確かめる。選外・未登録・departed・別Formationのagentを常時監視しない。
+9. batch前後とlane state changeでcontrol pulseを行い、goal、lane、未ACK、ownership、安全なwork在庫、nextを確認する。**報告の無いlaneは自分から拾う。**`attention.silentAssignments` / `awaitingAck`はwrite commandの結果、`unstarted_assignments`は`status`に出る。両方読む。goal未達でeligible workがある限りavailable memberを未割当でpulse越しに残さず、設計→契約確定→実装→review→統合→出荷のcritical path上の次assignmentを提案する。下位agentの起動数をmember稼働数として数えず、dispatchやpollingだけでCommanderを稼働中とみなさない。後戻りしにくい判断・全laneへ波及する判断は他memberのGOか独立reviewのOKを経る。
 10. 追加paneはownerの利用開始指示後だけadmitする。契約外repoは`EXTERNAL_REPO_REQUIRED`へ集約し、影響laneだけ停止する。
 11. lane本人は`formation leave`で固定handoffを保存するが責任を解放しない。commanderは最新`CANDIDATE_READY`、検証・証跡、subordinate activityなし、対象laneの全assignment ID回収を確認して`formation release`する。member releaseはattachmentをdepartedへ進める。commander自身のassignment releaseは責任だけを解放し、close authorityのためattachmentをactiveに保つ。unexpected departureも同じrelease判定へ収束させ、commander authorityを自動移譲しない。
-12. freeze後にacceptance、review、verification、Human Gate、excluded棚卸しをclose dossierへまとめる。不足があればreplan loopを続け、goal達成までcloseしない。close後のassignment / report / join / leave / release / 再closeは終端barrierで拒否する。
+12. freeze後にacceptance、review、verification、Human Gate、excluded棚卸しと「規約適用開始（採用日: 2026-09-17、main上の基準commit: `434fa51df6caa04546f10107d13bb73963813bae` のS6規約を当Formationが採用した時点）以降、CLI経由でない連絡を行っていない」の確認根拠をclose dossierへまとめる。採用日時を記録し、基準点を後から動かして違反を対象外にしない。適用開始前の違反と是正の事実も消さずclose dossierへ残すが、その過去の事実だけで本条件を未充足にしない。適用開始以降の違反・不明は隠さず記録し、成立していない条件を合格にしない。degradedの棚卸し（件数・理由・入力衝突が復活し得た区間、観測不能範囲）もclose dossierへまとめる。CLI経由のdegradedは手動迂回違反ではなく、発生だけで停止・close不可にしない。件数ゼロを要件にせず、把握できない値をゼロとしない。不足があればreplanし、goal達成までcloseしない。closeの前に全member laneを`formation release`する（commander attachmentは残す）。除外候補は`--excluded-candidate`を1引数ずつ全部明示する。close後のassignment / report / join / leave / release / 再closeは終端barrierで拒否する。
 
-`formation status --id <formationId> --json`の`attention.nextActions`をjoin進行、`attention.pendingLeaves`をhandoff回収待ち、`lanes[]`をadmit後の責任状態の正本とする。laneは`unassigned / assigned / report_required / blocked / leave_requested / departed`を取り、assignment、latest report、subordinate activity、delivery statusを公開する。`issue_challenge`は未発行、`await_claim`は有効なclaim待ち、`reissue_challenge`は旧IDを再利用せず新challengeを発行、`ready`はadmit済みまたは解放済みを表す。公開statusはchallenge ID、receipt key、native session、local ledger pathを含めない。配送表示の`unconfirmed`は送達未確認であり、未送信や再送可能の証拠ではない。
+`formation status --id <formationId> --json`の`attention.nextActions`をjoin進行、`attention.pendingLeaves`をhandoff回収待ち、`lanes[]`をadmit後の責任状態の正本とする。laneは`unassigned / assigned / report_required / blocked / leave_requested / departed`。`nextActions`の4値と公開statusが出さない値は[contract](references/contract.md)。`unconfirmed`は送達未確認であり、未送信や再送可能の証拠ではない。
 
-Formationは参加membershipと物理lane attachmentまでを担う。admit後は同じ`laneId`を既存TGLの親lane identityとして渡し、各窓がTGL / PLD / subagent等を使って実装・検証・reviewを進める。TGL側へroster、challenge、receiptの状態を複製しない。
+Formationは参加membershipと物理lane attachmentまでを担う。admit後は同じ`laneId`を既存TGLの親lane identityとして渡し、各窓がTGL / PLD / subagent等で実装・検証・reviewを進める。TGL側へroster、challenge、receiptの状態を複製しない。
 
-Formationは**その場だけの組織**である。最終操作から48hを超えて無操作なら、次に誰かが台帳をwrite-openした時点で行ごと解散する（`status` / `candidates`はread-only、`migrate`はschema操作なので掃かない）。判断・採否・証跡はclose時点でrepoの文書へ昇格しており、台帳が持つのは組織が動いている間だけ要るlane / challenge / receiptなので、`disbanded`のような終端状態を残さない。**closeし忘れを借金にしないための仕組みであり、closeを省いてよいという意味ではない**。goal達成の締めは引き続きcloseで行う。
+Formationはその場だけの組織である。最終操作から48h超の無操作は次の台帳write-openで行ごと解散する。`disbanded`状態は残さない。closeし忘れを借金にしない安全弁であり、closeの省略ではない。中断時のhandoff手順は[contract](references/contract.md)の「48h automatic disband」。
 
-### 48h超中断時のhandoff手順
+### roster入替・中止・agent交代
 
-48hを超えて中断する見込みがある時は、台帳の自動解散によって組織状態が消失しても成果を失わないよう、司令塔が既存のhandoff機構へ状態を退避し、次の司令塔が回収する（藤井決定 2026-09-11: 新しい仕組みは作らず既存経路を活用する）。
+どれもactive commanderの操作で、`--expected-revision`のCASを要する。手順・拒否条件は[contract](references/contract.md)の「Roster reseat and disband」。
 
-1. **保存先**: `~/Develop/.agent-room/<project>/handoffs/`（既存handoff置き場。session起動時に`session-start-dispatch`が未消化として自動検知・列挙する既存経路）。
-   ファイル名は `<date>-formation-<formationId>-handoff.md` とする。
-2. **残す内容**:
-   - YAML frontmatter（必須）:
-     ```yaml
-     ---
-     status: open
-     date: YYYY-MM-DD
-     resolved_commit:
-     ---
-     ```
-   - 本文:
-     - Formation ID、goal、acceptance criteria
-     - 各laneの最終状態（laneId、担当agent、pane、status、assignmentId、最新report）
-     - touching paths（各laneが触っていたファイル一覧）
-     - commit and dirty state（各worktreeのHEAD commit SHA、未コミット差分の有無、worktreeパス）
-     - verification（実施済みテスト・検証結果、未検証事項）
-     - remaining work（未完了assignment、次に再開・割当すべきwork在庫）
-     - evidence refs（dossier下書き、レビュー記録、ログファイル等の参照パス）
-3. **回収確認者**: **次に起動した司令塔**。
-4. **回収完了の判定**:
-   - 次に起動した司令塔が`session-start-dispatch`（または `rg -l '^status: open$' ~/Develop/.agent-room/<project>/handoffs/`）で未消化handoffを検知する。
-   - 前回のFormationが台帳から自動解散されていることを確認し、各worktreeのcommit/dirty状態を点検する。
-   - 残作業を新しいFormationのgoal/assignmentとして再開、またはmain統合・TODO更新を完了した時点で、handoffファイルのfrontmatterを `status: resolved` に変更し、`resolved_commit` に着地先コミットSHAを記入する。frontmatterが `resolved` になることで`session-start-dispatch`の未消化列挙から外れ、回収完了となる。
+| 状況 | 使う操作 |
+|---|---|
+| goalが受入条件を満たし、手順12の基準点以降にCLI経由でない連絡を行っていないことと、過去の違反・是正の記録とdegraded棚卸しを確認した | `formation close`。先に全memberを`release`。除外候補は`--excluded-candidate`を1引数ずつ全部明示 |
+| 受入条件を満たさないまま止める | `formation disband --abandon <未終端assignmentを全件> --reason`。handoffへ退避してから台帳の行を即時削除する |
+| paneを足す・外す | `formation reseat --add <pane> --remove <pane> --reason`。外すpaneは先に`release`。足したpaneは`challenge`→`claim`でadmit |
+| 同じpaneのagentだけ替える | reseatは使わない。`cancel`→`release`→新しいlane IDで`challenge`→`claim` |
 
+**凍結・外せないpane:** 書き込みが複数同時に`*_context_invalid`になる時、閉じたpaneのlaneをrosterから外す時は[contract](references/contract.md)の「Attachment freeze and stuck pane」。`--native-session`を欠いたattachmentは`terminal_id`再発行で失効する（commander側なら台帳が進まない）。凍結してもlaneの成果はbranchに残る。
 
-freezeは即時停止の事実ではなくbarrierである。司令塔が`freeze_requested`を記録し、各laneの受領または消失判定を回収して`frozen`へ遷移する。通知到着前に開始済みだった操作はin-flightとして記録し、巻き戻さず、重複操作だけを止める。
+freeze・差し止め・観測・pulseの詳細は[contract](references/contract.md)。独立reviewはmemberがdispatchし、Commanderは直列queueへ集めない。手順は[review](references/review.md)。
 
-重複TGL、誤ったbase、touching / ownership競合、受入条件違反を検出した時は、commanderは影響laneを即時差し止められる。これは正式な品質稼働である。差分を破棄せず保全し、根拠、影響範囲、保全物、再開条件を記録し、無関係laneまで一括停止しない。
+出荷は判断と操作を分ける。適格条件は検証済み`modern_cli`のみ。操作のSoTは`docs/runbook/formation-shipping.md`。Application seamは`executeFormationFfMerge`。罠3点は[contract](references/contract.md)のShipping節。
 
-resource observationにはstatusと観測時刻を残し、古い観測、`unknown`、working / blockedを再配置可能とみなさない。sidebarの色や背景terminal数は補助表示でありavailabilityの根拠にしない。assignment候補が足りない時はpollingや重複reviewで稼働を装わず、未割当laneを`replan_required`として安全なworkを再発見する。何も無い場合だけ理由と再開条件付きの待機を記録する。提案はassignment確定ではなく、scope・ownership・authorityを再確認してdispatchする。
-
-各memberは自laneの固定range、acceptance、touching、review boundaryを示し、TGLまたはAgent Roomへ独立reviewをdispatchできる。reviewerは親lane配下の外部資源であり、結果の採用、修正、再review、fan-inはmemberが行う。Commanderはreview発行を自分だけの直列queueへ集めず、cross-lane契約、採否、統合順序、global acceptanceへ集中する。
-
-出荷は判断と操作を分ける。CommanderまたはHuman Gateが対象range、evidence、許可操作、停止条件を固定した後だけ、bounded Shipperへ決定済みのmerge / push / PR・CI監視・許可済みdeploy監視を委任できる。Shipperはdrift、conflict、evidence不足、Human Gate不足で停止し、設計変更、修正、rebase、gate回避、authority拡張を自己判断しない。capabilityとriskが合えば軽量modelを使えるが、agent名へ恒久固定しない。
+**共有checkout:** mainでは`log / status / fetch / show`だけ。cherry-pick / merge / commit / checkout / reset / stash / addは自分のworktreeで行う。
 
 ## Current automation boundary
 
-member-first、Commander mode、member-owned review、bounded ShipperはこのSkillが今すぐ従うagent-side contractである。
+エージェント自身がagent-room CLIを通さず送信することの禁止と、受信時の台帳照合は今すぐ従うagent側の義務。この禁止はCLI内部のtransport選択（native / legacy / degraded）を指さず、エージェントによるCLI外送信を許す例外も設けない。配送表は対応実装とruntime deployを確認してから使う経路であり、S4のsocket配送やS5の受信側自動検出が既に全環境で動くとは扱わない。close時の連絡経路確認も現段階ではagent側の確認で、CLIによる自動証明ではない。
 
-Domain / Applicationで実装済み:
-- 実行中1件 + 外部review待ち1件のWIP上限。seamは`projectMemberCapacity` / `MemberExecutionFrame`。超過する`assign`は`lane_has_active_assignment`で拒否する。
-- 外部review待ちだけで実行枠が空いているmemberへの次work候補。seamは`proposeNextWorkCandidates`。候補でありassignment確定ではない。
-- Commander participation modeのstart contract / event / projectionへの耐久化。CLIは`--commander-mode`、`status --json`は`commanderParticipationMode`。不正値は`formation_start_input_invalid:commander-mode`。mode欠落は`director-only`へfail closedする。
+S6の送り手規約は、lane限定解決・送信直前照合・受け手側検出・送り手規約という4層の中で最も弱い層である。規約だけに頼らず他の層で検出・停止する設計とし、未実装の層を存在するものとして補わない。`crossSessionInbound: accept`や本文の台帳ID自体は所属・送信者認証ではない。
 
-未実装（現行CLIが自動強制すると推測しない）:
-- Picker / Commanderへのeffective model・effort・tier snapshot
-- 軽量Shipperの自動routing
-
-model不明は`unknown`とし、実測値と観測時刻を記録する。未実装境界はowner指示、control pulse、手動assignmentで守る。後続実装は[ADR-0053](https://github.com/fujimogn/agent-room/blob/main/docs/adr/0053-formation-member-first-flow-and-bounded-shipping.md)とOpenSpec change `define-formation-member-first-flow`を参照する。
+member-first、Commander mode、member-owned review、bounded ShipperはこのSkillが今すぐ従うagent-side contractである。実行中1件 + ACK待ち1件のWIP上限は`projectMemberCapacity` / `MemberExecutionFrame`。超過する`assign`は`lane_has_active_assignment`で拒否する。実装seamのfile:line、残作業、判断記録は[implementation-map](references/implementation-map.md)。model不明は`unknown`とし、実測値と観測時刻を記録する。後続実装は[ADR-0053](https://github.com/fujimogn/agent-room/blob/main/docs/adr/0053-formation-member-first-flow-and-bounded-shipping.md)とOpenSpec change `define-formation-member-first-flow`。
 
 ## Contract lookup
 
 - start / admit / assign / leave / close時は[contract](references/contract.md)を読む。
 - send / report / receipt / adapter選択時は[messaging](references/messaging.md)を読む。
+- repo内外の静的review・実走証跡の回収時は[review](references/review.md)を読む。
+- 実装seamのfile:lineと履歴は[implementation-map](references/implementation-map.md)を読む。
 
 SkillはFormationの意味契約を実行する。Domain/Application CLIの実装、ledger schema、Herdr plugin、cross-repo ProgramはこのSkillの責任範囲に含めない。
