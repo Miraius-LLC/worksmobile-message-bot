@@ -25,8 +25,6 @@ jobs:
 
       - name: Install dependencies
         run: ./scripts/ci-install.sh --frozen-lockfile
-        env:
-          SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
 
       - name: Validate OpenSpec
         run: bun run spec:validate
@@ -72,8 +70,6 @@ jobs:
 
       - name: Install dependencies
         run: ./scripts/ci-install.sh --frozen-lockfile
-        env:
-          SOCKET_API_KEY: ${{ secrets.SOCKET_API_KEY }}
 
       - name: Create production Wrangler config
         env:
