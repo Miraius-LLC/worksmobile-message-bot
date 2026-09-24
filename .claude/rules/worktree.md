@@ -14,7 +14,7 @@
 | 2. 作業 | worktree の中で読み書き → テスト → commit（pre-commit hook が走る） |
 | 3. 離脱 | `ExitWorktree`（`action: "keep"`） |
 | 4. 取り込み | `main` から `git merge --ff-only worktree-<name>` |
-| 5. 公開 | `git push origin main`（pre-push の全件テストが走る。落ちたら原因を直してから push） |
+| 5. 公開 | `git push origin main`（repo の pre-push が走る。中身は `lefthook.yml` / `.lefthook/pre-push/` で確かめる。落ちたら原因を直してから push） |
 | 6. 後片付け | `git worktree remove .claude/worktrees/<name>` → `git branch -d worktree-<name>` |
 
 branch は `git branch -d` で消し、main へのマージ済みを git 自身に確かめさせる。使い終わった worktree は残さない。

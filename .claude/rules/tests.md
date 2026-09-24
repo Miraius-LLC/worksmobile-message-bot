@@ -27,7 +27,7 @@
 | T4 | 日時固定は `setSystemTime`。`Date` をサブクラス化しない (型が narrow されて TS が通らない) |
 | T5 | env の削除は `Reflect.deleteProperty`。`delete` は biome `noDelete`、`= undefined` は文字列 `"undefined"` が入る |
 | T6 | `NODE_ENV` は preload (`src/test-helpers/setup.ts`) で `'test'` を強制する。`.env` が test にも効くため |
-| T7 | pre-commit は staged 関連のみ、pre-push が全件。**push 前にローカルで `bun test` 全件 pass** させてから push する |
+| T7 | pre-commit は staged 関連のみ。**pre-push が何を走らせるかは repo ごとに違う**（全件 `bun test` / 実 DB 系を除いた並列実行 / 変更で選ぶ等）。push 前に自分の repo の `lefthook.yml` と `.lefthook/pre-push/` を見て、そこで走らないテストは手で回す |
 
 ## 何を書くか
 
