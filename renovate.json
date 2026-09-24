@@ -14,7 +14,8 @@
     {
       "description": "minor / patch は週次 1 本の PR にまとめる (PR 洪水を防ぐ)",
       "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "週次 minor/patch まとめ"
+      "groupName": "週次 minor/patch まとめ",
+      "automerge": true
     },
     {
       "description": "majorはDependency Dashboardで承認されたものだけPR化",
