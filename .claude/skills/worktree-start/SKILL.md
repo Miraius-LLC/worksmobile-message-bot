@@ -1,6 +1,6 @@
 ---
 name: worktree-start
-description: 藤井の ~/Develop/ 配下の開発プロジェクトで作業を始めるとき、main 直接編集を避けるために git worktree を立ち上げる skill。ブランチ名を確認し EnterWorktree で `.claude/worktrees/<name>` に隔離した作業空間を作る。「コードを書き始めたい」「新しいブランチを切りたい」「worktree を立てる」「~/Develop/<project>/ で機能追加を始める」など、~/Develop/ 配下のプロジェクトでコード編集を始める前に使用する。
+description: ~/Develop/ でコード編集を始める前に linked worktree を作るときに使う。「コードを書き始めたい」「新しいブランチを切りたい」「worktree を立てる」「~/Develop/<project>/ で機能追加を始める」が対象。
 ---
 
 # worktree-start — Develop 配下の作業 worktree 立ち上げ
@@ -14,7 +14,7 @@ description: 藤井の ~/Develop/ 配下の開発プロジェクトで作業を�
 - 配置先: `.claude/worktrees/<name>/` (`.gitignore` で除外済の想定)
 - ブランチ命名: `worktree-<name>` (worktree.md の慣習)
 - 補足: 本 skill は Claude Code セッション内から `EnterWorktree` で切る経路。Herdr ターミナル環境から切る場合は `~/Develop/bin/herdr-worktree-create`（`prefix+shift+g`、置き場 `~/Develop/.worktrees/`）を使う（worktree.md 参照）。
-- 守る原則: **main を直接編集しない**。緊急 hotfix でも worktree を切る (worktree.md §「守るべきこと」)
+- 編集場所と main の保護は `~/Develop/AGENTS.md` §5 と `~/Develop/.claude/rules/worktree.md` に従う。
 
 ## フロー
 

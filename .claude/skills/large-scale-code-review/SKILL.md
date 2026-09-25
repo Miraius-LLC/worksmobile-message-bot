@@ -1,10 +1,6 @@
 ---
 name: large-scale-code-review
-description: >-
-  藤井の ~/Develop/ 配下で、claude・codex・agy が同一スコープをblindに三角測量する「大規模コードレビュー」skill。
-  「大規模コードレビュー」「リポジトリ全体」「包括的監査」「レビュー大会」と明示された、repo全体の包括的な
-  複数agentレビューにだけ使う。branch、PR、数行の差分、1ファイルなど小規模なレビューには使わず、通常の
-  `agent-room delegate` へ送る。
+description: 藤井の ~/Develop/ で「大規模コードレビュー」「リポジトリ全体」「包括的監査」「レビュー大会」と明示されたとき、claude・codex・agy が同一 repo 全体を blind に三角測量する。通常の差分 review には使わない。
 ---
 
 # 🏆 第 n 回 エージェント対抗 `<repo名>` 大レビュー大会 (3 エージェント三角測量レビュー)

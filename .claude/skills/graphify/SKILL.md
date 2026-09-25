@@ -1,6 +1,6 @@
 ---
 name: graphify
-description: "既に graphify-out/graph.json があるrepoで、既存graphの関連コード候補、既存graphの関連文書候補、または既存graphに既収録の利用者明示standalone SQL node間dependency候補をread-onlyで補助探索するときだけ使う。graphの新規作成・更新・clone・外部push・install・API/LLM課金には使わない。"
+description: 既存 graphify-out/graph.json で既存graphの関連コード候補・既存graphの関連文書候補、または既存graphに既収録の利用者明示standalone SQL node間dependency候補を read-only 探索するときに使う。新規作成・更新・clone・外部push・install・API/LLM課金には使わない。
 ---
 
 # graphify — 既存graphのread-only補助探索

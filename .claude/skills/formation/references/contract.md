@@ -22,6 +22,7 @@ Formation は、同じ Herdr workspace の選択 pane を1つの repo と goal �
 
 - 開始時に goal、repo、受入条件、touching、現在の assignment ID を台帳で照合する。不一致、cancel済み assignment、権限不足、停止中の依存があれば変更せず報告する。
 - challengeは発行時刻以上・失効時刻未満、同じFormation、未consumeの場合だけ有効で、期限切れ・不一致を拒否し、admit成功時に一度だけconsumeする。
+- claimはworkspace / tab / pane / agent / repository（remote・git common dir・repo root）の一致を確かめる。HEADは照合しないので、challenge後にcommitが入ってもclaimできる。
 - 進行は受入条件に結び付けて管理する。長時間無応答、未着手、待ち状態を見つけたら所有者と次の行動を特定する。idle や done は完了の証拠ではない。
 - 同じ repo の変更は所有範囲を分ける。統合が必要な受入条件には、接続・配線の確認と境界を守る test を含める。
 - Member は割当を完了できないとき、根拠と必要な判断を報告する。司令塔の応答を待つ間に、許可されていない代替作業へ広げない。
