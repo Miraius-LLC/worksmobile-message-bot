@@ -112,3 +112,13 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **送信先は `channelId` か `userId` の片方のみ**: `messages/index.ts` の `buildMessageUrl` がどちらか一方を要求する
 - **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_`で始まるファイルは内部ヘルパ**: `routes/_middleware.ts`のように、サブルータへ直接mountしない補助moduleであることを示す。
+
+<!-- BEGIN develop-meta:AGENTS.md v1 sha256=9fb5f6042627c7d57a489c52e53720ea9fb28c8a31f28a759dec80646c52ce00 -->
+### 3.1 目的に対して過不足なく
+
+- **範囲は最小**: 目の前の問題は原因まで直す。起きていない問題・依頼に無い機能・将来用の拡張点・同じ性質を重ねる守りは足さない。範囲外の発見は、すぐ直せるものは報告し、重いものは TODO へ。
+- **質は落とさない**: その場しのぎで症状だけ止めない。モデル名・repo 名・path・閾値のような可変値は分岐やリテラルに埋めず、その責務を持つ定数か既存の設定 1 か所に置く（モデル名で `if` を書かず、能力の表を引く）。同じ責務で一緒に変わる処理は共通の関数へ寄せ、内部の状態や手順は呼出側へ漏らさない。似ているだけなら寄せない。ループ内の I/O・N+1・全件読込のように計算量を増やす書き方はしない。整えるのは今回の変更に必要な範囲まで。「変えやすく書く」は「将来の変更を先に作る」ではない。
+- **検証は壊れた時の被害で決める**: データ・権限・本番・配布に関わる判定はテストで証明し、壊して落ちることを確かめる（L69）。既存テストで証明済みなら足さない。文言や表示だけの変更にテストを足さない。網羅のためのマトリクスは作らない。
+- **review は根拠で判定する**: blocker は (a) 今回の範囲の誤動作を再現手順かコード・仕様で示せるもの、(b) 本節「質」に反する箇所を `file:line` で示せるもの。reviewer がどちらも示せない指摘は理由を記録して閉じる。再 review は修正箇所と影響範囲に絞り、解決済みの論点は新しい根拠が無ければ再開しない。blocker かどうかの判定が割れたら 藤井 に判断を渡す。
+
+<!-- END develop-meta:AGENTS.md -->

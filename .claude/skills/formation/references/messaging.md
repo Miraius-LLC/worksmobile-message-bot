@@ -29,6 +29,8 @@ member配送はSKILL.md Workflow 7の経路表に従い、Applicationが保存�
 
 `formation assign --deliver`はassignment eventを先に保存し、live Herdr identityと保存済みactive attachmentが一致した時だけ配送する。送信成功後に送達確認を1行記録する。`formation report`はlane自身のcurrent paneを同じattachmentへfresh照合し、割当scope内のevidenceだけを追記する。
 
+各 `formation report` 応答の `laneStatus` を確認し、現在assignmentとnoteのassignment IDを照合する。noteの `deliveryStatus` は配送記録であり既読の証拠ではない。
+
 `formation note --deliver`も同じ契約に従う。`FORMATION_NOTE_RECORDED`を先に台帳へ保存し、live Herdr identityと保存済みactive attachmentが一致した時だけ配送し、送信成功後にreceiptを1行記録する。noteはassignment・責任・scopeを変えず、memberへ返信を要求しない。
 
 ## Recheck and envelope
@@ -41,7 +43,7 @@ member配送はSKILL.md Workflow 7の経路表に従い、Applicationが保存�
 
 receiptやtransportの受付成功はmemberの受領・受入ACKではない。ACKはchallenge consumeとassignment terminalから判断する。`CANDIDATE_READY`は成果提出であり、司令塔の`formation ack`までは未ACKとして数える。receipt行がなくても未終端の責任は保持する。
 
-司令塔は同じ配送を並列発行せず、`unconfirmed`や非0終了から自動再送しない。送信成功直後のcrash・記録失敗では、届いていてもreceiptがない。claim/report等の受信側証跡を照合して再送の要否を決め、確認不能なら`BLOCKED`を返す。永続予約を持たないため、並行送信やcrashを跨ぐat-most-onceは保証しない。旧receiptを削除した後も、既存consume/terminalを先に確認して再送を止める。
+司令塔は同じ配送を並列発行せず、`unconfirmed`や非0終了から自動再送しない。memberも`formation report`が`unconfirmed`を返したとき再実行しない。reportは台帳に保存済みで、司令塔が`formation status`で拾う（Claude司令塔のinboxは受領ACKを返さず常に`unconfirmed`になるため、再実行は重複配送になる）。送信成功直後のcrash・記録失敗では、届いていてもreceiptがない。claim/report等の受信側証跡を照合して再送の要否を決め、確認不能なら`BLOCKED`を返す。永続予約を持たないため、並行送信やcrashを跨ぐat-most-onceは保証しない。旧receiptを削除した後も、既存consume/terminalを先に確認して再送を止める。
 
 ## 配送経路の確認とdegraded（案C）
 
