@@ -99,10 +99,7 @@ Pass this TGL-specific context into `shimekukuri`:
 
 Prevention's canonical fire is immediately after `tgl review resolve` (`accepted` / `adjusted`), not this Finish step. Before kaizen and session close, only confirm leftover adopted findings still have no decision:
 
-```bash
-agent-room tgl review prevention --session <session_id>
-agent-room tgl review prevention --session <session_id> --choice <n> --action adopt-backlog --todo TODO.md --yes
-```
+Use [the TGL gates procedure](gates.md#prevention-after-resolve-not-only-finish) for the command and resolution rules.
 
 - For each leftover adopted finding, decide one-off vs recurrence prevention (test / help / skill / runbook / script / TODO / CLI).
 - Track later with `tgl review prevention --choice ... --action adopt-backlog --todo TODO.md --yes` so the TODO one-liner (`- [ ] 再発防止: <summary> (TGL <session_id> / <review_id>)`) and the `review_prevention` event are written together.
