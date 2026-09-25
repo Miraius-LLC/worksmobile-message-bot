@@ -1,35 +1,18 @@
-# Handoff文書
+# Handoffs
 
-## Handoff Documents
+Handoff は停止中の仕事を安全に再開するための要点だけを記録する。保存先は対象 repo の handoffs/ とし、同じ内容を複数の横断文書へ複製しない。
 
-Handoff notes live in `~/Develop/.agent-room/<repo>/handoffs/`. **A resolved handoff must look
-different from an open one.** Without that, a reader has to read the whole document to learn
-whether the work is still waiting (2026-09-07: a resolved handoff was indistinguishable from an
-open one, and the resolution was hand-written at the end of the body).
+## Frontmatter
 
-Start every handoff with YAML frontmatter:
+    ---
+    status: open | resolved
+    date: <YYYY-MM-DD>
+    resolved_commit: <fill when resolved>
+    ---
 
-```yaml
----
-status: open          # open | resolved
-date: 2026-09-07      # when the handoff was written
-resolved_commit:      # fill in when status becomes resolved; leave empty while open
----
-```
+- receiver がまだ action を取る必要がある間は status: open。
+- work が landed し、着地点の SHA が確認できてから status: resolved と resolved_commit を記入する。
+- resolved handoff は削除しない。
+- 既存 handoff の本文を移動・編集しない。古い handoff の frontmatter は、次にそのファイルを扱う時にだけ追加する。
 
-Rules:
-
-- `status: open` while the receiving side still has to act. `resolved` only after the work landed.
-- When you resolve it, set `status: resolved` **and** put the landing SHA in `resolved_commit`.
-  A resolution without a SHA is not resolvable back to what actually shipped.
-- Do not delete a resolved handoff. The frontmatter is what makes it skippable.
-- Keep the body as it is. The frontmatter is the index; the body is the record.
-
-To list what is still open:
-
-```bash
-rg -l '^status: open$' ~/Develop/.agent-room/<repo>/handoffs/
-```
-
-Existing handoffs written before this rule have no frontmatter. Add it when you next touch one;
-do not sweep them all at once.
+本文は goal / 現状 / 完了済み / 未解決 / 次の安全な行動 / 関連 evidence を短く記す。handoff を受けたら記載内容を現行 status、assignment ID、branch と照合し、矛盾があれば古い記述で作業を再開しない。
