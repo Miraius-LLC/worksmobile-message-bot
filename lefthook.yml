@@ -37,7 +37,11 @@ pre-commit:
     docs-structure:
       glob: "{TODO.md,CHANGELOG.md}"
       run: |
+        saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
+        if [ -n "$saved_index_file" ]; then
+          exec "$HOME/Develop/bin/check-staged-docs" --index-file "$saved_index_file"
+        fi
         exec "$HOME/Develop/bin/check-staged-docs"
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
