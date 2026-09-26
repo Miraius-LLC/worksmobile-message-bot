@@ -1,114 +1,65 @@
 # Changelog
 
-LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
+LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残し、commit 単位の詳細は `git log` を参照する。
 
-## 不正callbackの再送が200で素通りする問題を直した — ✅ 2026-09-27
+> 古い分は git 履歴に任せる。
 
-- JSON / Zod 検証で `400` を返すときも dedup key を `unregister` する。これまでは検証前に登録した key が残り、同じ不正 payload を 5 分以内に再送すると `200` が返っていた。正常 payload の重複 skip は変えない。OpenSpec `callback-delivery` に scenario を追加（archive `2026-09-27-release-dedup-key-on-invalid-callback`）。
-- AGENTS.md のアーキテクチャ記述を実装に合わせた（Hono の生成・middleware・mount・onError は `src/app.ts`、`src/index.ts` は config 検証・serve・SIGTERM）。route handler の try/catch 禁止に「後始末して再 throw する場合は例外」を明記した。Night Shift 採用済み指摘 04〜06 の消化。
+## 2026-09
 
-## 「拡張余地」型 TODO 3 件を手順メモとして docs へ移した — ✅ 2026-09-16
+- **不正 callback の再送が 200 で素通りしないようにした（2026-09-27）**: JSON / Zod で `400` を返すときも dedup key を `unregister` する。正常 payload の重複 skip は変えない。
+- **AGENTS.md の構成記述を実装に合わせた（2026-09-27）**: Hono の生成・middleware・mount・onError は `src/app.ts`、`src/index.ts` は config 検証・serve・SIGTERM。後始末して再 throw する場合は try/catch を許す。
+- **拡張手順 3 件を docs へ移した（2026-09-16）**: メッセージ型の追加、callback event type の追従、AFK-agent の有効化を各文書へ一本化した。TODO は進行中と未着手だけ。
+- **secret 注入の出力を 0600 の atomic 置換にした（2026-09-02）**: 失敗時は既存ファイルを残し、symlink 先は拒否する。共通契約は v4。
 
-- メッセージ型の追加 → `.claude/rules/services.md`（既存手順に ADR-0007 参照を追加）、新 callback event type への追従 → `README.md` callback 節に手順を新設、AFK-agent ワークフローの有効化 → `docs/agents/issue-tracker.md` の既存節へ一本化。TODO.md は進行中・未着手だけを持つ。
+## 2026-08
 
-## secret注入の出力を0600・atomic置換へ強化した — ✅ 2026-09-02
+- **secret 注入の失敗系テストが実時間で待たないようにした（2026-08-27）**: `sleep` を options から渡し、失敗系には no-op を渡す。
+- **Socket scanner の失敗で install ごと落ちないようにした（2026-08-27）**: scanner 由来の失敗だけ再試行し、push の CI で全滅したときだけ scanner 無しで install する。
+- **deploy する wrangler の版を install 済みの実体から取るようにした（2026-08-27）**: `bunx wrangler --version` の値を渡し、版として読めなければその場で止める。
+- **`bun.lock` のヘッダと Biome の `$schema` を固定した（2026-08-27）**: 実行表記は Cloudflare Workers / Bun 1.4.x + Cloud Run。lockfile のヘッダと CLI の schema がずれないようにした。
+- **既存 ADR の現行契約を OpenSpec の baseline にした（2026-08-25）**: ADR-0001 は独立 spec に戻さず、ADR-0010 への系譜として参照する。ADR と current spec は双方向に結ぶ。
+- **OpenSpec を repository-local に入れた（2026-08-25）**: 観測できる契約の変更を active change で管理する。既存仕様の backfill は後続に残した。
+- **`bun run spec:validate` を共通の検証入口にした（2026-08-25）**: local、pre-push、CI で telemetry 無しの strict validation を走らせる。
+- **CodeGraph の設定を fresh worktree でも使えるようにした（2026-08-25）**: local DB は追跡せず、Agent 配布物は `codegraph.json` で除外する。
+- **一覧 query の `count` / `cursor` を共通化した（2026-08-25）**: 空の `count` は未指定。範囲は `1..100` のまま。
+- **callback を gateway の責務に限った（2026-08-25）**: 実行経路から呼ばれないローカル dispatch を削除した。署名、Bot ID、dedup、同期転送は残す。
+- **Hono を 4.13.4 へ上げた（2026-08-25）**: 依存を更新した。
+- **`op read` が承認待ちに入れるようにした（2026-08-18）**: stdin を継承し、デスクトップアプリの承認を待てるようにした。
+- **secret 取得の一時失敗を取り直すようにした（2026-08-18）**: 単発の失敗は間隔を空けて直列で最大 2 回読む。認証が必要な失敗は即中断する。
+- **secret 注入の共通契約を v3 にした（2026-08-18）**: `read-inherits-stdin` と `resolve-transient-retry` を足した。
+- **リッチメニュー画像登録を公式の JSON API に合わせた（2026-08-13）**: `fileId` / `i18nFileIds` で `204 No Content`。Bot 設定の schema も公式仕様へ合わせた。
+- **リッチメニュー操作と一覧の pagination を足した（2026-08-13）**: 12 操作と、一覧の `count` / `cursor` / `nextCursor` を扱う。
+- **公開 route の HTTP status を公式仕様に合わせた（2026-08-13）**: 作成系は `201`、リッチメニュー画像登録は `204`。
+- **OAuth scope を選べるようにした（2026-08-13）**: `bot.message` / `bot.read` / `bot`。未設定時は `bot`。
+- **Callback の Bot ID 検証と同期 await を入れた（2026-08-13）**: Bot ID の欠落は `400`、不一致は `403`。失敗時は `500` とログ。`unregister` は手動再投入用。
+- **Callback の dedup を 5 分の in-memory にした（2026-08-13）**: raw body の SHA-256 を key にする。転送失敗時は key を外す。
+- **`secrets:inject` を正規の入口にした（2026-08-13）**: `.env` のマージをこのコマンドが直接呼ぶ。`secrets:check` は書き込まない。
+- **`secrets:dump` で `.env` を生成できるようにした（2026-08-13）**: `.env.tpl` の `op://` を正とし、値は表示しない。のちに `secrets:inject` へ一元化した。
+- **稼働監視と Cloud Run のログ監視を分けた（2026-08-11）**: `setup-monitoring.sh` は HTTPS の uptime だけを扱う。ログ指標は別 script。
+- **公開できない ADR を二層の digest 付き記録へ整理した（2026-08-11）**: ADR-0001 / 0004 / 0005。公開時の redaction の分界は ADR-0011。
+- **`secrets:dump` の alias を現行入口から外した（2026-08-10）**: 入口は `secrets:inject` と `secrets:check`。契約は v2。内部の entrypoint は残した。
+- **検証済み callback を upstream へ転送するようにした（2026-08-10）**: raw body と署名を保って `FORWARD_CALLBACK_URL` へ送る。未設定なら転送せず `200`。
+- **Workers と Cloud Run の両方へ deploy できるようにした（2026-08-10）**: Workers は Wrangler、Cloud Run は Docker と Cloud Build。Custom Domain は GitHub Variable から作る。
+- **secret 注入契約 v1 の適合検査を固定した（2026-08-10）**: managed block の置換、失敗時の no-write、template の key 一致を、実 secret を使わず検査する。
+- **Cloud Run と Hono と Bun を採用した（2026-08-10）**: 環境固有値は runtime SA、Secret Manager、substitution に置き、公開 repo に残さない。
 
-- `.env` は同一ディレクトリの0600一時ファイルから置換し、既存の緩いmodeを修復する。書込みまたはrenameの失敗時は既存ファイルを保持し、symlinkの出力先を拒否する。共通secret注入契約をv4へ更新し、実filesystemテストで固定した。
+## 2026-07
 
-## secret injection テストの実 sleep を落とした — ✅ 2026-08-27
+- **既存 ADR 9 件を共通形式へ移した（2026-07-12）**: 移行前の Markdown と SHA-256 を Original Record に残し、全 ADR を共通の監査対象にした。
+- **`scripts/` を Biome と関連テストの対象にした（2026-07-01）**: 関連テストの抽出を分け、監視設定の uptime config は重複して取らない。
 
-- **`dump-secrets-to-env.test.ts` が 6.1 秒 → 91ms**（全件 626 テストで 488ms）。全部モックのテストなのに **0.10s user / 6.1s real / 2% CPU** で、実体は `_op-secrets.ts` のリトライ backoff（`Bun.sleep(500)` + `Bun.sleep(1500)`）だった。取得失敗を返すモックが 3 ケースあり、そのたびに実時間で 2 秒寝ていた。
-- **`sleep` の注入口は最初から在った**（`ResolveSecretsOptions.sleep`、コメントに「テストから no-op を差し込むために注入可能にしている」と明記）。`runSecretInjection` が受け取って渡していなかっただけなので、options に `sleep` を足して素通しし、失敗系のテストへ no-op を渡した。`_op-secrets.test.ts` は元から注入済みで、漏れていたのはこの 1 ファイル。
-- 発見の経緯は develop-meta 側の日次 health の遅さから。lane 全体 6.5 秒のうち 93% がこのファイル 1 本だった（他 3 repo は 27〜197ms）。`op` は呼ばれておらず（PATH を fake に差し替えて確認）、CPU も使っていないことから待ちと特定した。
+## 2026-05
 
-## Bunツールチェーン横断監査の反映 — ✅ 2026-08-27
-
-- **Socket scanner をCIの単一障害点から外した**: `bun install` 前段のscannerはネットワーク失敗でthrowしinstallごと落とす（fail-openの設定は無い）。workflow直書きの迂回は「429のときだけ`SOCKET_API_KEY`を外して1回リトライ」という**denylist**で、証明書エラーや503は素通りで即赤だった。scanner由来の失敗だけをリトライし3回全滅時のみscanner抜きbunfigで入れる`scripts/ci-install.sh`へcheck / deploy両jobを寄せ、迂回条件を`GITHUB_EVENT_NAME = push`の**allowlist**にした。偽の`bun`をPATH先頭に置く契約テストで6分岐を実挙動として固定した。
-- **deployするwrangler版をinstall済みの実体から引くようにした**: `wrangler-action`は版を自前で決めるため、`wranglerVersion`の直書きは`package.json`（= dry-runで検証した版）と割れる。**Renovateはworkflow内の`wranglerVersion`を拾わない**ので、直書きのままだと次の更新で黙って割れる。`bunx wrangler --version`から引いて渡し、版として読めない出力はその場でexit 1する（壊れた値を渡すとactionは黙って別版をinstallする）。`deployment-url`を後続のjob summaryが使っているため、action自体は残す対処Bを採った。
-- **あわせて閉じたもの**: `bun.lock`のヘッダ（v2 / configVersion 1）を固定するtest、biomeの`$schema`のCLI版へのdrift解消。横断監査の指示書はdevelop-metaの`docs/bun-toolchain-audit.md`。
-
-## ADR contractのOpenSpec baseline — ✅ 2026-08-25
-
-- **既存ADRを7 capabilityへ整理**: ADR-0001〜0011の現行contractを、判断理由を複製しないcurated baselineとしてOpenSpecへ反映した。supersededのADR-0001は独立specへ復活させず、ADR-0010へ至る系譜として`dual-runtime-deployment`から参照する。
-- **双方向coverageを固定**: 各ADRと対応current specを双方向linkし、11 ADRの過不足ないmappingとADR-0001の非独立化をrepository testで検証する。
-
-## OpenSpec・コード探索基盤 — ✅ 2026-08-25
-
-- **OpenSpecを段階導入**: OpenSpec 1.10.0をrepository-localに固定し、API contract、入力validation、状態・不変条件、認証境界、外部連携の観測可能な変更をactive changeで管理する。導入時点では既存仕様をbackfillせず、後続changeでaccepted ADR由来のcurated baselineを追加した（[workflow spec](./openspec/specs/change-specification-workflow/spec.md)）。
-- **検証経路を統一**: `bun run spec:validate`をlocal、pre-push、CIの共通入口にし、telemetry無効のstrict validationを実行する。
-- **CodeGraph設定をportable化**: 既存のGraphify / CodeGraph連携を維持し、fresh worktreeでもlocal DBを追跡しない`.codegraph/.gitignore`とAgent配布物を除外する`codegraph.json`を追加した。
-
-## pagination共通化とcallback責務整理 — ✅ 2026-08-25
-
-- **一覧queryの共通化**: Bot、Botドメイン、リッチメニュー、トークルームメンバー、ドメインメンバーの`count` / `cursor` schemaと400応答hookを共通化した。IFTTT / Makeが送る空の`count`は未指定として扱い、`1..100`の範囲制約は維持する。
-- **callbackをgateway責務へ限定**: ADR-0005に従い、実行経路から呼ばれないローカルdispatch / reply / handler雛形と専用テストを削除した。署名・Bot ID検証、dedup、upstreamへの同期await転送は維持する。
-- **依存更新**: Honoを4.13.4へ更新した。
-
-## secret 注入の承認待ちと拾い直し — ✅ 2026-08-18
-
-- **`op read` の stdin を継承**: `Bun.spawn` は既定で stdin を塞ぐため、`op` が 1Password デスクトップアプリの承認待ちへ入れず `connecting to desktop app timed out` で失敗していた。承認がキャッシュ済みの端末では成功するので、承認が要る Linux の dev 機で初めて露見する（501 が 2026-08-13、asunaro が 2026-08-18 に実測）。`stdin: 'inherit'` へ変更し、spawn option を固定する回帰テストを追加した。
-- **一時的失敗の拾い直し**: 並列読みで単発失敗した参照を 500ms・1500ms と間隔を空けて直列で最大 2 回読み直す。`connecting to desktop app` は専用分類にし、生 reason は従来どおり表示しない。`認証が必要` は即中断、`opコマンドなし` と `値が空` は再試行しない。
-- **共通契約 v3**: develop-meta の secret 注入契約へ `read-inherits-stdin` / `resolve-transient-retry` を追加し、対象 4 repo で揃えた。
-
-## 公式 Bot API 追従・Callback 契約整理 — ✅ 2026-08-13
-
-- **公式 Bot API 契約の同期**: リッチメニュー画像登録を公式 `fileId` / `i18nFileIds` JSON API（`204 No Content`）へ変更し、ドメイン別 Bot 設定、Bot テナント設定の schema を公式仕様へ同期した（[監査メモ](./docs/research/lineworks-bot-api-gap-audit-2026-08-13.md)）。
-- **リッチメニュー操作と一覧 pagination**: 詳細・画像情報・ユーザー別・デフォルト操作を含む全 12 操作に対応し、Bot / ドメイン / リッチメニュー一覧で `count` / `cursor` / `responseMetaData.nextCursor` を扱うようにした。
-- **公開 route の HTTP status 同期**: メッセージ送信、作成系は `201`、リッチメニュー画像登録は `204` とし、公式仕様の契約テストを固定した。
-- **OAuth scope の選択対応**: `OAUTH_SCOPE` で `bot.message` / `bot.read` / `bot` を設定可能にした。未設定時のデフォルトは `bot` とする。
-- **Callback の検証と同期 await 方針**: `X-WORKS-BotId` 検証（欠落 `400` / 不一致 `403`）を追加した。公式 Callback ページで自動再送契約を確認できないため、Cloud Run / Workers 共通で同期 await 転送、失敗時は `500` + ログ出力、`unregister` は手動再投入用として整理した。
-
-## ドキュメント
-
-- 既存ADR 9件を移行前Markdown・SHA-256付きOriginal Recordを持つ共通形式へ移行し、全ADRを共通監査対象化。
-- 公開repositoryへ置けない環境固有情報を含むADR-0001/0004/0005を二層digest付きSanitized Original Recordへ整理し、公開redactionの責任分界をADR-0011へ記録。
-
-## secret 注入 P4: 旧 alias 撤去 — ✅ 2026-08-10
-
-- `package.json` と現行運用 docs から `secrets:dump` alias の案内を撤去し、`secrets:inject` / `secrets:check` の正規入口へ統一した。conformance adapter/test は contract v2 へ更新し、内部 entrypoint `scripts/dump-secrets-to-env.ts` と旧 managed header の読み取り互換は維持した。
-
-## 受信（Callback）系
-
-- **Callbackを設定可能なupstreamへ転送**: 検証済みcallbackをraw bodyと署名を保ったまま`FORWARD_CALLBACK_URL`へ転送するgateway方式を採用（[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md)）。未設定時は転送せず`200`を返す。
-- **Callback dedup（5分window）**: raw bodyのSHA-256をkeyにしたin-memory Mapで重複を抑止する。Workers isolate間やCloud Run instance間ではbest effortであり、厳密な一回処理は共有ストアまたはupstream側idempotencyで担保する（[ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)）。転送失敗時はkeyを解除し、手動再投入を受け入れられるようにする（LINE WORKSの自動再送契約は前提にしない）。
-- **Callback 受信エンドポイント（`POST /callback`）+ event dispatcher**: LINE WORKS からの Bot Callback を受信。`X-WORKS-Signature`（raw body の HMAC-SHA256 を Bot Secret 鍵で計算し Base64 化した値）で真正性を検証し、`discriminatedUnion('type', …)` で event 8 種（`message` / `postback` / `join` / `leave` / `joined` / `left` / `begin` / `end`）を網羅。reply ヘルパ（source → MessageTarget）も追加。
-
-## 送信（Bot API ラッパ）系
-
-- **メッセージ型ディスパッチャ**: メッセージ型を `messageSchemas` マップ（type → Zod schema）に集約し、個別 sender を持たない設計（[ADR-0007](./docs/adr/0007-message-type-dispatcher.md)）。新しいメッセージ型は schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録し、`sendMessageByType` が `{ type, …body }` を組み立てて送る。テキスト / 画像 / ファイル / 音声 / 動画 / 位置情報 / リンク / ボタンテンプレート / リストテンプレート / カルーセル / 画像カルーセル / フレキシブルの各型を LINE WORKS spec の制約に揃えて Zod で起動時バリデーション。
-- **添付ファイル**: アップロード（uploadUrl 発行 → multipart POST、`bodyLimit` で 10MB 上限）とダウンロード（3xx の `Location` ヘッダ抽出）の両経路を実装（`services/lineworks/attachment.ts`）。
-- **server token のキャッシュ + single-flight**: JWT（RS256、`node:crypto` 自前実装、[ADR-0003](./docs/adr/0003-jwt-node-crypto-rs256.md)）からアクセストークンを取得する `getServerToken` をキャッシュ + single-flight 化し、重複取得を抑制。route 層は `tokenMiddleware` 経由で `c.var.token` から受け取る。
-- **トークルーム / ドメインメンバー / Bot CRUD**: トークルーム作成・情報取得・退室・メンバー一覧（`/channels`）、Bot 利用ユーザーの登録・一覧・削除（`/domains/:domainId/members`）、固定メニュー / リッチメニュー（`/menus/*`）、テナント Bot とドメイン別 Bot 設定の CRUD（`/bots`）を追加。upstream エラーから code / hint を抽出してレスポンスに含める。
-
-## 認証・観測・運用
-
-- **BASIC 認証（health probe / `/callback` を除く全エンドポイント）**: `hono/basic-auth` を lazy 初期化 + `PUBLIC_PATHS` で除外し、`app.ts` で `app.use('*', …)` 強制（[ADR-0006](./docs/adr/0006-basic-auth-except-health-and-callback.md)）。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換エイリアス。`/callback` は BASIC 認証を喋らないため除外し、署名検証で代替。`app.onError` は `HTTPException` を `getResponse()` で素通り。
-- **本番 Bot の自己破壊操作をガード**: 本番運用中の `BOT_ID` に対する `DELETE` / Secret 再発行（`POST /secret`）を、`?confirm=<botId>` クエリ無しでは 403 で拒否。誤操作で本番 Bot を消失させない物理ガード。
-- **fetch 共通 timeout wrapper**: 全 service の `fetch` を timeout 付き wrapper に置換し、upstream ハングを防止。
-- **request log middleware**: 全リクエストを 1 行で記録するミドルウェアを追加。
-- **Cloud Logging 連携**: pino ベース logger に `severity` フィールド + `logging.googleapis.com/trace` を自動付与（`x-cloud-trace-context` を AsyncLocalStorage で保持）。`GOOGLE_CLOUD_PROJECT` 設定時は fully-qualified resource name 形式で trace が出る。
-
-## CI / CD・基盤
-
-- **基盤共通uptime監視とCloud Runログ監視を分離**: `setup-monitoring.sh`はHTTPS uptime監視だけを扱い、Cloud Run固有のログ指標・通知は明示実行する別scriptへ分離。Cloud Buildの環境固有値はtriggerまたはmanual buildのsubstitutionで渡せることを明文化した。
-- **Workers / Cloud Runの両deploy経路**: 共通Hono appをWorkersはWrangler + GitHub Actions、Cloud RunはDocker + Cloud Buildでデプロイできる構成にした（[ADR-0010](./docs/adr/0010-dual-cloud-deployment.md)）。Custom Domainは公開設定に固定せずGitHub Variableから生成する。
-- **secret 注入 contract v1 の conformance 固定**: `template` adapter と共通 scenario ID を追加し、managed block の置換・quote、env 優先 / 強制再取得、未サインイン時の直列停止、並列数上限、check の決定順・値非表示・非書き込み、取得失敗時 no-write、package scripts、tracked template の key / `op://` 参照一致をテストで固定。runner は I/O と `op read` を注入可能にし、実 secret や `.env` を使わず安全性を検証する。
-- **ローカル secret 注入の正規入口を `secrets:inject` に統一**: 既存の安全な `.env` マージ実装を `secrets:inject` が直接呼び、`.env.tpl`・README・AGENTS の現行案内も正規名へ同期した。旧 `secrets:dump` は 2026-08-10 の P4 で現行入口から撤去し、`secrets:check` の非書き込み契約は維持する。
-- **1Password から `.env` を生成する `secrets:dump` を追加（歴史的記録）**: `.env.tpl` の `op://` 参照を SoT として読み、値を表示せず `.env` へマージ保存する実装を追加した。その後 `secrets:inject` へ完全一元化し、旧 alias を撤去した。
-- **scripts の検証対象化**: pre-commit / CI / package scripts の Biome 対象に `scripts/` を追加し、`run-related-tests.ts` の関連テスト抽出ロジックを unit test 付きで分離。監視設定スクリプトは uptime config の重複取得を削減。
-- **Cloud Build に bun test step を追加**: ビルドパイプラインに `bun test` を組み込み、`--no-verify` での pre-push バイパスを防止（[ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) / [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。`cloudbuild.yaml` が Cloud Run 構成（runtime SA / Secret Manager マウント / scaling / resources / ingress）の SoT。
-- **HTTP/1.1-only（end-to-end h2c 不採用）**: コンテナは HTTP/1.1 のみで listen し、公開側 HTTP/2 は Cloud Run フロントが終端（`--no-use-http2`、[ADR-0002](./docs/adr/0002-container-http1-only-no-h2c.md)）。
-- **Cloud Run + Hono + Bunの採用**: コンテナruntimeの選択肢としてCloud Runを採用（[ADR-0001](./docs/adr/0001-cloud-run-hono-bun.md)）。runtime SA + Secret Manager + substitution variableで環境固有値を公開リポジトリに残さない（[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)）。
-- **mattpocock engineering skills の per-repo 土台**: 設計決定を `docs/adr/`（9 ADR）に backfill、用語集を root `CONTEXT.md` に新設、`docs/agents/{issue-tracker,domain}.md` + CLAUDE.md `## Agent skills` ブロックを整備。engineering skills を SoT から配布同期。
-
-## スタック
-
-| 層 | 採用 |
-|---|---|
-| ランタイム / 実行 | Cloudflare Workers / Bun 1.4.x + Cloud Run |
-| HTTP フレームワーク | Hono（Workers）+ @hono/node-server（Cloud Run） |
-| Validation | Zod + @hono/zod-validator |
-| Linter / Formatter | Biome 2.x |
-| Logger | pino（+ pino-pretty in dev）、Cloud Run時はCloud Logging severity / trace連携 |
-| CI / CD | GitHub Actions（Workers）/ Cloud Build（Cloud Run） |
-| pre-commit / pre-push | lefthook（biome auto-fix + tsc + 関連テスト / 全件テスト） |
+- **Callback の受信と event の振り分けを足した（2026-05-23）**: `POST /callback` で署名を検証し、event 8 種を分ける。
+- **メッセージ型を schema のマップで送るようにした（2026-05-23）**: 型を 1 件足すと route が登録される。各型は Zod で起動時に検査する。
+- **添付の upload と download を足した（2026-05-23）**: upload は 10MB まで。download は 3xx の `Location` を取る。
+- **server token をキャッシュし、同時取得を 1 本にした（2026-05-23）**: JWT は RS256。route は middleware の token を使う。
+- **トークルーム、ドメインメンバー、Bot の CRUD を足した（2026-05-23）**: 固定メニューとリッチメニュー、テナントとドメイン別の Bot 設定を含む。
+- **health と `/callback` 以外に BASIC 認証を掛けた（2026-05-23）**: `/healthz` を正とし、`/callback` は署名検証で代替する。
+- **本番 Bot の削除と Secret 再発行を確認なしでは拒否するようにした（2026-05-23）**: `?confirm=<botId>` が無い `DELETE` と `POST /secret` は 403。
+- **外部 fetch に timeout を掛けた（2026-05-23）**: upstream がハングしても待ち続けない。
+- **request を 1 行で残す middleware を足した（2026-05-23）**: 全 request を 1 行にする。
+- **ログを Cloud Logging の severity と trace に合わせた（2026-05-23）**: `x-cloud-trace-context` を保持し、project があるときは resource name 形式で出す。
+- **Cloud Build に `bun test` を足した（2026-05-23）**: `--no-verify` で pre-push を飛ばしても、build でテストが走る。
+- **コンテナは HTTP/1.1 だけを listen するようにした（2026-05-23）**: 公開側の HTTP/2 は Cloud Run のフロントが終端する。
+- **設計記録と用語と agent 文書の土台を置いた（2026-05-23）**: ADR、`CONTEXT.md`、`docs/agents/` を置き、engineering skills を同期した。
