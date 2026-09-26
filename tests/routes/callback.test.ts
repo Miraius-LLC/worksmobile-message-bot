@@ -294,4 +294,25 @@ describe('POST /callback: dedup (5 分 window)', () => {
     expect(res2.status).toBe(200)
     expect(forwardCalls.length).toBe(2)
   })
+
+  test.each([
+    ['JSON parse 不能', 'this-is-not-json'],
+    [
+      'Zod 検証 NG',
+      JSON.stringify({
+        type: 'unknown_event',
+        source: { domainId: 1 },
+        issuedTime: '2026-01-04T05:16:05.716Z',
+      }),
+    ],
+  ])('%s の body は再送しても 400 (dedup key を残さない)', async (_label, raw) => {
+    const signature = sign(raw)
+
+    const res1 = await postCallback(raw, signature)
+    expect(res1.status).toBe(400)
+
+    const res2 = await postCallback(raw, signature)
+    expect(res2.status).toBe(400)
+    expect(forwardCalls.length).toBe(0)
+  })
 })

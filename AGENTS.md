@@ -36,7 +36,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 ## アーキテクチャ (要点のみ)
 
-- `src/index.ts` — エントリ。`Hono` インスタンス生成 → trace / secure-headers ミドルウェア → サブルータを `app.route(...)` で mount → `@hono/node-server` の `serve()` で起動 + SIGTERM の graceful shutdown
+- `src/app.ts` — 共通 Hono app。`Hono` インスタンス生成 → trace / request log / secure-headers / BASIC 認証ミドルウェア → サブルータを `app.route(...)` で mount → `app.onError`
+- `src/index.ts` — Cloud Run 用エントリ。env を `config.load` で起動時検証 → `@hono/node-server` の `serve()` で `app` を起動 + SIGTERM の graceful shutdown (Workers 用エントリは `src/worker.ts`)
 - `src/routes/_middleware.ts` — `tokenMiddleware` で `c.var.token` に LINE WORKS のアクセストークンを注入
 - `src/routes/messages.ts` — `messagesApp` (Hono) を export。`(channels|users)/:id/messages/type/<type>` を 26 エンドポイント分 (13 type × channels/users の 2 base) まとめて `app.post(...)` で登録 (zValidator + `sendMessageByType`)
 - `src/routes/attachments/` — `attachmentsApp` (Hono) を export。`/attachments` prefix 配下に `POST /` (upload + 10MB bodyLimit) と `GET /:fileId` (download) をマウント
@@ -84,11 +85,11 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 - **コンテナは HTTP/1.1 のみで listen / end-to-end h2c は採用しない** ([ADR-0002](./docs/adr/0002-container-http1-only-no-h2c.md))。公開側 HTTP/2 は Cloud Run フロントが終端、コンテナは HTTP/1.1。`gcloud run deploy` に `--use-http2` は**つけない**
 - **multipart は `c.req.parseBody()` で File を受ける**: Hono は Web 標準 (`File` / `FormData`) を使う。multer / @fastify/multipart 系の API には戻さない。アップロードサイズは `attachments/index.ts` の `bodyLimit({ maxSize: 10 * 1024 * 1024 })` で 10MB 上限
-- **route handler は try/catch しない**: throw されたエラーは `index.ts` の `app.onError` が拾って `{ error: message }` を 500 で返す。各ハンドラから 500 を直接返す書き方はしない (validation 400 など期待エラーを除く)
+- **route handler は try/catch しない**: throw されたエラーは `app.ts` の `app.onError` が拾って `{ error: message }` を 500 で返す (`LineWorksApiError` / `HTTPException` は下記のとおり透過)。各ハンドラから 500 を直接返す書き方はしない (validation 400 など期待エラーを除く)。例外は、後始末 (callback の dedup key の `unregister` など) をして同じエラーを再 throw する try/catch だけ
 - **token は middleware 経由**: `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。各ハンドラで `await getServerToken()` を呼ばない
 - **BASIC 認証は `app.ts` で `/` と health probe / `/callback` 以外に強制** ([ADR-0006](./docs/adr/0006-basic-auth-except-health-and-callback.md))。`hono/basic-auth` を lazy 初期化 + `PUBLIC_PATHS` で除外。`/healthz` を正、`/health` / `/readyz` / `/livez` は互換エイリアスで同じハンドラを共有 (`HEALTH_PATHS` 配列で集中管理)
 - **`app.onError` は `HTTPException` を `getResponse()` で素通り**: `basicAuth` 等 Hono ミドルウェアが投げる HTTPException を 500 で潰さないため (LineWorksApiError 透過と同じパターンで明示分岐)
-- **callback 検証と同期 await 転送**: 署名検証 → Bot ID 検証 (`X-WORKS-BotId` 欠落 400 / 不一致 403) → dedup チェック → JSON/Zod 検証 → upstream へ同期 await 転送を行う。失敗時は 500 + ログ出力とし、dedup key を `unregister` して手動再投入を受け入れる。これは LINE WORKS の自動再送契約を前提としない。
+- **callback 検証と同期 await 転送**: 署名検証 → Bot ID 検証 (`X-WORKS-BotId` 欠落 400 / 不一致 403) → dedup チェック → JSON/Zod 検証 → upstream へ同期 await 転送を行う。失敗時は 500 + ログ出力とし、dedup key を `unregister` して手動再投入を受け入れる。JSON/Zod 検証で 400 を返すときも key を `unregister` し、同じ不正 payload の再送を 200 で素通りさせない。これは LINE WORKS の自動再送契約を前提としない。
 - **callback dedup は in-memory Map で 5 分 window の best effort** ([ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md))。Workers isolate 間や Cloud Run instance 間で Map は共有されない。
 - **callback は設定可能な upstream へ転送する** ([ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md))。`callback/forward.ts` が env `FORWARD_CALLBACK_URL` へ raw body と `X-WORKS-Signature` を転送する。業務固有の応答処理は upstream の責務であり、wmbot 内にはローカル handler を持たない
 

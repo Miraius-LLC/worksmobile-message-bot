@@ -2,6 +2,11 @@
 
 LINE WORKS Bot Webhook サーバーの整備履歴。**完了の節目で更新**し、コミット単位の詳細は `git log` を参照する（本ファイルは git log と重複しない粒度に保つ）。日付は逆順。
 
+## 不正callbackの再送が200で素通りする問題を直した — ✅ 2026-09-27
+
+- JSON / Zod 検証で `400` を返すときも dedup key を `unregister` する。これまでは検証前に登録した key が残り、同じ不正 payload を 5 分以内に再送すると `200` が返っていた。正常 payload の重複 skip は変えない。OpenSpec `callback-delivery` に scenario を追加（archive `2026-09-27-release-dedup-key-on-invalid-callback`）。
+- AGENTS.md のアーキテクチャ記述を実装に合わせた（Hono の生成・middleware・mount・onError は `src/app.ts`、`src/index.ts` は config 検証・serve・SIGTERM）。route handler の try/catch 禁止に「後始末して再 throw する場合は例外」を明記した。Night Shift 採用済み指摘 04〜06 の消化。
+
 ## 「拡張余地」型 TODO 3 件を手順メモとして docs へ移した — ✅ 2026-09-16
 
 - メッセージ型の追加 → `.claude/rules/services.md`（既存手順に ADR-0007 参照を追加）、新 callback event type への追従 → `README.md` callback 節に手順を新設、AFK-agent ワークフローの有効化 → `docs/agents/issue-tracker.md` の既存節へ一本化。TODO.md は進行中・未着手だけを持つ。

@@ -16,7 +16,7 @@ const CALLER = 'routes/callback'
  * 2. `X-WORKS-Signature` を HMAC-SHA256 (with BOT_SECRET) で検証 → NG なら 401
  * 3. `X-WORKS-BotId` ヘッダを検証 → 欠落なら 400、`config().botId` 不一致なら 403
  * 4. raw body の SHA-256 を dedup key として直近 5 分以内の再送を検出 → 副作用無しで 200
- * 5. raw body を JSON.parse → Zod の `discriminatedUnion` で 8 event type を検証 → NG なら 400
+ * 5. raw body を JSON.parse → Zod の `discriminatedUnion` で 8 event type を検証 → NG なら dedup key を unregister して 400
  * 6. 転送先が設定されていればraw bodyと署名をそのまま転送する。5xx / network error時は
  *    dedup key を unregister し、手動再投入等で再処理できるようにする (公式ページでは再送契約を確認できないため同期await、失敗は500とログ)
  * 7. 正常時は 200 (空 body 返却)
@@ -69,6 +69,8 @@ callbackApp.post('/', async c => {
     parsedJson = JSON.parse(rawBody)
   } catch {
     logger.warn('Callback の body が JSON として parse 不能', { caller: `${CALLER}.post` })
+    // 不正payloadのkeyを残すと、5分以内の再送が検証されずに200で返ってしまう
+    unregister(dedupKey)
     return c.json({ error: 'invalid json' }, 400)
   }
 
@@ -79,6 +81,7 @@ callbackApp.post('/', async c => {
       caller: `${CALLER}.post`,
       debug: result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`),
     })
+    unregister(dedupKey)
     return c.json({ error: message }, 400)
   }
 
