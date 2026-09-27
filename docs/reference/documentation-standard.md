@@ -1,0 +1,93 @@
+# TODO.md と CHANGELOG.md
+
+この repo の直下 `TODO.md` と `CHANGELOG.md` の書き方である。数値の例外は作らない。検査と退避は、この repo に同梱された `scripts/develop-tools/` の CLI だけを使う。
+
+## 役割
+
+| 情報 | 置く場所 |
+|---|---|
+| 未完了の作業・判断・運用 gate | `TODO.md` |
+| 完了した節目 | `CHANGELOG.md` |
+| 計画・経緯・測定・調査・長い review | この repo の plan / review |
+| 長く効く設計判断 | この repo の ADR |
+| 実装の履歴 | `git log` |
+
+完了済みの経緯、検証値、調査記録は TODO と CHANGELOG に再掲しない。
+
+## TODO.md
+
+未完了だけを置く。`- [x]` は残さない。完了したら削除する。残る gate だけを新しい未完了項目にする。
+
+1 項目は完了条件が一つである。各項目は「現在地 → 次 → 完了条件 → この repo 内の SoT へのリンク」を書く。実装経緯、検証値、調査履歴は書かない。
+
+```markdown
+- [ ] **残作業の名前**。現在地: 根拠のある状態。次: 一つの行動。完了条件: 第三者が確認できる結果。[TODO](../../TODO.md)
+```
+
+リンクは `docs/reference/documentation-standard.md` から見た、この repo 内の相対 path にする。
+
+## CHANGELOG.md
+
+1 行目は `# Changelog`。最初の `##` より前に、古い詳細は git 履歴に任せる blockquote を置く。
+
+月見出しは `## YYYY-MM` だけにする。新しい月を先に置く。
+
+項目は `- **完了した成果（YYYY-MM-DD）**: 要約` とする。括弧は `（YYYY-MM-DD）` で始め、日付の前に空白を入れない。その後ろに `、短い補足` を続けてよい。日付はその月見出しの月と一致させる。commit ごとの経過、未完了、手順、長い review は書かない。
+
+```markdown
+# Changelog
+
+> 古い分は git 履歴に任せる。
+
+## 2026-09
+
+- **配置 hint を加えた（2026-09-26、v0.1.124 で prod 反映）**: 要約。
+```
+
+## 上限
+
+UTF-8 のバイト数である。
+
+| 対象 | 上限 |
+|---|---:|
+| `TODO.md` | 24,000 B |
+| `CHANGELOG.md` | 30,000 B |
+| 1 項目 | 500 B を超えたら警告だけ。拒否しない |
+
+`TODO.md` が 24,000 B を超えたら、完了項目を消し、未完了を上の形に短くする。
+
+## 退避
+
+`CHANGELOG.md` が 30,000 B 以下なら退避しない。超えたら、先に dry-run する。
+
+```bash
+bun scripts/develop-tools/archive-changelog.ts
+```
+
+問題がなければ `--yes` を付ける。
+
+```bash
+bun scripts/develop-tools/archive-changelog.ts --yes
+```
+
+古い月の節から、注記と空行を含む全文が 24,000 B 以下になるまで削る。当月の節は残す。当月が無ければ、存在する最新月を残す。削れる古い月が尽きて全文が 30,000 B 以下なら、その内容で成功する。30,001 B 以上ならファイルを変えず失敗する。
+
+注記は次の形にする。`YYYY-MM` は今回退避した月のうち最も新しい月、SHA は退避直前の commit である。
+
+```markdown
+> YYYY-MM 以前は git 履歴（退避直前の commit: <SHA>）
+```
+
+退避した節は別ファイルへ複製しない。
+
+## 検査
+
+pre-commit が、stage された直下の `TODO.md` と `CHANGELOG.md` を見る。`- [x]`、総バイト上限超過、CHANGELOG の書式違反は拒否する。500 B 超は警告だけである。CI ではこの検査を強制しない。
+
+同じ検査を手で走らせるときは、この repo の直下で次を実行する。
+
+```bash
+bun scripts/develop-tools/check-staged-docs.ts
+```
+
+一時 index を渡すときは `--index-file` を 1 回だけ付ける。path は、すでに存在する一時 index で、`git rev-parse --absolute-git-dir` の配下にある通常ファイルにする。linked worktree では `.git` はファイルなので、`.git/` の下とは限らない。
