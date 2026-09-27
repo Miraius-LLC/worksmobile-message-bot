@@ -30,9 +30,13 @@
     "types": ["bun"]
   },
   "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
-  "exclude": ["node_modules", "build", "dist", ".tmp", 
-/* develop-meta:jsonc-managed start tsconfig-exclude-develop-tools a0c2f7f99b3c54b321bdbc8cf1e9cac6f3a6abaa75e74091c29e11bf59917902 */
-"scripts/develop-tools/**"
-/* develop-meta:jsonc-managed end tsconfig-exclude-develop-tools a0c2f7f99b3c54b321bdbc8cf1e9cac6f3a6abaa75e74091c29e11bf59917902 */
-]
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    ".tmp",
+    /* develop-meta:jsonc-managed start tsconfig-exclude-develop-tools a0c2f7f99b3c54b321bdbc8cf1e9cac6f3a6abaa75e74091c29e11bf59917902 */
+    "scripts/develop-tools/**"
+    /* develop-meta:jsonc-managed end tsconfig-exclude-develop-tools a0c2f7f99b3c54b321bdbc8cf1e9cac6f3a6abaa75e74091c29e11bf59917902 */
+  ]
 }

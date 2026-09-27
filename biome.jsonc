@@ -4,11 +4,10 @@
   "files": {
     "includes": [
       "**",
-      
-/* develop-meta:jsonc-managed start biome-files-includes-develop-tools 1e91c01e1f4a0e7afcaa87138d70d957eeea750dbb983a9e69406d419251e140 */
-"!scripts/develop-tools"
-/* develop-meta:jsonc-managed end biome-files-includes-develop-tools 1e91c01e1f4a0e7afcaa87138d70d957eeea750dbb983a9e69406d419251e140 */
-,
+
+      /* develop-meta:jsonc-managed start biome-files-includes-develop-tools 1e91c01e1f4a0e7afcaa87138d70d957eeea750dbb983a9e69406d419251e140 */
+      "!scripts/develop-tools",
+      /* develop-meta:jsonc-managed end biome-files-includes-develop-tools 1e91c01e1f4a0e7afcaa87138d70d957eeea750dbb983a9e69406d419251e140 */
       "!**/build/**/*",
       "!**/dist/**/*",
       "!**/node_modules/**/*",
