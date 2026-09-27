@@ -2,6 +2,8 @@
 
 worksmobile-message-botの文書は目的ごとにSoT（Single Source of Truth）を1つだけ持つ。同じ要求、判断、進捗を複数の文書へ全文コピーしない。
 
+`TODO.md` と `CHANGELOG.md` の書き方は [文書標準](../reference/documentation-standard.md)。
+
 ## SoTの分界
 
 | 内容 | SoT | 責務 |
