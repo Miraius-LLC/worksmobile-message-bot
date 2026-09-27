@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 # Shared POSIX sh command-resolution logic for with-dev-env entrypoints.
 # Sourcing this file only defines the function below.
 
@@ -20,7 +21,8 @@ _with_dev_env_run() {
 
   if [ "$_with_dev_env_use_mise" = 1 ] &&
     command -v mise >/dev/null 2>&1; then
-    if mise exec -- command -v "$_with_dev_env_command" >/dev/null 2>&1; then
+    # shellcheck disable=SC2016
+    if mise exec -- sh -c 'command -v "$1"' sh "$_with_dev_env_command" >/dev/null 2>&1; then
       exec mise exec -- "$@"
     fi
   fi
