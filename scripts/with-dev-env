@@ -1,23 +1,18 @@
 #!/usr/bin/env sh
 set -eu
 
-if [ "$#" -eq 0 ]; then
-  echo "usage: $0 <command> [args...]" >&2
-  exit 64
+case "$0" in
+  */*) _with_dev_env_entry_dir=${0%/*} ;;
+  *) _with_dev_env_entry_dir=. ;;
+esac
+[ -n "$_with_dev_env_entry_dir" ] || _with_dev_env_entry_dir=/
+_with_dev_env_core=$_with_dev_env_entry_dir/_with-dev-env-core.sh
+if [ ! -r "$_with_dev_env_core" ]; then
+  echo "Missing with-dev-env core: $_with_dev_env_core" >&2
+  exit 1
 fi
+# shellcheck disable=SC1090
+. "$_with_dev_env_core"
+unset _with_dev_env_entry_dir _with_dev_env_core
 
-cmd=$1
-
-if command -v mise >/dev/null 2>&1; then
-  if mise exec -- command -v "$cmd" >/dev/null 2>&1; then
-    exec mise exec -- "$@"
-  fi
-fi
-
-if command -v "$cmd" >/dev/null 2>&1; then
-  exec "$@"
-fi
-
-echo "Missing command: $cmd" >&2
-echo "Install mise and run 'mise install', or install $cmd directly." >&2
-exit 127
+_with_dev_env_run 1 "" "$@"
