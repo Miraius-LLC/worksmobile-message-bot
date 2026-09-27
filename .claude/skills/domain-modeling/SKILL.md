@@ -79,7 +79,8 @@ If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](
 
 - ADRの本質は`architecture-decision-record/architecture-decision-record`、Markdown形式はMADRを基礎とする。
 - ADRを作成する直前に、対象repoの`docs/adr/README.md`と`docs/adr/adr-template.md`を**毎回直接読む**。`ADR-FORMAT.md`のupstream例、モデル記憶、既存legacy ADRから形式を再構成せず、repo内テンプレートを複製する。
-- テンプレートが欠落・driftしている場合は作成を止め、`~/Develop/bin/sync-adr-template`のdry-run結果を報告する。
+- テンプレートが欠落している、または対象repo内の`docs/adr/adr-template.md`がREADMEの案内と食い違う場合は、ADRを作らず停止し、欠落またはdriftを報告する。修復は対象repoの管理者が、そのrepoの`docs/adr/adr-template.md`と`docs/adr/README.md`を正す。
+- Develop島の保守で中央の`sync-adr-template`が使えるときだけ、そのdry-runを参考にしてよい。子repoの単体cloneでは、中央コマンドを修復の必須経路にしない。
 - 最大番号+1を使って欠番を再利用せず、同じ変更でREADME索引を更新する。Accepted後の判断変更は新しいADRで行い、旧ADRを`superseded by ADR-NNNN`へ更新する。
 
 </fujii-notes>

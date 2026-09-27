@@ -1,0 +1,9 @@
+/.gitignore
+/architecture-review-deck/
+/audit-cutover-readiness/
+/live-webui-dev/
+/parallel-loop-dev/
+/promote-lesson/
+/provision-infra-safely/
+/shimekukuri/
+/worktree-start/
