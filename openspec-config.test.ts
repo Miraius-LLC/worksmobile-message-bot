@@ -51,7 +51,7 @@ describe('OpenSpec repository contract', () => {
     expect(workflow).toContain('openspec-config.test.ts')
   })
 
-  test('既存GraphifyとCodeGraphはlocal cache境界を維持する', async () => {
+  test('既存GraphifyとCodeGraphはlocal cache境界を維持し、自動refresh hookを要求しない', async () => {
     const [mcp, codeGraph, graphifyIgnore, codeGraphIgnore, gitignore, lefthook] =
       await Promise.all([
         file(new URL('./.mcp.json', import.meta.url)).json(),
@@ -78,7 +78,7 @@ describe('OpenSpec repository contract', () => {
     expect(codeGraphIgnore.trim().split('\n').slice(-2)).toEqual(['*', '!.gitignore'])
     expect(gitignore.split('\n')).not.toContain('.codegraph/')
     expect(gitignore).toContain('graphify-out/')
-    expect(lefthook.match(/graphify-refresh:/g)).toHaveLength(2)
+    expect(lefthook).not.toContain('graphify-refresh:')
     expect(lefthook).toContain('post-rewrite:')
     expect(lefthook).not.toContain('post-rebase:')
   })
