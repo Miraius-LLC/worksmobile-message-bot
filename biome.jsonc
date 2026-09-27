@@ -4,6 +4,7 @@
   "files": {
     "includes": [
       "**",
+      "!scripts/develop-tools",
       "!**/build/**/*",
       "!**/dist/**/*",
       "!**/node_modules/**/*",
