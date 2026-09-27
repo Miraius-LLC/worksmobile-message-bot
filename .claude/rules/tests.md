@@ -1,8 +1,11 @@
-# テスト規約（Develop 共通）— 常駐入口
+# テスト規約（Develop 共通）
 
-`bun:test` を使い、壊れた時の被害に応じて検証する（`~/Develop/AGENTS.md` §3.1）。unit / feature の置き場、mock・時刻・env の例、pre-commit / pre-push の違いは `~/Develop/docs/develop-testing.md` をテストの作成・修正時に読む。
+変更の影響が出る境界で振る舞いを検証します。repo-local の `AGENTS.md` / `CLAUDE.md`、設定、package scriptが具体的なら、そのrepoのrunnerと指示を優先します。
 
-- 実 API・実 Secret Manager・実 JWT 署名をテストで走らせず、`mock.module` で差し替える（T1）。
-- `mock.module` を使う SUT は静的 import せず、mock 設定後に `await import(...)` する。
-- **共有 module の mock は複数 feature test にまたがってリークする**。ファイル間の評価順に依存する検査を作らない（L46）。
-- push 前に対象 repo の `lefthook.yml` と `.lefthook/pre-push/` を読み、hook が走らせない必要な検査を手で回す。
+- Bun / TypeScript のテストは `bun:test` を使い、`bun test <file>` のfocused testから `bun test` の全体suiteへ広げます。他のstackではrepoが設定したrunnerを使います。
+- 外部API、実Secret Manager、実JWT署名はテストから呼びません。fixtureやmockで境界を置き換え、結果と副作用を検証します。
+- Bunの `mock.module` はmock設定後にSUTを `await import(...)` します。mockは他のtest fileへ残ることがあるため、file評価順に依存するテストを作りません。
+- 環境変数・時計・一時fileを変更するtestは、test専用の値を使い、`finally` / teardownで元へ戻します。実credentialをfixtureや出力へ含めません。
+- 実行したい検査はrepoの `package.json` scriptを使います。`lefthook.yml` と `.lefthook/pre-push/` を読み、hookが実行する範囲を確認します。pre-commitが通っても全suiteが実行されたとは限らないため、必要な未実行検査を明示的に走らせます。
+
+来歴（出典。配布先から参照する手順ではありません）: `develop-meta/AGENTS.md` §3.1、`develop-meta/docs/develop-testing.md`。

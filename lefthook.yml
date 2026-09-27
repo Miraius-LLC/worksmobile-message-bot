@@ -25,20 +25,28 @@ post-rewrite:
 pre-commit:
   parallel: true
   commands:
+# <!-- BEGIN develop-meta:lefthook:pre-commit:adr-structure v1 sha256=f031fee26afd12d7c5ded8fc2aecb2c516a4742c642f860323a3ae3d63e81e65 -->
     adr-structure:
       glob: "docs/adr/**"
       run: |
+        saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
-        exec "$HOME/Develop/bin/check-staged-adr"
+        if [ -n "$saved_index_file" ]; then
+          exec bun run scripts/develop-tools/check-staged-adr.ts --index-file "$saved_index_file"
+        fi
+        exec bun run scripts/develop-tools/check-staged-adr.ts
+# <!-- END develop-meta:lefthook:pre-commit:adr-structure -->
+# <!-- BEGIN develop-meta:lefthook:pre-commit:docs-structure v1 sha256=83c99360d437f3477e5cdc28d509192585a94f7a51eb263a8f67686fcb78bb85 -->
     docs-structure:
       glob: "{TODO.md,CHANGELOG.md}"
       run: |
         saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
         if [ -n "$saved_index_file" ]; then
-          exec "$HOME/Develop/bin/check-staged-docs" --index-file "$saved_index_file"
+          exec bun run scripts/develop-tools/check-staged-docs.ts --index-file "$saved_index_file"
         fi
-        exec "$HOME/Develop/bin/check-staged-docs"
+        exec bun run scripts/develop-tools/check-staged-docs.ts
+# <!-- END develop-meta:lefthook:pre-commit:docs-structure -->
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
     biome:
