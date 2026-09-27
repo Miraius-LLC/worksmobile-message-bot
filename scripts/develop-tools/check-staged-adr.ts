@@ -9,7 +9,7 @@ import { inspect, parseAdrContract, type Issue, type StagedFile, ADR_CONTRACT_RE
 const indexFile = parseIndexFile(process.argv.slice(2))
 const repo = await git(process.cwd(), null, ['rev-parse', '--show-toplevel']).then(text => text.trim()).catch((error: Error) => failRead(error.message))
 const resolvedIndex = indexFile ? await resolveIndexFile(process.cwd(), repo, indexFile) : null
-const names = (await git(repo, resolvedIndex, ['diff', '--cached', '--diff-filter=ACMR', '--name-only', '-z', '--', 'docs/adr'])).split('\0')
+const names = (await git(repo, resolvedIndex, ['diff', '--cached', '--diff-filter=ACMRT', '--name-only', '-z', '--', 'docs/adr'])).split('\0')
 const adrNames = names.filter(path => {
   const base = path.split('/')[2] ?? ''
   return path.startsWith('docs/adr/') && path.split('/').length === 3 && path.endsWith('.md') && base !== 'README.md' && base !== 'adr-template.md'
