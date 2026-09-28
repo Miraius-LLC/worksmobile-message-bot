@@ -4,16 +4,21 @@
 import { realpath, stat } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { isAbsolute, relative, resolve } from 'node:path'
-import { inspect, parseAdrContract, type Issue, type StagedFile, ADR_CONTRACT_RELATIVE_PATH, ADR_TEMPLATE_BASELINE_RELATIVE_PATH, ADR_TEMPLATE_RELATIVE_PATH } from './_adr-standard-core.ts'
+import { hasStagedAdrNumberingChanges, inspect, inspectStagedNumbering, isAdrDocumentPath, parseAdrContract, type AdrNumberingBaseline, type Issue, type StagedFile, ADR_CONTRACT_RELATIVE_PATH, ADR_TEMPLATE_BASELINE_RELATIVE_PATH, ADR_TEMPLATE_RELATIVE_PATH } from './_adr-standard-core.ts'
 
 const indexFile = parseIndexFile(process.argv.slice(2))
 const repo = await git(process.cwd(), null, ['rev-parse', '--show-toplevel']).then(text => text.trim()).catch((error: Error) => failRead(error.message))
 const resolvedIndex = indexFile ? await resolveIndexFile(process.cwd(), repo, indexFile) : null
-const names = (await git(repo, resolvedIndex, ['diff', '--cached', '--diff-filter=ACMRT', '--name-only', '-z', '--', 'docs/adr'])).split('\0')
-const adrNames = names.filter(path => {
-  const base = path.split('/')[2] ?? ''
-  return path.startsWith('docs/adr/') && path.split('/').length === 3 && path.endsWith('.md') && base !== 'README.md' && base !== 'adr-template.md'
-})
+const unmergedEntries = await gitOrFail(repo, resolvedIndex, ['ls-files', '--unmerged', '-z', '--', 'docs/adr'])
+if (unmergedEntries !== '') failRead('unmerged-index: index に未解決の競合があります')
+const stagedPaths = (await gitOrFail(repo, resolvedIndex, ['diff', '--cached', '--no-renames', '--diff-filter=ACMRTD', '--name-only', '-z', '--', 'docs/adr'])).split('\0').filter(Boolean)
+const changedAdrPaths = stagedPaths.filter(isAdrDocumentPath)
+const numberingChanged = hasStagedAdrNumberingChanges(stagedPaths)
+const indexAdrPaths = numberingChanged
+  ? (await gitOrFail(repo, resolvedIndex, ['ls-files', '--cached', '-z', '--', 'docs/adr'])).split('\0').filter(Boolean)
+  : []
+const indexAdrPathSet = new Set(indexAdrPaths)
+const adrNames = changedAdrPaths.filter(path => indexAdrPathSet.has(path))
 
 const contractText = await indexBlob(repo, resolvedIndex, ADR_CONTRACT_RELATIVE_PATH)
 const template = await indexBlob(repo, resolvedIndex, ADR_TEMPLATE_RELATIVE_PATH)
@@ -25,7 +30,15 @@ if (baseline === null) failRead(`${ADR_TEMPLATE_BASELINE_RELATIVE_PATH} が inde
 if (readme === null) failRead('docs/adr/README.md が index にありません')
 const parsed = parseAdrContract(contractText)
 if (!parsed.ok) failRead(parsed.message)
-if (adrNames.length === 0) process.exit(0)
+if (!numberingChanged) finish([])
+const headPaths = await headAdrPaths(repo)
+const numberingBaseline: AdrNumberingBaseline = {
+  changedPaths: stagedPaths,
+  indexPaths: indexAdrPaths,
+  headPaths,
+  indexReservedNumbers: parsed.contract.reservedNumbers,
+}
+if (adrNames.length === 0) finish(inspectStagedNumbering(numberingBaseline))
 
 const files: StagedFile[] = []
 for (const path of adrNames) {
@@ -40,6 +53,7 @@ finish(inspect({
   readme,
   contract: parsed.contract,
   fullTree: false,
+  numberingBaseline,
 }))
 
 function parseIndexFile(args: string[]): string | null {
@@ -67,7 +81,7 @@ async function resolveIndexFile(cwd: string, repo: string, rawPath: string): Pro
   const indexFile = await realpath(unresolved).catch(() => failRead(`明示 index を読み取れません: ${unresolved}`))
   const info = await stat(indexFile).catch(() => failRead(`明示 index を読み取れません: ${indexFile}`))
   if (!info.isFile()) failRead(`明示 index は通常ファイルである必要があります: ${indexFile}`)
-  const gitDirRaw = (await git(repo, null, ['rev-parse', '--absolute-git-dir'])).trim()
+  const gitDirRaw = (await gitOrFail(repo, null, ['rev-parse', '--absolute-git-dir'])).trim()
   const gitDir = await realpath(gitDirRaw).catch(() => failRead(`current worktree git dir ${gitDirRaw}`))
   const fromGit = relative(gitDir, indexFile)
   if (fromGit.startsWith('..') || isAbsolute(fromGit)) {
@@ -82,6 +96,26 @@ async function indexBlob(repo: string, indexFile: string | null, path: string): 
   } catch {
     return null
   }
+}
+
+async function headAdrPaths(repo: string): Promise<string[]> {
+  try {
+    await git(repo, null, ['rev-parse', '--verify', 'HEAD^{commit}'])
+  } catch (headError) {
+    const headRef = (await git(repo, null, ['symbolic-ref', '--quiet', 'HEAD']).catch(error =>
+      failRead(`HEADを確認できません: ${errorMessage(error)}`),
+    )).trim()
+    const matchingRefs = await git(repo, null, ['for-each-ref', '--format=%(refname)', headRef]).catch(error =>
+      failRead(`HEAD参照を確認できません: ${errorMessage(error)}`),
+    )
+    if (!matchingRefs.split('\n').includes(headRef)) return []
+    failRead(`HEADのGit objectを読み取れません: ${errorMessage(headError)}`)
+  }
+  return (await gitOrFail(repo, null, ['ls-tree', '-r', '--name-only', '-z', 'HEAD', '--', 'docs/adr'])).split('\0').filter(Boolean)
+}
+
+async function gitOrFail(repo: string, indexFile: string | null, args: string[]): Promise<string> {
+  return git(repo, indexFile, args).catch(error => failRead(`git ${args[0]}: ${errorMessage(error)}`))
 }
 
 async function git(repo: string, indexFile: string | null, args: string[]): Promise<string> {
@@ -101,6 +135,10 @@ async function git(repo: string, indexFile: string | null, args: string[]): Prom
   })
   if (code !== 0) throw new Error(Buffer.concat(stderr).toString('utf8').trim() || `git ${args[0]} failed`)
   return Buffer.concat(stdout).toString('utf8')
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 function finish(issues: Issue[]): never {

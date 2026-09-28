@@ -17,6 +17,12 @@ export type AdrContract = {
   sanitizedNumbers: number[]
 }
 export type StagedFile = { name: string; content: string }
+export type AdrNumberingBaseline = {
+  changedPaths: string[]
+  indexPaths: string[]
+  headPaths: string[]
+  indexReservedNumbers: number[]
+}
 export type InspectInput = {
   files: StagedFile[]
   /** 検査対象の template 本文。ファイルが無いときは null。 */
@@ -26,6 +32,8 @@ export type InspectInput = {
   readme: string | null
   contract: AdrContract
   fullTree: boolean
+  /** staged checker 用。番号集合比較に必要な index / HEAD の ADR path 一覧。 */
+  numberingBaseline?: AdrNumberingBaseline
 }
 
 export function parseAdrContract(text: string): { ok: true; contract: AdrContract } | { ok: false; message: string } {
@@ -122,10 +130,15 @@ function judge(input: InspectInput): Issue[] {
       issues.push(issue('unindexed-adr', `新規 ADR を README 索引へ1回掲載してください: ${file.name}`))
     }
   }
-  for (const [number, files] of [...numbers.entries()].sort((a, b) => a[0] - b[0])) {
-    if (files.length > 1) {
-      issues.push(issue('duplicate-adr-number', `ADR-${String(number).padStart(4, '0')} が重複しています: ${files.join(', ')}`))
+  if (input.fullTree || input.numberingBaseline === undefined) {
+    for (const [number, files] of [...numbers.entries()].sort((a, b) => a[0] - b[0])) {
+      if (files.length > 1) {
+        issues.push(issue('duplicate-adr-number', `ADR-${String(number).padStart(4, '0')} が重複しています: ${files.join(', ')}`))
+      }
     }
+  }
+  if (!input.fullTree && input.numberingBaseline !== undefined) {
+    issues.push(...stagedNumberingIssues(input.numberingBaseline))
   }
   if (input.fullTree) {
     const highest = [...numbers.keys()].reduce<number | null>((max, number) => (max === null || number > max ? number : max), null)
@@ -138,6 +151,73 @@ function judge(input: InspectInput): Issue[] {
     }
   }
   return issues
+}
+
+export function inspectStagedNumbering(baseline: AdrNumberingBaseline): Issue[] {
+  return stagedNumberingIssues(baseline)
+}
+
+export function hasStagedAdrNumberingChanges(paths: string[]): boolean {
+  return paths.some(isAdrDocumentPath)
+}
+
+function stagedNumberingIssues(baseline: AdrNumberingBaseline): Issue[] {
+  const indexNumbers = collectAdrNumbers(baseline.indexPaths)
+  const headNumbers = collectAdrNumbers(baseline.headPaths)
+  const changedNumbers = collectAdrNumbers(baseline.changedPaths)
+  const issues: Issue[] = []
+  for (const number of [...changedNumbers.keys()].sort((a, b) => a - b)) {
+    const files = indexNumbers.get(number)
+    if (files && files.length > 1) {
+      issues.push(issue('duplicate-adr-number', `staged変更と関係するADR-${String(number).padStart(4, '0')} がindex内で重複しています: ${files.join(', ')}`))
+    }
+  }
+
+  for (const [number, files] of [...headNumbers.entries()].sort((a, b) => a[0] - b[0])) {
+    if (!indexNumbers.has(number)) {
+      issues.push(issue('removed-adr-number', `HEADに存在する番号がindexから消えています: ADR-${String(number).padStart(4, '0')} (${files.join(', ')})`))
+    }
+  }
+
+  const headMissing = missingAdrNumbers(headNumbers, baseline.indexReservedNumbers)
+  for (const number of missingAdrNumbers(indexNumbers, baseline.indexReservedNumbers)) {
+    if (!headMissing.has(number)) {
+      issues.push(issue('nonsequential-adr-number', `HEADから増えた番号の欠番です: ADR-${String(number).padStart(4, '0')}`))
+    }
+  }
+  return issues
+}
+
+function collectAdrNumbers(paths: string[]): Map<number, string[]> {
+  const numbers = new Map<number, string[]>()
+  for (const path of paths) {
+    if (!isAdrDocumentPath(path)) continue
+    const name = path.split('/')[2] ?? ''
+    const numberText = adrFileNumber(name)
+    if (numberText === null) continue
+    const number = Number(numberText)
+    const files = numbers.get(number) ?? []
+    files.push(path)
+    numbers.set(number, files)
+  }
+  return numbers
+}
+
+export function isAdrDocumentPath(path: string): boolean {
+  const parts = path.split('/')
+  const name = parts[2] ?? ''
+  return path.startsWith('docs/adr/') && parts.length === 3 && name.endsWith('.md') && name !== 'README.md' && name !== 'adr-template.md'
+}
+
+function missingAdrNumbers(numbers: Map<number, string[]>, reservedNumbers: number[]): Set<number> {
+  const highest = [...numbers.keys()].reduce<number | null>((max, number) => (max === null || number > max ? number : max), null)
+  const missing = new Set<number>()
+  if (highest === null) return missing
+  const reserved = new Set(reservedNumbers)
+  for (let number = 1; number <= highest; number += 1) {
+    if (!numbers.has(number) && !reserved.has(number)) missing.add(number)
+  }
+  return missing
 }
 
 function issue(code: string, message: string): Issue {
