@@ -49,8 +49,11 @@ pre-commit:
 # <!-- END develop-meta:lefthook:pre-commit:docs-structure -->
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
+    # staged のファイルだけを検査・整形する (501 と同じ)。ディレクトリ全体へ --write をかけると
+    # 毎回全体を走査するうえ、別作業の未 staged の変更まで書き換えて stage_fixed で commit に入りうる。
     biome:
-      run: scripts/with-dev-env bunx biome check --write ./src ./tests ./scripts
+      glob: "{src,tests,scripts}/**/*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc}"
+      run: scripts/with-dev-env bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
     typescript:
       glob: "*.{ts,tsx}"
@@ -66,6 +69,7 @@ pre-commit:
 # テストヘルパや preload (src/test-helpers/setup.ts) 経路で壊れる失敗を逃しがち。
 # push 前に全件走らせて main を緑に保つ。全件でも数秒なのでコストは無視できる。
 pre-push:
+  parallel: true
   commands:
     full-test:
       run: scripts/with-dev-env bun test
