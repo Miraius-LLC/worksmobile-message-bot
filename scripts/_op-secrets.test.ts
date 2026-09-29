@@ -10,17 +10,17 @@ import {
 
 const template = [
   '# comments are ignored',
-  'CLIENT_ID="{{ op://Worksmobile/LINE WORKS Bot/client_id }}"',
-  'CLIENT_SECRET="{{ op://Worksmobile/LINE WORKS Bot/client_secret }}"',
-  'BASIC_ID="{{ op://Worksmobile/LINE WORKS Basic/basic_id }}"',
+  'CLIENT_ID="{{ op://worksmobile-message-bot/LINE WORKS Bot/client_id }}"',
+  'CLIENT_SECRET="{{ op://worksmobile-message-bot/LINE WORKS Bot/client_secret }}"',
+  'BASIC_ID="{{ op://worksmobile-message-bot/LINE WORKS Basic/basic_id }}"',
 ].join('\n')
 
 describe('parseTemplateReferences', () => {
   test('.env.tpl の op inject 参照を env key ごとに読む', () => {
     expect(parseTemplateReferences(template)).toEqual({
-      CLIENT_ID: 'op://Worksmobile/LINE WORKS Bot/client_id',
-      CLIENT_SECRET: 'op://Worksmobile/LINE WORKS Bot/client_secret',
-      BASIC_ID: 'op://Worksmobile/LINE WORKS Basic/basic_id',
+      CLIENT_ID: 'op://worksmobile-message-bot/LINE WORKS Bot/client_id',
+      CLIENT_SECRET: 'op://worksmobile-message-bot/LINE WORKS Bot/client_secret',
+      BASIC_ID: 'op://worksmobile-message-bot/LINE WORKS Basic/basic_id',
     })
   })
 })
@@ -32,11 +32,11 @@ describe('pendingSecretReads', () => {
     ).toEqual([
       {
         envKey: 'CLIENT_SECRET',
-        reference: 'op://Worksmobile/LINE WORKS Bot/client_secret',
+        reference: 'op://worksmobile-message-bot/LINE WORKS Bot/client_secret',
       },
       {
         envKey: 'BASIC_ID',
-        reference: 'op://Worksmobile/LINE WORKS Basic/basic_id',
+        reference: 'op://worksmobile-message-bot/LINE WORKS Basic/basic_id',
       },
     ])
   })
@@ -54,11 +54,11 @@ describe('resolveSecretsToEnv', () => {
     })
 
     expect(calls).toEqual([
-      'op://Worksmobile/LINE WORKS Bot/client_secret',
-      'op://Worksmobile/LINE WORKS Basic/basic_id',
+      'op://worksmobile-message-bot/LINE WORKS Bot/client_secret',
+      'op://worksmobile-message-bot/LINE WORKS Basic/basic_id',
     ])
     expect(result.values.CLIENT_ID).toBe('from-env')
-    expect(result.values.CLIENT_SECRET).toBe('op://Worksmobile/LINE WORKS Bot/client_secret:value')
+    expect(result.values.CLIENT_SECRET).toBe('op://worksmobile-message-bot/LINE WORKS Bot/client_secret:value')
   })
 
   test('ignoreEnv の時は既存 env を使わず全参照を読む', async () => {
@@ -73,14 +73,14 @@ describe('resolveSecretsToEnv', () => {
     })
 
     expect(calls).toHaveLength(3)
-    expect(result.values.CLIENT_ID).toBe('op://Worksmobile/LINE WORKS Bot/client_id:from-op')
+    expect(result.values.CLIENT_ID).toBe('op://worksmobile-message-bot/LINE WORKS Bot/client_id:from-op')
   })
 
   test('失敗は集約し、表示行に secret 値を含めない', async () => {
     const results = new Map<string, ReadResult>([
-      ['op://Worksmobile/LINE WORKS Bot/client_id', { ok: true, value: 'secret-value' }],
-      ['op://Worksmobile/LINE WORKS Bot/client_secret', { ok: false, reason: 'not found' }],
-      ['op://Worksmobile/LINE WORKS Basic/basic_id', { ok: true, value: 'basic-id' }],
+      ['op://worksmobile-message-bot/LINE WORKS Bot/client_id', { ok: true, value: 'secret-value' }],
+      ['op://worksmobile-message-bot/LINE WORKS Bot/client_secret', { ok: false, reason: 'not found' }],
+      ['op://worksmobile-message-bot/LINE WORKS Basic/basic_id', { ok: true, value: 'basic-id' }],
     ])
     const result = await resolveSecretsToEnv(template, {
       env: {},
@@ -91,7 +91,7 @@ describe('resolveSecretsToEnv', () => {
     expect(result.failures).toEqual([
       {
         envKey: 'CLIENT_SECRET',
-        reference: 'op://Worksmobile/LINE WORKS Bot/client_secret',
+        reference: 'op://worksmobile-message-bot/LINE WORKS Bot/client_secret',
         reason: 'not found',
       },
     ])
@@ -200,7 +200,7 @@ describe('resolveSecretsToEnv', () => {
       },
     })
 
-    expect(calls).toEqual(['op://Worksmobile/LINE WORKS Bot/client_id'])
+    expect(calls).toEqual(['op://worksmobile-message-bot/LINE WORKS Bot/client_id'])
     expect(result.signinNeeded).toBe(true)
     expect(result.failures).toHaveLength(3)
   })

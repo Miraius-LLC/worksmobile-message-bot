@@ -1,18 +1,18 @@
 # ==============================================================================
 # .env — LINE WORKS bot のローカル env (テンプレート)
 # ==============================================================================
-# このファイル (.env.tpl) は tracked。実体 .env は 1Password (Worksmobile vault) から生成:
+# このファイル (.env.tpl) は tracked。実体 .env は 1Password (worksmobile-message-bot vault) から生成:
 #   bun run secrets:inject
 # .tpl は op 参照のみ = secret 非含有なので PUBLIC repo でも安全に commit できる。.env は .gitignore 済。
 # WorkersはWrangler secret、Cloud RunはSecret Managerから注入するため、
 # 本ファイルはローカル開発と承認済みCloud Run手動復旧のsubstitution生成専用。
 # ==============================================================================
 
-CLIENT_ID="{{ op://Worksmobile/LINE WORKS Bot/client_id }}"
-CLIENT_SECRET="{{ op://Worksmobile/LINE WORKS Bot/client_secret }}"
-SERVICE_ACCOUNT="{{ op://Worksmobile/LINE WORKS Bot/service_account }}"
-PRIVATE_KEY="{{ op://Worksmobile/LINE WORKS Bot/private_key }}"
-BOT_ID="{{ op://Worksmobile/LINE WORKS Bot/bot_id }}"
-BOT_SECRET="{{ op://Worksmobile/LINE WORKS Bot/bot_secret }}"
-BASIC_ID="{{ op://Worksmobile/LINE WORKS Basic/basic_id }}"
-BASIC_PASS="{{ op://Worksmobile/LINE WORKS Basic/basic_pass }}"
+CLIENT_ID="{{ op://worksmobile-message-bot/LINE WORKS Bot/client_id }}"
+CLIENT_SECRET="{{ op://worksmobile-message-bot/LINE WORKS Bot/client_secret }}"
+SERVICE_ACCOUNT="{{ op://worksmobile-message-bot/LINE WORKS Bot/service_account }}"
+PRIVATE_KEY="{{ op://worksmobile-message-bot/LINE WORKS Bot/private_key }}"
+BOT_ID="{{ op://worksmobile-message-bot/LINE WORKS Bot/bot_id }}"
+BOT_SECRET="{{ op://worksmobile-message-bot/LINE WORKS Bot/bot_secret }}"
+BASIC_ID="{{ op://worksmobile-message-bot/LINE WORKS Basic/basic_id }}"
+BASIC_PASS="{{ op://worksmobile-message-bot/LINE WORKS Basic/basic_pass }}"
