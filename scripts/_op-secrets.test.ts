@@ -58,7 +58,9 @@ describe('resolveSecretsToEnv', () => {
       'op://worksmobile-message-bot/LINE WORKS Basic/basic_id',
     ])
     expect(result.values.CLIENT_ID).toBe('from-env')
-    expect(result.values.CLIENT_SECRET).toBe('op://worksmobile-message-bot/LINE WORKS Bot/client_secret:value')
+    expect(result.values.CLIENT_SECRET).toBe(
+      'op://worksmobile-message-bot/LINE WORKS Bot/client_secret:value',
+    )
   })
 
   test('ignoreEnv の時は既存 env を使わず全参照を読む', async () => {
@@ -73,13 +75,21 @@ describe('resolveSecretsToEnv', () => {
     })
 
     expect(calls).toHaveLength(3)
-    expect(result.values.CLIENT_ID).toBe('op://worksmobile-message-bot/LINE WORKS Bot/client_id:from-op')
+    expect(result.values.CLIENT_ID).toBe(
+      'op://worksmobile-message-bot/LINE WORKS Bot/client_id:from-op',
+    )
   })
 
   test('失敗は集約し、表示行に secret 値を含めない', async () => {
     const results = new Map<string, ReadResult>([
-      ['op://worksmobile-message-bot/LINE WORKS Bot/client_id', { ok: true, value: 'secret-value' }],
-      ['op://worksmobile-message-bot/LINE WORKS Bot/client_secret', { ok: false, reason: 'not found' }],
+      [
+        'op://worksmobile-message-bot/LINE WORKS Bot/client_id',
+        { ok: true, value: 'secret-value' },
+      ],
+      [
+        'op://worksmobile-message-bot/LINE WORKS Bot/client_secret',
+        { ok: false, reason: 'not found' },
+      ],
       ['op://worksmobile-message-bot/LINE WORKS Basic/basic_id', { ok: true, value: 'basic-id' }],
     ])
     const result = await resolveSecretsToEnv(template, {
