@@ -76,4 +76,4 @@ description: 既存 graphify-out/graph.json で既存graphの関連コード候�
 - stale / missing / unsupportedな範囲
 - graphだけでは判断していないこと
 
-通常の調査は、対象repo内の `graphify-out/graph.json`、`rg`、現行source・test・SQL・docsで完結する。`~/Develop/docs/claude-commands.md`、`~/Develop/bin/check-code-intelligence-updates`、`~/Develop/docs/superpowers/plans/2026-08-10-codegraph-graphify-operationalization.md` は、Develop島の保守でそのpathがあるときの任意の参考であり、子repoの通常調査では読まない。旧full-pipeline手順や過去実験を現行手順として再利用しない。
+通常の調査は、対象repo内の `graphify-out/graph.json`、`rg`、現行source・test・SQL・docsで完結する。`~/Develop/develop-meta/docs/claude-commands.md`、`~/Develop/develop-meta/bin/check-code-intelligence-updates`、`~/Develop/develop-meta/docs/superpowers/plans/2026-08-10-codegraph-graphify-operationalization.md` は、Develop島の保守でそのpathがあるときの任意の参考であり、子repoの通常調査では読まない。旧full-pipeline手順や過去実験を現行手順として再利用しない。

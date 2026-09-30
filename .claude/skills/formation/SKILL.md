@@ -1,6 +1,6 @@
 ---
 name: formation
-description: Use when the first pane is asked to coordinate 2–11 user-selected panes in one Herdr workspace around one repo goal via agent-room Formation, including lane assignments, reports, review, and shipping; not ordinary subagent delegation, one pane, plain terminals, unselected panes, or cross-repo Programs.
+description: Use when the first pane is asked to coordinate 2–13 user-selected panes in one Herdr workspace around one repo goal via agent-room Formation, including lane assignments, reports, review, and shipping; not ordinary subagent delegation, one pane, plain terminals, unselected panes, or cross-repo Programs.
 ---
 
 # Formation
@@ -11,6 +11,7 @@ Formation coordinates approved panes as one temporary team for a single reposito
 
 - **member-first:** 選択・admitした各member paneへ重複しない上位assignmentを確定してから下位workを使う。下位agentは未割当memberの代替にしない。Commander work follows the owner's explicit mode and bounds.
 - Work only from the current assignment, its touching paths, and allowed methods. Do not widen scope. In a member lane, ask the Commander through `formation report` for decisions; do not question the user directly.
+- If work needs a path outside `touching`, stop before editing and submit a `BLOCKED` report with `--request-touching`. Resume only after a fresh status confirms the same assignment ID and effective scope. An ordinary note never changes scope; if status is unavailable or the decision is unconfirmed, remain blocked.
 - Use the Formation CLI for assignment, correction, cancellation, reporting, acknowledgement, and release. Before each action, check `formation status --json` and match the current lane and assignment. Never send Formation messages by hand.
 - Put scope, upper bounds, and completion criteria in the initial assignment: an in-flight Codex correction may not be read until its turn ends.
 - Report `STARTED`, `RED`, `BLOCKED`, or `CANDIDATE_READY` as work changes. A `CANDIDATE_READY` report carries a committed SHA, clean worktree, verification, and review evidence; responsibility remains until Commander ACK.
@@ -26,6 +27,7 @@ Formation coordinates approved panes as one temporary team for a single reposito
 
 - Start, claim, assign, leave, roster changes, and close: [contract](references/contract.md).
 - Notes, reports, delivery receipts, and transport outcomes: [messaging](references/messaging.md).
+- Touching scope amendment request, approval, readback, and recovery: [runbook](https://github.com/fujimogn/agent-room/blob/main/docs/runbook/formation-touching-amend.md).
 - Independent review and evidence recovery: [review](references/review.md).
 - Implementation seams and history: [implementation-map](references/implementation-map.md).
 - Shipping operation: [formation shipping runbook](https://github.com/fujimogn/agent-room/blob/main/docs/runbook/formation-shipping.md).

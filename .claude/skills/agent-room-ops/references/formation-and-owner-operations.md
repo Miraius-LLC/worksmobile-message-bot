@@ -3,11 +3,12 @@
 ## Assignment と report
 
 - assignment の goal、repo、touching、受入条件、上限、権限を確認してから claim する。
-- owner が scope を変えるときは current assignment を cancel してから新しい ID で再割当する。note だけで scope を上書きしない。
+- 通常noteはassignment scopeを変えない。scope外のtracked fileはmemberが編集前にBLOCKED requestを出し、Commanderがrequest・repo/worktreeを照合して同じassignmentへexact pathを追加承認できる。新規・未追跡fileはcancel / reassignで扱う。手順は[Formation touching amendment runbook](https://github.com/fujimogn/agent-room/blob/main/docs/runbook/formation-touching-amend.md)に従う。
 - lane は status の最新 revision と current assignment ID を使って report する。delivery が unconfirmed の report を再実行しない。
 - CANDIDATE_READY は ACK と integration acceptance の代わりにならない。Commander は対象 SHA、check、review、残件を確認する。
 - Shipper は検証済み modern_cli capability を持つ member だけ。ship は Formation shipping runbook に従い、承認されていない push / deploy を行わない。
 - report / assign / note / ACK / cancel / release の構文は agent-room formation <action> --help で確認する。
+- touching amendmentではapprove / reject直前にstatusからfresh revisionを取り、approveはCLIのread-only Git verifierを通す。decision後は台帳statusを確認し、`unconfirmed`時にmutationを繰り返さない。
 
 詳細: [Formation skill](https://github.com/fujimogn/agent-room/blob/main/skills/formation/SKILL.md)、[contract](https://github.com/fujimogn/agent-room/blob/main/skills/formation/references/contract.md)、[messaging](https://github.com/fujimogn/agent-room/blob/main/skills/formation/references/messaging.md)。
 

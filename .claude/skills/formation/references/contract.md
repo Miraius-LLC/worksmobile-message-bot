@@ -6,7 +6,7 @@ Formation は、同じ Herdr workspace の選択 pane を1つの repo と goal �
 
 - Commander は goal、repo、受入条件、touching、権限境界、期限や上限を assign に明記する。lane は記載範囲を実行し、曖昧または矛盾する指示は推測で埋めない。
 - 作業を分割する場合、各 assignment に担当、具体的な成果、許可パス、完了条件を置く。子laneは親の repo・touching・権限・同時実行数を引き継ぐ。
-- scope変更は note だけで暗黙に行わない。Commander が旧 assignment を cancel し、新しい範囲で再割当する。
+- 通常noteだけではscope・受入条件・権限を変更しない。scope外pathが必要なmemberは編集前に`BLOCKED` reportで`--request-touching`を申請し、Commanderの明示decision後にfresh statusで同じassignment IDとeffective scopeを確認する。承認されたexact pathだけがそのassignmentへ加わる。新規・未追跡fileなど申請できないpathはcancel / reassignで扱う。
 - Commander は調整・確認・統合責任を持つ。実装laneは割当範囲の作業を完了し、review lane は独立した固定対象の review を行う。
 - 同一 member は原則として実行中1件とACK待ち1件まで。前件の CANDIDATE_READY をACKする前に次 assignment を与えない。
 - 最新 origin/main を起点に専用 worktree を使う。共有 checkout に書かず、他 lane の変更を戻さない。
@@ -32,12 +32,13 @@ Formation は、同じ Herdr workspace の選択 pane を1つの repo と goal �
 
 - lane は現在の assignment ID と最新台帳 revision を使って報告する。許可されたイベントは STARTED、RED、BLOCKED、CANDIDATE_READY。
 - note は履歴であり、assignment の scope を変えない。最新 status の assignment と未読 note を確認してから次の操作を選ぶ。
+- scope amendmentのrequest / Commander decision / readback手順は[runbook](https://github.com/fujimogn/agent-room/blob/main/docs/runbook/formation-touching-amend.md)に従う。通知だけをapprovalの証拠にしない。
 - 通知は台帳の代替ではない。Formation CLI の status で現在状態を照合し、別経路で手動送信しない。
 - report の delivery が unconfirmed なら同じ report を再実行しない。先に台帳を確認し、判断が要れば司令塔へ report する。
 - CANDIDATE_READY は review / ACK / integration acceptance の完了を意味しない。司令塔が固定差分を確認しACKした後にだけ lane の仕事を閉じる。
 - 閉鎖前に各 lane の結果、未解決事項、統合状態、受入根拠を照合する。idle lane や終了した pane だけでは goal を閉じない。
 - closeの`--acceptance`は最新statusからstart時の全条件を取り直し、文言・重複数を変えず全件渡す（順序のみ不問）。先に全memberをreleaseし、`--excluded-candidate`はstart時の除外集合からreseatで追加した候補を除いて1件ずつ渡す。`--remove`した候補は戻さない。close拒否の代表は`formation_close_incomplete` / `active_lanes`。
-- close dossierでS6のCLI外連絡なしを確認する。採用日は2026-09-17、基準commitは`434fa51df6caa04546f10107d13bb73963813bae`。採用前の違反と是正を残し、採用後の違反・不明は未充足とする。degraded配送は件数・理由・衝突し得た区間・観測不能範囲を棚卸しし、未観測をゼロとしない。
+- close dossierでS6のCLI外連絡なしを確認する。採用日は2026-09-17、基準commitは`434fa51df6caa04546f10107d13bb73963813bae`。採用前の違反と是正を残し、採用後の違反・不明は未充足とする。degraded配送は件数・理由・衝突し得た区間・観測不能範囲を棚卸しし、未観測をゼロとしない。棚卸しは`formation status --id <id> --delivery-history --json`の全attemptで行う（既定のstatusは要約と未確認配送だけ）。
 - ship の責任は Commander または明示された適格 Shipper が持つ。Shipper は検証済み modern_cli capability がある場合に限る。ship の手順は [formation shipping runbook](https://github.com/fujimogn/agent-room/blob/main/docs/runbook/formation-shipping.md) を参照する。
 
 ## 中断・再配置
@@ -46,11 +47,12 @@ Formation は、同じ Herdr workspace の選択 pane を1つの repo と goal �
 - 同じ lane の再開では台帳の current assignment と notes を先に確認する。担当が変わっていれば旧作業を続けない。
 - 別 pane / member に再配置する前に、旧 lane が assignment を実行中でないことを台帳で確認する。pane を閉じたり外したりする前に責任と lease を解放する。
 - stale な pane 情報や失敗した CLI 操作を、手動送信や台帳の直接編集で回避しない。安全な復旧手順が分からなければ止めて報告する。
+- roster 全件への一括操作は `formation bulk plan` で選択 roster 全件の計画と digest を出し、owner が承認した digest を `formation bulk handoff` に渡して再検証・journal 記録する。digest の代理承認や、計画外の pane・lane への操作はしない。pane への handoff 依頼、quota 後任への引継ぎ、`/clear` 相当・再起動・close は未実装で、`recorded` は依頼・保存の証拠にならない。fallback / supplement handoff の `unknown` や `continuation: stopped` では続行しない。手順は [Formation 一括操作 runbook](https://github.com/fujimogn/agent-room/blob/main/docs/runbook/formation-bulk-operations.md)。
 
 ## Challenge・roster・attachmentの復旧
 
 - 最終操作から48時間を超えて書込みがないFormationは、次の台帳write-open時に行ごと自動解散する（ちょうど48時間は残る）。closeの代用ではない。
-- rosterからpaneを外す前に、対象assignmentを回収し`release`してから`reseat --remove`する。paneを閉じてからだと`formation_selected_pane_not_found`になり得る。古いrevisionは`revision_conflict`。reseatの代表拒否は`formation_reseat_candidate_not_found:<pane>`、`candidate_not_selected`、`duplicate_candidate`、`commander_not_removable`、`reseat_candidate_attached`、`lane_has_unrecovered_assignment`、`workspace_mismatch`、`repository_mismatch`、`duplicate_attachment_identity`、`invalid_lane_limit`。枠が11ならremoveとaddを別commandにする。
+- rosterからpaneを外す前に、対象assignmentを回収し`release`してから`reseat --remove`する。paneを閉じてからだと`formation_selected_pane_not_found`になり得る。古いrevisionは`revision_conflict`。reseatの代表拒否は`formation_reseat_candidate_not_found:<pane>`、`candidate_not_selected`、`duplicate_candidate`、`commander_not_removable`、`reseat_candidate_attached`、`lane_has_unrecovered_assignment`、`workspace_mismatch`、`repository_mismatch`、`duplicate_attachment_identity`、`invalid_lane_limit`。枠が13ならremoveとaddを別commandにする。
 - 同じpaneのagent交代はreseatでなく、司令塔が旧assignmentを`cancel` → 旧laneを`release` → 新lane IDで`challenge` → 新agentが`claim`する。
 - goal未達でFormationを止める時だけdisbandする。先にhandoffを保存し、最新statusの`lanes[].assignment`にある`released`以外を`--abandon`で全件そのまま渡す。activeな子作業も拒否対象（`disband_unrecovered_assignment`）。代表拒否は`disband_handoff_unavailable`、`storage_failure`。不確かな結果では先にstatusを読み、`formation_not_found`なら行は削除済み。台帳を手で消さない。
 - `nativeSessionId`がnullのattachmentはHerdrの`terminal_id`一致も要求するため、server再起動でIDが再発行されるとそのpaneの書込みが止まり、commanderなら複数操作が凍結する。claimにはfreshな`--native-session <agent_session>`を渡し、claim直後に値が保存されたことを確認する。省略・`-`・空白は明示nullでなくlive再観測へ戻り、観測できなければnullのまま。

@@ -8,7 +8,11 @@
 
 ## Scope と安全
 
-- assignment が実行権限の唯一の根拠。note は補足や確認であり、それだけで paths、受入条件、権限を拡張しない。
+- assignment が実行権限の唯一の根拠。通常noteは補足・確認であり、それだけでpaths、受入条件、権限を拡張しない。
+- scope外pathが必要なmemberは編集前に`BLOCKED` reportで`--request-touching`を申請する。decision notice後も、次のfresh `formation status`で同じassignment ID、effective `touchingPaths`、`acceptanceCriteria`、path別outcomeを確認するまで作業を再開しない。承認されなかったpathには触れない。
+- Commanderはpending requestが同じcurrent assignmentに属することと、`request.reportId`が申請元の`BLOCKED` reportを指すことを確認する。申請後の`STARTED`や`RED`だけではrequestを無効化しない。`CANDIDATE_READY`、cancel、release、後継assignmentでrequestが終端・失効した場合は承認できない。
+- approval verifierはrequest worktreeのrepository identityとHEADを再確認する。HEAD内のtracked regular fileに加え、HEADにない新規pathも、既存parent directoryがrepo内にありsymlinkがなく、tracked file parentとの衝突がなく、leafが未作成またはregular fileなら承認候補にできる。missing parent、directory、symlink、`.git`、repo外、tracked fileとの衝突は拒否する。
+- statusが`status_unavailable`、assignment IDが変わった、またはeffective scopeに申請pathが含まれない場合はBLOCKEDのまま司令塔へreportする。通知が`unconfirmed`なら同じdecision/reportを再実行せず、ledger statusを正とする。
 - 連絡・判断要求・進捗報告は Formation CLI の report 経由に限る。手動の room message、別 agent への直接送信、台帳の直接編集をしない。
 
 ## 司令塔への配送と再送
@@ -34,3 +38,4 @@
 - 判断の返答を待つ間は割当範囲を維持し、無関係な次作業を始めない。
 
 詳細な責任境界は [contract](https://github.com/fujimogn/agent-room/blob/main/skills/formation/references/contract.md)、review の出し方は [review](https://github.com/fujimogn/agent-room/blob/main/skills/formation/references/review.md) を参照する。
+touching scope amendmentの手順とHuman Gateは[runbook](https://github.com/fujimogn/agent-room/blob/main/docs/runbook/formation-touching-amend.md)を参照する。
