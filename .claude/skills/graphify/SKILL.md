@@ -7,6 +7,8 @@ description: 既存 graphify-out/graph.json で既存graphの関連コード候�
 
 このskillは、既に生成済みの `graphify-out/graph.json` を読むための限定workflowである。graphは候補発見用のcacheであり、現行source・test・SQL・docsの代わりではない。
 
+Graphify 0.9.72以降は非`install` CLIでも古いuser-scope skillを自動更新し得る。develop-metaのClaude Codeはprojectの `.claude/settings.json` から `GRAPHIFY_NO_AUTO_REFRESH=1` を受け取るが、この設定は子repoへ配布されない。以下のGraphify呼出しはClaude・Codex・Kimiのread-only許可に一致する裸のコマンドとし、環境変数をコマンドへ前置しない。実行環境に抑止変数が無い場合は、管理側でGraphify実行版とuser-scope skillの版markerが揃ったと確認済みのときだけ探索コマンドを使う。不一致・未確認なら現行ファイルを直接読む。`graphify --version` 自体も自動更新判定を通るため、版確認目的で直接実行しない。配布先skillを直接編集しない。
+
 ## Trigger gate
 
 次をすべて満たす場合だけ使う。
@@ -61,7 +63,7 @@ description: 既存 graphify-out/graph.json で既存graphの関連コード候�
    ```sh
    graphify query "<exact-symbol>" --graph "<main-root>/graphify-out/graph.json" --context call --budget 500
    ```
-   `graphify path` / `graphify explain` も、関連コードnode、関連文書nodeまたは利用者明示のstandalone SQL nodeとして既に確定したnodeだけに使う。自動保存・reflection・再構築は行わない。
+   `path` / `explain` も上記の実行条件を満たす場合に限り、裸のコマンドで関連コードnode、関連文書nodeまたは利用者明示のstandalone SQL nodeとして既に確定したnodeだけに使う。自動保存・reflection・再構築は行わない。
 4. CLIが無い場合はinstallせず、`graph.json` を直接読み、候補nodeとedgeだけを抽出する。
 5. 得られた候補ごとに、現行source・test・SQL・docsを直接開いて確認する。
 6. graphで見つからなかったものも `rg` で再確認し、不存在の根拠にしない。
