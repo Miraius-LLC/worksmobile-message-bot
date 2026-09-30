@@ -7,7 +7,8 @@
  *
  * 実装: `AbortController` + `setTimeout` で指定 ms 経過後に abort。
  * abort された fetch は `AbortError` を throw するので、`FetchTimeoutError` に変換して
- * 呼び出し側で識別しやすくする。
+ * 呼び出し側で識別しやすくする。期限は本文の受信完了までを含む (本文は本関数内で
+ * 受け切るので、body を stream のまま中継する用途には使わない)。
  *
  * 標準 fetch との違い:
  *  - `timeoutMs` オプション (デフォルト `DEFAULT_TIMEOUT_MS`)
@@ -53,7 +54,11 @@ export async function fetchWithTimeout(
     : controller.signal
 
   try {
-    return await fetch(url, { ...rest, signal })
+    const response = await fetch(url, { ...rest, signal })
+    // 期限はヘッダ受信までではなく本文の受信完了まで掛ける。clone 側を読み切れば
+    // 元の Response に本文が溜まるので、呼び出し側の text() / json() は待たされない
+    await response.clone().arrayBuffer()
+    return response
   } catch (error: unknown) {
     // タイマー発火経由の AbortError だけ FetchTimeoutError に変換する。
     // 呼び出し側 (callerSignal) 経由の abort はそのまま伝播
