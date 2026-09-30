@@ -63,6 +63,7 @@ Graphify 0.9.72以降は非`install` CLIでも古いuser-scope skillを自動更
    ```sh
    graphify query "<exact-symbol>" --graph "<main-root>/graphify-out/graph.json" --context call --budget 500
    ```
+   `query` / `path` / `explain` は `--help` を検索語として扱い、ヘルプを出さずに検索を実行する（上流の仕様）。使い方はこの節の例で確かめる。
    `path` / `explain` も上記の実行条件を満たす場合に限り、裸のコマンドで関連コードnode、関連文書nodeまたは利用者明示のstandalone SQL nodeとして既に確定したnodeだけに使う。自動保存・reflection・再構築は行わない。
 4. CLIが無い場合はinstallせず、`graph.json` を直接読み、候補nodeとedgeだけを抽出する。
 5. 得られた候補ごとに、現行source・test・SQL・docsを直接開いて確認する。
