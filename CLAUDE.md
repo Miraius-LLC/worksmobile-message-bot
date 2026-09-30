@@ -3,7 +3,7 @@
 @AGENTS.md
 
 > ホームの `~/AGENTS.md` / `~/CLAUDE.md` が人物・作法・機微情報ルールを担保。
-> worksmobile-message-bot 固有の SoT（概要・主要コマンド・アーキテクチャ・環境変数・注意点）は **エージェント中立の `@AGENTS.md` に集約済み**。Codex / agy も同じ AGENTS.md を読む。
+> worksmobile-message-bot 固有の規約・注意点は **エージェント中立の `@AGENTS.md` に集約済み**（主要コマンド・アーキテクチャ・環境変数は `README.md`）。Codex / agy も同じ AGENTS.md を読む。
 > 本ファイルには **Claude Code 固有のロード機構（`.claude/rules/` の @import / Agent skills の per-repo 設定）だけ**を残す。
 
 ## ルール (常時適用)

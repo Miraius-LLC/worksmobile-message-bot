@@ -35,6 +35,24 @@ Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポ�
 
 ---
 
+## アーキテクチャ
+
+- `src/app.ts` — 共通 Hono app。`Hono` インスタンス生成 → trace / request log / secure-headers / BASIC 認証ミドルウェア → サブルータを `app.route(...)` で mount → `app.onError`
+- `src/index.ts` — Cloud Run 用エントリ。env を `config.load` で起動時検証 → `@hono/node-server` の `serve()` で `app` を起動 + SIGTERM の graceful shutdown (Workers 用エントリは `src/worker.ts`)
+- `src/routes/_middleware.ts` — `tokenMiddleware` で `c.var.token` に LINE WORKS のアクセストークンを注入
+- `src/routes/messages.ts` — `messagesApp` (Hono) を export。`(channels|users)/:id/messages/type/<type>` を 26 エンドポイント分 (13 type × channels/users の 2 base) まとめて `app.post(...)` で登録 (zValidator + `sendMessageByType`)
+- `src/routes/attachments/` — `attachmentsApp` (Hono) を export。`/attachments` prefix 配下に `POST /` (upload + 10MB bodyLimit) と `GET /:fileId` (download) をマウント
+- `src/services/lineworks/` — LINE WORKS API ラッパ
+  - `auth.ts` — JWT 生成 (`node:crypto` で RS256 自前実装) + アクセストークン取得 + キャッシュ + single-flight (`getServerToken`)
+  - `api.ts` — Bot API への JSON POST 共通処理 (`postJson`, `sendBotMessage`)
+  - `messages/index.ts` — 13 type 分の Zod schema + `sendMessageByType` 汎用 dispatcher (`{ type, ...body }` で組み立てて送信)
+  - `attachment.ts` — アップロード / ダウンロード URL 解決
+- `src/utils/config.ts` — Zod schema で env を起動時に検証 + `.transform()` で camelCase Config に整形 (fail-fast)
+- `src/utils/logger.ts` — pino ベース logger。Cloud Logging の `severity` フィールド + `logging.googleapis.com/trace` を自動付与
+- `src/utils/trace.ts` — `x-cloud-trace-context` ヘッダを AsyncLocalStorage で保持して logger に流す Hono ミドルウェア
+- `src/utils/zod-locale.ts` — Zod のエラーメッセージ日本語化マップ
+- `src/types/lineworks.ts` — `MessageTarget` の共有型 (それ以外は z.infer で導出)
+
 ## 環境変数の設定
 
 ローカルの `.env` は 1Password から生成する。
@@ -70,15 +88,18 @@ OAUTH_SCOPE=bot   # (任意) OAuth 認可スコープ: bot (default) | bot.messa
 | `SERVICE_ACCOUNT` | サービスアカウント |
 | `PRIVATE_KEY` | Base64 エンコードされたプライベートキー (`base64 -i ./private_XXXXXX.key \| pbcopy`) |
 | `BOT_ID` | Bot ID |
-| `BOT_SECRET` | Bot Secret (Callback の `X-WORKS-Signature` HMAC-SHA256 検証鍵)。Developer Console の Bot 詳細から取得 |
+| `BOT_SECRET` | Bot Secret (Callback の `X-WORKS-Signature` HMAC-SHA256 検証鍵)。Developer Console の Bot 詳細から取得した値をそのまま入れる (Base64 デコード等は不要) |
 | `BASIC_ID` | webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
 | `BASIC_PASS` | BASIC 認証パスワード |
 | `FORWARD_CALLBACK_URL` | (任意) 受信Callbackを転送するupstream serviceのURL。未設定なら転送せず200を返す |
+| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | (任意) 転送先が Cloudflare Access の内側にいる場合の service token。`CF-Access-Client-Id` / `CF-Access-Client-Secret` として付ける。**両方揃わないと起動時に落ちる** (片方だけ = 守っているつもりで素通り、を防ぐ) |
 | `OAUTH_SCOPE` | (任意) OAuth 認可スコープ (`bot` / `bot.message` / `bot.read`)。未設定時は `bot` |
 | `PORT` | listen ポート (省略時 `8080`) |
-| `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (4xx は warn で残しつつ Error Reporting には乗せない運用)。development では `debug` まで出す |
+| `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (`logger-impl.ts`。4xx は warn で残しつつ Error Reporting には乗せない運用)。development では `debug` まで出す。production では `shouldUsePretty` が `LOG_PRETTY=1` を無視して JSON 出力に倒す |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
-| `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`cloudbuild.yaml` のデプロイ step で自動注入される) |
+| `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`cloudbuild.yaml` のデプロイ step で自動注入される)。未設定なら trace ID 単独 |
+
+本番の機密値 (`CLIENT_SECRET` / `PRIVATE_KEY` / `BOT_SECRET` / `BASIC_ID` / `BASIC_PASS`) は、Cloud Run では Secret Manager の `lineworks-*:latest` をマウントし ([初回設定](#初回設定))、Workers では `wrangler secret put` で渡す。env は `src/utils/config.ts` の Zod schema が起動時に検証する。
 
 ### OAuth Scope の運用と注意点
 
@@ -123,6 +144,7 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 | pre-commit hook 有効化 | `bun run lefthook:install` |
 | 1Password から `.env` 生成 | `bun run secrets:inject` |
 | 1Password 参照の疎通確認 | `bun run secrets:check` |
+| OpenSpec 操作 / strict 検証 | `bun run spec -- <command>` / `bun run spec:validate` |
 
 `pre-commit` で biome auto-fix と `tsc --noEmit` が走るため、手動で先回り実行する必要は無い。
 
@@ -189,6 +211,15 @@ done
 `_SERVICE_ACCOUNT` / `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID`はsecretではないが、
 manual buildではprocess argvとCloud Build metadataから、その環境の権限者に見える。secret値は
 `--substitutions`へ渡さず、Secret Manager参照を使う。
+
+### Docker イメージの実装上の注意
+
+構造的な決定は [ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) (マルチステージ / BuildKit 不可 / 非 root / curl レス healthcheck / cloudbuild.yaml が SoT)、SA / secret 運用は [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)。
+
+- runtime ベースは `oven/bun:<ver>-slim` (debian-slim)、builder は `oven/bun:<ver>-debian` (フル) を使い分ける
+- CMD は `["bun", "build/index.js"]` で直接バンドルを起動する (`bun run start` → package.json 参照を避ける)
+- `.env` は `.dockerignore` で build context から除外済み。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入する
+- 機密度の低い env も substitution variable 経由で渡し、yaml には値を残さない
 
 ### Cloud Run Secret Manager のローテーション
 

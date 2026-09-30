@@ -1,8 +1,8 @@
 # worksmobile-message-bot — 全エージェント共通プロジェクト指示（Codex / Claude / agy）
 
-LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make から Webhook 経由でメッセージ送信・添付ファイルアップロード/ダウンロードを行うための薄いラッパ。エンドポイント仕様は **`README.md`** に詳細。本ファイルはコードから読み取りづらい規約・ゴッチャに限定する。
+LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make から Webhook 経由でメッセージ送信・添付ファイルアップロード/ダウンロードを行うための薄いラッパ。エンドポイント仕様・アーキテクチャ・環境変数・主要コマンド・デプロイ手順は **`README.md`** にある。本ファイルはコードから読み取りづらい規約・ゴッチャに限定する。
 
-このファイルは worksmobile-message-bot 固有の **SoT（実体）**。ホーム共通規約は `~/AGENTS.md` / `~/CLAUDE.md` が担保する。`CLAUDE.md` は本ファイルを `@import` する従属ラッパーで、Claude Code 固有のロード機構（`.claude/rules/` の @import / Agent skills の per-repo 設定）だけを持つ。Codex / agy は本ファイルを直読する（誰も CLAUDE.md を読まない）。
+このファイルは worksmobile-message-bot 固有の **SoT（実体）**。ホーム共通規約は `~/AGENTS.md` / `~/CLAUDE.md` が担保する。`CLAUDE.md` は本ファイルを `@import` する従属ラッパーで、Claude Code 固有のロード機構（`.claude/rules/` の @import / Agent skills の per-repo 設定）だけを持つ。Codex / agy は本ファイルを直読する。
 
 回答は日本語で、結論先出し・簡潔に行う。
 
@@ -10,7 +10,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 - repo の開発規約（coding-conventions / tests / worktree / routes / services / tests-lineworks）の詳細は `.claude/rules/*.md`（Claude は `CLAUDE.md` 経由で @import、Codex / agy は同ディレクトリを直接参照）。
 - commit / git-log / source-file-naming は全島共通。判断 hook は `~/.agents/AGENTS.md` §7、詳細は `~/.agents/rules/*.md` を該当時に読む。**repo には置かない**。
-- **SoT マップ**: 長期的な設計判断 = `docs/adr/` / 全 Agent 共通ルール = `AGENTS.md` / 現在の構成と用語 = `README.md`・`CONTEXT.md` / active change の要求・設計・手順 = `openspec/changes/<change>/` / archive 後の現行仕様 = `openspec/specs/<capability>/` / 実行可能な仕様 = テスト / 進行管理 = `TODO.md` / 完了履歴 = `CHANGELOG.md`。詳細は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md) を正とする。
+- 文書の SoT の分界（ADR / README・CONTEXT / OpenSpec / テスト / TODO / CHANGELOG）は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md) を正とする。
+- env は `src/utils/config.ts` の Zod schema が起動時に検証する（fail-fast）。一覧と本番の渡し方は [`README.md`](./README.md#環境変数の設定)。`pre-commit` で biome auto-fix と `tsc --noEmit` が走る。
 
 ## トピック別ルール (作業に応じて読む)
 
@@ -18,58 +19,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - service 層 (LINE WORKS API ラッパ) を触る → `.claude/rules/services.md`
 - LINE WORKS 関連のテストパターン (典型モック / app.request / multipart) → `.claude/rules/tests-lineworks.md`
 - HTTP API contract、入力 validation、状態・不変条件、認証境界、callback・外部 API 連携の観測可能な挙動を変える → 実装前に OpenSpec active change を作る。適用基準は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md)
-
-## 主要コマンド
-
-| 用途 | コマンド |
-|---|---|
-| 開発サーバ起動 (ホットリロード, .env 自動読込) | `bun run dev` |
-| 1Password から `.env` 生成 | `bun run secrets:inject` |
-| 1Password 参照の疎通確認 | `bun run secrets:check` |
-| 型チェック | `bunx tsc --noEmit` |
-| Lint/format (auto-fix) | `bunx biome check --write ./src ./tests ./scripts` |
-| OpenSpec | `bun run spec -- <command>` / `bun run spec:validate` |
-| 本番ビルド | `bun run build` |
-| Docker イメージビルド | `bun run docker:build` |
-
-`pre-commit` で biome auto-fix と `tsc --noEmit` が走る。手動で先回り実行する必要は無い。
-
-## アーキテクチャ (要点のみ)
-
-- `src/app.ts` — 共通 Hono app。`Hono` インスタンス生成 → trace / request log / secure-headers / BASIC 認証ミドルウェア → サブルータを `app.route(...)` で mount → `app.onError`
-- `src/index.ts` — Cloud Run 用エントリ。env を `config.load` で起動時検証 → `@hono/node-server` の `serve()` で `app` を起動 + SIGTERM の graceful shutdown (Workers 用エントリは `src/worker.ts`)
-- `src/routes/_middleware.ts` — `tokenMiddleware` で `c.var.token` に LINE WORKS のアクセストークンを注入
-- `src/routes/messages.ts` — `messagesApp` (Hono) を export。`(channels|users)/:id/messages/type/<type>` を 26 エンドポイント分 (13 type × channels/users の 2 base) まとめて `app.post(...)` で登録 (zValidator + `sendMessageByType`)
-- `src/routes/attachments/` — `attachmentsApp` (Hono) を export。`/attachments` prefix 配下に `POST /` (upload + 10MB bodyLimit) と `GET /:fileId` (download) をマウント
-- `src/services/lineworks/` — LINE WORKS API ラッパ
-  - `auth.ts` — JWT 生成 (`node:crypto` で RS256 自前実装) + アクセストークン取得 + キャッシュ + single-flight (`getServerToken`)
-  - `api.ts` — Bot API への JSON POST 共通処理 (`postJson`, `sendBotMessage`)
-  - `messages/index.ts` — 13 type 分の Zod schema + `sendMessageByType` 汎用 dispatcher (`{ type, ...body }` で組み立てて送信)
-  - `attachment.ts` — アップロード / ダウンロード URL 解決
-- `src/utils/config.ts` — Zod schema で env を起動時に検証 + `.transform()` で camelCase Config に整形 (fail-fast)
-- `src/utils/logger.ts` — pino ベース logger。Cloud Logging の `severity` フィールド + `logging.googleapis.com/trace` を自動付与
-- `src/utils/trace.ts` — `x-cloud-trace-context` ヘッダを AsyncLocalStorage で保持して logger に流す Hono ミドルウェア
-- `src/utils/zod-locale.ts` — Zod のエラーメッセージ日本語化マップ
-- `src/types/lineworks.ts` — `MessageTarget` の共有型 (それ以外は z.infer で導出)
-
-## 環境変数
-
-| 変数 | 取り扱い |
-|---|---|
-| `CLIENT_ID` | env (機密度低) |
-| `CLIENT_SECRET` | **Secret Manager `lineworks-client-secret:latest`** にマウント (本番) / `.env` (開発) |
-| `SERVICE_ACCOUNT` | env (機密度低) |
-| `PRIVATE_KEY` | **Secret Manager `lineworks-private-key:latest`** にマウント (本番) / `.env` (開発)。Base64 エンコード済 PEM (`base64 -i private_*.key`) |
-| `BOT_ID` | env (機密度低) |
-| `BOT_SECRET` | **Secret Manager `lineworks-bot-secret:latest`** にマウント (本番) / `.env` (開発)。Callback の `X-WORKS-Signature` (HMAC-SHA256) 検証鍵。Developer Console の Bot 詳細から取得した値をそのまま入れる (Base64 デコード等は不要) |
-| `BASIC_ID` | **Secret Manager `lineworks-basic-id:latest`** にマウント (本番) / `.env` (開発)。webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
-| `BASIC_PASS` | **Secret Manager `lineworks-basic-pass:latest`** にマウント (本番) / `.env` (開発)。BASIC 認証パスワード |
-| `CF_ACCESS_CLIENT_ID` | upstream (501) が Cloudflare Access の内側にいる場合の service token。転送時に `CF-Access-Client-Id` として付ける。**`CF_ACCESS_CLIENT_SECRET` と両方揃わないと起動時に落ちる** (片方だけ = 守っているつもりで素通り、を防ぐ) |
-| `CF_ACCESS_CLIENT_SECRET` | 同上。`CF-Access-Client-Secret` として付ける。Workers は `wrangler secret put` で設定する |
-| `PORT` | リッスンポート (デフォルト 8080) |
-| `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (`logger-impl.ts`、4xx は warn で残し Error Reporting には乗せない)。`shouldUsePretty` が production では `LOG_PRETTY=1` を無視して JSON 出力に倒す |
-| `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
-| `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging の trace 連携が fully-qualified resource name (`projects/<id>/traces/<traceId>`) で出る。未設定なら trace ID 単独 |
+- Docker / Cloud Build / Cloud Run を触る → [ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md)・[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md) と [`README.md`](./README.md#docker-イメージの実装上の注意)
 
 ## 注意点 (コードから読めない / 読みづらいもの)
 
@@ -95,17 +45,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 ### Docker / デプロイ
 
-> Docker / Cloud Build の構造的な決定は [ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md) (マルチステージ / BuildKit 不可 / 非 root / curl レス healthcheck / cloudbuild.yaml が SoT)、SA / secret 運用は [ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md) (専用 runtime SA / Secret Manager / 公開リポ向け substitution) を参照。以下は実装の細部ゴッチャ。
-
-- **runtime ベースは `oven/bun:<ver>-slim`** (debian-slim)。builder は `oven/bun:<ver>-debian` (フル) を使い分ける
-- **CMD は `["bun", "build/index.js"]`** で直接バンドルを起動 (`bun run start` → package.json 参照を避ける)
 - **`bun` のバージョンは Dockerfile 冒頭の `FROM` 2 行で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
-- **`.env` は build context に入れない**: `.dockerignore` で除外済。Cloud Run へは `--set-env-vars` / `--set-secrets` で注入
-- **機密 env を Cloud Run の env に直書きしない** ([ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md))。`gcloud secrets versions add` で値を更新すると Cloud Run は `:latest` を参照するため再 deploy 不要で差し替えできる。機密度の低い env も substitution variable 経由で yaml には値を残さない
-- **Artifact Registryのcleanup policy**: 保存期間と保持数は利用環境の要件に合わせて設定する。
-
-### Deployment runtime
-
+- **機密 env を Cloud Run の env に直書きしない** ([ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md))。Secret Manager の `:latest` を参照するので、`gcloud secrets versions add` だけで再 deploy なしに差し替えられる
 - **Workers / Cloud Runの両方をサポートする**: 共通Hono appを`src/worker.ts`と`src/index.ts`から起動する。どちらを採用するかは利用者の運用要件で決め、リポジトリ内に特定環境の主系・待機系を固定しない。
 
 ### 命名・配置の慣習
