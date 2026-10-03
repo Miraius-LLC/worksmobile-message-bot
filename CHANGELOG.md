@@ -4,6 +4,10 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 > 古い分は git 履歴に任せる。
 
+## 2026-10
+
+- **callback転送のredirectを失敗扱いにした（2026-10-04）**: redirectを自動追従せず、upstreamの3xxとopaque redirectで転送失敗としてdedup keyを解除する。仕様差分は[active change](openspec/changes/callback-forward-redirect-safety/proposal.md)。
+
 ## 2026-09
 
 - **不正 callback の再送が 200 で素通りしないようにした（2026-09-27）**: JSON / Zod で `400` を返すときも dedup key を `unregister` する。正常 payload の重複 skip は変えない。
