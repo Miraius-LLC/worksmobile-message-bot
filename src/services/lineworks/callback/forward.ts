@@ -14,6 +14,7 @@ const CALLER = 'services/lineworks/callback/forward'
  *  - upstream が 2xx → 正常 (return)
  *  - upstream が 5xx / network error → throw (callback.ts が dedup を unregister → 500 返却。
  *    公式ページでは再送契約を確認できないため、ログ記録および手動再投入時の再実行用)
+ *  - upstream が 3xx / opaque redirect → throw。redirect先へ自動転送せず、転送失敗として扱う
  *  - upstream が **401 / 403** → throw。⚠️ これは「upstream の入口で弾かれた」= **こちらの設定事故**で、
  *    黙って 200 を返すと **callback が消える**。Access の token 誤り・失効を必ず表に出す
  *  - 上記以外の 4xx → 再送しても解決しないため warn して return (LINE WORKS へは 200 返却)
@@ -44,7 +45,24 @@ export async function forwardEventToUpstream(
         : {}),
     },
     body: rawBody,
+    redirect: 'manual',
   })
+
+  if (response.type === 'opaqueredirect') {
+    logger.error('upstreamへのcallback転送がopaque redirect（転送失敗）', {
+      caller: `${CALLER}.forwardEventToUpstream`,
+      status: response.status,
+    })
+    throw new Error('forward to upstream failed: opaqueredirect')
+  }
+
+  if (response.status >= 300 && response.status < 400) {
+    logger.error('upstreamへのcallback転送がredirect（転送失敗）', {
+      caller: `${CALLER}.forwardEventToUpstream`,
+      status: response.status,
+    })
+    throw new Error(`forward to upstream failed: ${response.status}`)
+  }
 
   if (response.status >= 500) {
     const body = await response.text().catch(() => '')

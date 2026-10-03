@@ -37,6 +37,7 @@ describe('forwardEventToUpstream', () => {
     expect(calls[0]?.url).toBe('https://upstream.example.test/callback')
     expect(calls[0]?.init?.method).toBe('POST')
     expect(calls[0]?.init?.body).toBe(RAW_BODY)
+    expect(calls[0]?.init?.redirect).toBe('manual')
     const headers = new Headers(calls[0]?.init?.headers)
     expect(headers.get('X-WORKS-Signature')).toBe(SIGNATURE)
     expect(headers.get('Content-Type')).toBe('application/json')
@@ -58,6 +59,29 @@ describe('forwardEventToUpstream', () => {
     await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).rejects.toThrow(
       'forward to upstream failed: 503',
     )
+  })
+
+  test('opaque redirect (status 0) は throw する', async () => {
+    globalThis.fetch = mock(async (input: string | URL, init?: RequestInit) => {
+      calls.push({ url: typeof input === 'string' ? input : input.toString(), init })
+      return {
+        status: 0,
+        type: 'opaqueredirect',
+        text: async () => '',
+      } as Response
+    }) as unknown as typeof fetch
+
+    await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).rejects.toThrow(
+      'forward to upstream failed: opaqueredirect',
+    )
+  })
+
+  test('3xx redirect は追従せず throw する', async () => {
+    stubFetch(302)
+    await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).rejects.toThrow(
+      'forward to upstream failed: 302',
+    )
+    expect(calls[0]?.init?.redirect).toBe('manual')
   })
 
   test('署名が undefined でも転送する (X-WORKS-Signature ヘッダなし)', async () => {
