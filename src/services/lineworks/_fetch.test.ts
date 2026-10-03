@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import Bun from 'bun'
 import { FetchTimeoutError, fetchWithTimeout, LONG_TIMEOUT_MS } from '@/services/lineworks/_fetch'
 
 let originalFetch: typeof globalThis.fetch
@@ -73,6 +74,29 @@ describe('fetchWithTimeout', () => {
       const err = e as FetchTimeoutError
       expect(err.url).toBe('https://x.test/slow')
       expect(err.timeoutMs).toBe(20)
+    }
+  })
+
+  test('ヘッダ受信後に本文が届かない場合も timeoutMs で FetchTimeoutError', async () => {
+    // mock ではなく実 HTTP で、ヘッダと本文の一部だけ返して止まる upstream を再現する
+    const server = Bun.serve({
+      port: 0,
+      fetch: () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode('partial'))
+            },
+          }),
+        ),
+    })
+
+    try {
+      await expect(
+        fetchWithTimeout(`http://localhost:${server.port}/stall`, { timeoutMs: 50 }),
+      ).rejects.toBeInstanceOf(FetchTimeoutError)
+    } finally {
+      await server.stop(true)
     }
   })
 
