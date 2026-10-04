@@ -40,6 +40,7 @@ bun.lockb
 
 .claude/settings.local.json
 .claude/worktrees/
+.agent-room-worktrees/
 
 # =============================================================================
 # IDE / Editor
