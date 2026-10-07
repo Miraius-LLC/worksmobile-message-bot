@@ -178,6 +178,14 @@ describe('routes/attachments: download', () => {
     const headers = dlCall?.init?.headers as Record<string, string>
     expect(headers['Authorization']).toBe('Bearer tok')
   })
+
+  test('実ファイル取得は timeout 付き fetch (AbortSignal 付き) で行う', async () => {
+    // 他の LINE WORKS 系 fetch と同じく fetchWithTimeout を経由し、upstream が
+    // 応答を返さず hang しても Cloud Run の request slot を占有し続けないことを担保する
+    await attachmentsApp.request('/F-abc', { method: 'GET' })
+    const dlCall = calls.find(c => c.url.includes(DL_HOST))
+    expect(dlCall?.init?.signal).toBeInstanceOf(AbortSignal)
+  })
 })
 
 describe('routes/attachments: 404 handler', () => {

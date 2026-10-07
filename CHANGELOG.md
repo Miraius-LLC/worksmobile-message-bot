@@ -6,6 +6,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-10
 
+- **添付 download の実体取得にも timeout を掛けた（2026-10-08）**: `GET /attachments/:fileId` の本体 fetch だけ素の `fetch` で、upstream が hang すると request slot を占有し続けていた。他の LINE WORKS 系 fetch と同じ `fetchWithTimeout` に揃えた。
 - **callback転送のredirectを失敗扱いにした（2026-10-04）**: redirectを自動追従せず、upstreamの3xxとopaque redirectで転送失敗としてdedup keyを解除する。仕様差分は[active change](openspec/changes/callback-forward-redirect-safety/proposal.md)。
 
 ## 2026-09
