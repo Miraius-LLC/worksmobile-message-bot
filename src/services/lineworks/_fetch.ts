@@ -6,8 +6,8 @@
  * (concurrency=80) が枯渇する事故を予防する。
  *
  * 実装: `AbortController` + `setTimeout` で指定 ms 経過後に abort。
- * abort された fetch は `AbortError` を throw するので、`FetchTimeoutError` に変換して
- * 呼び出し側で識別しやすくする。
+ * タイマーは本文の読み取り完了または cancel まで維持する。
+ * timeout 由来の abort は `FetchTimeoutError` に変換する。
  *
  * 標準 fetch との違い:
  *  - `timeoutMs` オプション (デフォルト `DEFAULT_TIMEOUT_MS`)
@@ -46,23 +46,66 @@ export async function fetchWithTimeout(
   const { timeoutMs = DEFAULT_TIMEOUT_MS, signal: callerSignal, ...rest } = init
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  let timedOut = false
+  const timer = setTimeout(() => {
+    timedOut = true
+    controller.abort()
+  }, timeoutMs)
 
   const signal = callerSignal
     ? AbortSignal.any([callerSignal, controller.signal])
     : controller.signal
 
   try {
-    return await fetch(url, { ...rest, signal })
+    const response = await fetch(url, { ...rest, signal })
+    if (!response.body) {
+      clearTimeout(timer)
+      return response
+    }
+
+    const reader = response.body.getReader()
+    const body = new ReadableStream<Uint8Array>({
+      async pull(streamController) {
+        try {
+          const { done, value } = await reader.read()
+          if (done) {
+            clearTimeout(timer)
+            streamController.close()
+          } else {
+            streamController.enqueue(value)
+          }
+        } catch (error: unknown) {
+          clearTimeout(timer)
+          streamController.error(
+            timedOut && isAbortError(error) ? new FetchTimeoutError(String(url), timeoutMs) : error,
+          )
+        }
+      },
+      async cancel(reason) {
+        clearTimeout(timer)
+        await reader.cancel(reason)
+      },
+    })
+
+    const wrapped = new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    })
+    Object.defineProperties(wrapped, {
+      url: { value: response.url },
+      redirected: { value: response.redirected },
+      type: { value: response.type },
+    })
+    return wrapped
   } catch (error: unknown) {
+    clearTimeout(timer)
     // タイマー発火経由の AbortError だけ FetchTimeoutError に変換する。
     // 呼び出し側 (callerSignal) 経由の abort はそのまま伝播
     if (controller.signal.aborted && isAbortError(error)) {
       throw new FetchTimeoutError(String(url), timeoutMs)
     }
     throw error
-  } finally {
-    clearTimeout(timer)
   }
 }
 

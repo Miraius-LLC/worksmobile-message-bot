@@ -178,6 +178,12 @@ describe('routes/attachments: download', () => {
     const headers = dlCall?.init?.headers as Record<string, string>
     expect(headers['Authorization']).toBe('Bearer tok')
   })
+
+  test('実ファイル取得に timeout の AbortSignal を渡す', async () => {
+    await attachmentsApp.request('/F-abc', { method: 'GET' })
+    const dlCall = calls.find(c => c.url.includes(DL_HOST))
+    expect(dlCall?.init?.signal).toBeInstanceOf(AbortSignal)
+  })
 })
 
 describe('routes/attachments: 404 handler', () => {

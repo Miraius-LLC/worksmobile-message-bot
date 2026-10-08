@@ -54,6 +54,72 @@ describe('fetchWithTimeout', () => {
     )
   })
 
+  test('ヘッダー受信後も本文読み込みに timeout を適用する', async () => {
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          init?.signal?.addEventListener('abort', () => {
+            const error = new Error('aborted')
+            error.name = 'AbortError'
+            controller.error(error)
+          })
+        },
+      })
+      return new Response(body, { status: 206, statusText: 'Partial Content' })
+    }) as unknown as typeof globalThis.fetch
+
+    const response = await fetchWithTimeout('https://x.test/slow-body', { timeoutMs: 30 })
+    await expect(response.text()).rejects.toBeInstanceOf(FetchTimeoutError)
+  })
+
+  test('本文の読み取りを取り消すと元の stream も cancel し timeout を残さない', async () => {
+    let cancelled = false
+    let fetchSignal: AbortSignal | undefined
+    globalThis.fetch = mock(async (_url: string | URL, init?: RequestInit) => {
+      fetchSignal = init?.signal ?? undefined
+      const body = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          controller.enqueue(new Uint8Array([1]))
+        },
+        cancel() {
+          cancelled = true
+        },
+      })
+      return new Response(body)
+    }) as unknown as typeof globalThis.fetch
+
+    const response = await fetchWithTimeout('https://x.test/cancel', { timeoutMs: 10 })
+    await response.body?.cancel()
+    expect(cancelled).toBe(true)
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(fetchSignal?.aborted).toBe(false)
+  })
+
+  test('本文を包んでも Response の属性を保持する', async () => {
+    globalThis.fetch = mock(async () => {
+      const response = new Response('body', {
+        status: 206,
+        statusText: 'Partial Content',
+        headers: { 'x-test': 'yes' },
+      })
+      Object.defineProperties(response, {
+        url: { value: 'https://x.test/final' },
+        redirected: { value: true },
+        type: { value: 'cors' },
+      })
+      return response
+    }) as unknown as typeof globalThis.fetch
+
+    const response = await fetchWithTimeout('https://x.test/original')
+    expect(response.status).toBe(206)
+    expect(response.statusText).toBe('Partial Content')
+    expect(response.headers.get('x-test')).toBe('yes')
+    expect(response.url).toBe('https://x.test/final')
+    expect(response.redirected).toBe(true)
+    expect(response.type).toBe('cors')
+    expect(await response.text()).toBe('body')
+  })
+
   test('FetchTimeoutError は url と timeoutMs を保持', async () => {
     globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
       return new Promise<Response>((_resolve, reject) => {

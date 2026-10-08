@@ -200,6 +200,20 @@ describe('POST /callback: upstreamへの転送', () => {
     expect(res.status).toBe(500)
     expect(forwardCalls.length).toBe(1)
   })
+
+  test('upstreamが302を返すと500となり同じcallbackを再投入できる', async () => {
+    forwardStatus = 302
+    const raw = JSON.stringify(messageEventFixture)
+    const signature = sign(raw)
+    const first = await postCallback(raw, signature)
+    expect(first.status).toBe(500)
+    expect(forwardCalls.length).toBe(1)
+
+    forwardStatus = 200
+    const retry = await postCallback(raw, signature)
+    expect(retry.status).toBe(200)
+    expect(forwardCalls.length).toBe(2)
+  })
 })
 
 describe('POST /callback: 8 event type 全て', () => {

@@ -1,4 +1,5 @@
 import type { Context } from 'hono'
+import { fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { resolveDownloadUrl } from '@/services/lineworks/attachment'
 import { logger } from '@/utils/logger'
 import type { AuthenticatedEnv } from '../_middleware'
@@ -14,7 +15,7 @@ export async function downloadHandler(c: Context<AuthenticatedEnv>): Promise<Res
   }
 
   const downloadUrl = await resolveDownloadUrl(c.var.token, fileId)
-  const fileResponse = await fetch(downloadUrl, {
+  const fileResponse = await fetchWithTimeout(downloadUrl, {
     headers: { Authorization: `Bearer ${c.var.token}` },
   })
 
