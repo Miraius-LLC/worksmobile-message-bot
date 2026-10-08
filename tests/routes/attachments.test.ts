@@ -216,6 +216,66 @@ describe('routes/attachments: download', () => {
     expect(await res.text()).not.toContain('secret-marker')
     expect(logEntries.join('\n')).not.toContain('secret-marker')
   })
+
+  test('署名付きURLの本文timeoutをstream errorとログに出さない', async () => {
+    const signedUrl = `https://${DL_HOST}/x?token=secret-marker`
+    const baseFetch = globalThis.fetch
+    const logEntries: string[] = []
+    logger.error = mock((message: unknown, context?: unknown) => {
+      logEntries.push(JSON.stringify([message, context]))
+    }) as typeof logger.error
+    globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
+      const requestedUrl = String(url)
+      if (requestedUrl.includes(API_HOST) && requestedUrl.includes('/attachments/F-')) {
+        return new Response(null, { status: 302, headers: { location: signedUrl } })
+      }
+      if (requestedUrl === signedUrl) {
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            pull(controller) {
+              controller.error(new FetchTimeoutError(signedUrl, 15_000))
+            },
+          }),
+        )
+      }
+      return baseFetch(url, init)
+    }) as unknown as typeof globalThis.fetch
+
+    const res = await app.request('/attachments/F-abc', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(200)
+    let bodyError: unknown
+    try {
+      await res.text()
+    } catch (error) {
+      bodyError = error
+    }
+    expect(bodyError).toBeInstanceOf(Error)
+    expect(String(bodyError)).not.toContain('secret-marker')
+    expect(logEntries.join('\n')).not.toContain('secret-marker')
+  })
+
+  test('ダウンロードを取り消すと元の本文 stream も cancel する', async () => {
+    const baseFetch = globalThis.fetch
+    let cancelled = false
+    globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
+      if (String(url).includes(DL_HOST)) {
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            cancel() {
+              cancelled = true
+            },
+          }),
+        )
+      }
+      return baseFetch(url, init)
+    }) as unknown as typeof globalThis.fetch
+
+    const res = await attachmentsApp.request('/F-abc', { method: 'GET' })
+    await res.body?.cancel()
+    expect(cancelled).toBe(true)
+  })
 })
 
 describe('routes/attachments: 404 handler', () => {

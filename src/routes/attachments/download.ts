@@ -51,5 +51,27 @@ export async function downloadHandler(c: Context<AuthenticatedEnv>): Promise<Res
       `attachment; filename="${safeName}"; filename*=UTF-8''${safeName}`,
     )
   }
-  return new Response(fileResponse.body, { status: 200, headers })
+  const upstreamReader = fileResponse.body.getReader()
+  const safeBody = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await upstreamReader.read()
+        if (done) {
+          controller.close()
+        } else {
+          controller.enqueue(value)
+        }
+      } catch {
+        // Response 返却後の本文エラーも署名付き URL を含みうる。
+        logger.error('ダウンロード本文の受信に失敗', {
+          caller: `${CALLER}.handler`,
+        })
+        controller.error(new Error('ファイルのダウンロードに失敗しました。'))
+      }
+    },
+    async cancel(reason) {
+      await upstreamReader.cancel(reason)
+    },
+  })
+  return new Response(safeBody, { status: 200, headers })
 }
