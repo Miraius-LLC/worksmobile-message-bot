@@ -1,5 +1,5 @@
 import type { Context } from 'hono'
-import { fetchWithTimeout } from '@/services/lineworks/_fetch'
+import { FetchTimeoutError, fetchWithTimeout } from '@/services/lineworks/_fetch'
 import { resolveDownloadUrl } from '@/services/lineworks/attachment'
 import { logger } from '@/utils/logger'
 import type { AuthenticatedEnv } from '../_middleware'
@@ -15,9 +15,19 @@ export async function downloadHandler(c: Context<AuthenticatedEnv>): Promise<Res
   }
 
   const downloadUrl = await resolveDownloadUrl(c.var.token, fileId)
-  const fileResponse = await fetchWithTimeout(downloadUrl, {
-    headers: { Authorization: `Bearer ${c.var.token}` },
-  })
+  let fileResponse: Response
+  try {
+    fileResponse = await fetchWithTimeout(downloadUrl, {
+      headers: { Authorization: `Bearer ${c.var.token}` },
+    })
+  } catch (error) {
+    // 署名付き URL を含みうるエラーを onError へ流さず、本文とログを固定値にする。
+    logger.error('ダウンロード本体の取得に失敗', {
+      caller: `${CALLER}.handler`,
+      debug: error instanceof FetchTimeoutError ? 'timeout' : 'fetch_error',
+    })
+    return c.json({ error: 'ファイルのダウンロードに失敗しました。' }, 500)
+  }
 
   if (!fileResponse.ok || !fileResponse.body) {
     logger.error('ダウンロード本体の取得に失敗', {

@@ -1,13 +1,18 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { app } from '@/app'
 import { attachmentsApp } from '@/routes/attachments'
+import { FetchTimeoutError } from '@/services/lineworks/_fetch'
 import { _resetTokenCacheForTest } from '@/services/lineworks/auth'
+import { logger } from '@/utils/logger'
 
 const AUTH_HOST = 'auth.worksmobile.com'
 const API_HOST = 'www.worksapis.com'
 const UPLOAD_HOST = 'upload.test'
 const DL_HOST = 'signed.test'
+const BASIC_AUTH = `Basic ${Buffer.from('test-user:test-pass').toString('base64')}`
 
 let originalFetch: typeof globalThis.fetch
+const originalLoggerError = logger.error
 type FetchCall = { url: string; init?: RequestInit }
 let calls: FetchCall[]
 
@@ -73,6 +78,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   globalThis.fetch = originalFetch
+  logger.error = originalLoggerError
   _resetTokenCacheForTest()
 })
 
@@ -183,6 +189,32 @@ describe('routes/attachments: download', () => {
     await attachmentsApp.request('/F-abc', { method: 'GET' })
     const dlCall = calls.find(c => c.url.includes(DL_HOST))
     expect(dlCall?.init?.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  test('署名付きURLの取得timeoutを500本文とログに出さない', async () => {
+    const signedUrl = `https://${DL_HOST}/x?token=secret-marker`
+    const baseFetch = globalThis.fetch
+    const logEntries: string[] = []
+    logger.error = mock((message: unknown, context?: unknown) => {
+      logEntries.push(JSON.stringify([message, context]))
+    }) as typeof logger.error
+    globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
+      const requestedUrl = String(url)
+      if (requestedUrl.includes(API_HOST) && requestedUrl.includes('/attachments/F-')) {
+        return new Response(null, { status: 302, headers: { location: signedUrl } })
+      }
+      if (requestedUrl === signedUrl) {
+        throw new FetchTimeoutError(signedUrl, 15_000)
+      }
+      return baseFetch(url, init)
+    }) as unknown as typeof globalThis.fetch
+
+    const res = await app.request('/attachments/F-abc', {
+      headers: { Authorization: BASIC_AUTH },
+    })
+    expect(res.status).toBe(500)
+    expect(await res.text()).not.toContain('secret-marker')
+    expect(logEntries.join('\n')).not.toContain('secret-marker')
   })
 })
 
