@@ -14,17 +14,56 @@ commit-msg:
 
 post-merge:
   commands:
+# <!-- BEGIN develop-meta:lefthook:post-merge:graphify-refresh v1 sha256=0b0949ab61236fe8c4a36cac738cd391ddd0f4e11600804093557645819cd1cd -->
+    graphify-refresh:
+      run: |
+        refresher="$HOME/Develop/develop-meta/bin/graphify-refresh"
+        if [ ! -x "$refresher" ]; then
+          printf '%s\n' 'graphify-refresh: binary missing or not executable' >&2
+        elif ! "$refresher" --repo-root .; then
+          printf '%s\n' 'graphify-refresh: refresh failed' >&2
+        fi
+        true
+# <!-- END develop-meta:lefthook:post-merge:graphify-refresh -->
     install:
       run: scripts/with-dev-env bun i
 
 post-rewrite:
   commands:
+# <!-- BEGIN develop-meta:lefthook:post-rewrite:graphify-refresh v1 sha256=4fc87be19bf008fe7473f52dfa06384008a462fb587fe05bb88038a3fab4cb00 -->
+    graphify-refresh:
+      run: |
+        if [ "{1}" = amend ]; then
+          exit 0
+        fi
+        refresher="$HOME/Develop/develop-meta/bin/graphify-refresh"
+        if [ ! -x "$refresher" ]; then
+          printf '%s\n' 'graphify-refresh: binary missing or not executable' >&2
+        elif ! "$refresher" --repo-root .; then
+          printf '%s\n' 'graphify-refresh: refresh failed' >&2
+        fi
+        true
+# <!-- END develop-meta:lefthook:post-rewrite:graphify-refresh -->
     install:
       run: scripts/with-dev-env bun i
 
 pre-commit:
   parallel: true
   commands:
+# <!-- BEGIN develop-meta:lefthook:pre-commit:develop-tools-version v1 sha256=a5db45817bc82b4fad178e43de43a8aedb288f61698004f0fec614d3d5f0d9c6 -->
+    develop-tools-version:
+      run: |
+        checker="$(command -v develop-docs-check 2>/dev/null || true)"
+        if [ -z "$checker" ] && [ -x "$HOME/Develop/develop-meta/bin/develop-docs-check" ]; then
+          checker="$HOME/Develop/develop-meta/bin/develop-docs-check"
+        fi
+        if [ -n "$checker" ]; then
+          if ! "$checker" --check-local-version; then
+            printf '%s\n' 'develop tools: 版を確認できません。~/Develop/develop-meta/bin/install-tools を実行してください' >&2
+          fi
+        fi
+        true
+# <!-- END develop-meta:lefthook:pre-commit:develop-tools-version -->
 # <!-- BEGIN develop-meta:lefthook:pre-commit:adr-structure v1 sha256=d167fbee3c02a4c4a0ef9f0318379001e94cd1a141a07e6e0752129db9529054 -->
     adr-structure:
       glob: "docs/adr/**"
