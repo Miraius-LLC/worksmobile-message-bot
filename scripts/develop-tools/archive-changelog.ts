@@ -190,7 +190,7 @@ function helpText(): string {
 		"使い方: archive-changelog [--yes]",
 		"repository root の CHANGELOG.md を古い月から Git 履歴へ退避します。",
 		"既定は変更しない dry-run です。確認後は --yes で反映します。",
-		"30,000 byte 以下は変更しません。退避節を別 file へ移しません。",
+		"上限以下は変更しません。退避節を別 file へ移しません。",
 		"終了値: 0 = dry-run または反映成功、1 = 保護月を残すと上限超過、2 = 入力または Git の失敗",
 	].join("\n");
 }

@@ -22,9 +22,10 @@ export interface ArchivePlanFailure {
 export type ChangelogArchivePlan = ArchivePlan | ArchivePlanFailure;
 
 export const TODO_MAX_BYTES = 24_000;
-export const CHANGELOG_MAX_BYTES = 30_000;
+export const CHANGELOG_MAX_BYTES = 60_000;
 export const TODO_ITEM_WARNING_BYTES = 500;
 export const CHANGELOG_ARCHIVE_TARGET_PERCENT = 80;
+const TODO_SECTIONS = ["進行中", "次に着手", "待ち", "いつか"];
 
 function finding(kind: FindingKind, message: string, line?: number): Finding {
 	return line === undefined ? { kind, message } : { kind, line, message };
@@ -83,9 +84,33 @@ export function inspectTodo(content: Uint8Array): Finding[] {
 	}
 
 	const lines = text.split("\n");
+	const masked = fenceMask(lines);
+	let lastSection = -1;
 	for (let index = 0; index < lines.length; index += 1) {
 		const line = lines[index];
 		const lineNumber = index + 1;
+		if (!masked[index] && line.startsWith("## ")) {
+			const section = TODO_SECTIONS.indexOf(line.slice(3).trim());
+			if (section === -1) {
+				findings.push(
+					finding(
+						"error",
+						"TODO.md の見出しは '## 進行中' / '## 次に着手' / '## 待ち' / '## いつか' だけにしてください（分野は項目名の先頭に書く）",
+						lineNumber,
+					),
+				);
+			} else if (section <= lastSection) {
+				findings.push(
+					finding(
+						"error",
+						"TODO.md の見出しは 進行中 → 次に着手 → 待ち → いつか の順に 1 回ずつ置いてください",
+						lineNumber,
+					),
+				);
+			} else {
+				lastSection = section;
+			}
+		}
 		const trimmed = trimStartSpaceTabs(line);
 		if (trimmed.startsWith("- [x]") || trimmed.startsWith("- [X]")) {
 			findings.push(
@@ -148,6 +173,33 @@ function parseMonthHeading(line: string): string | undefined {
 
 function isMonthHeading(line: string): boolean {
 	return line.startsWith("## ") && parseMonthHeading(line) !== undefined;
+}
+
+function fenceMask(lines: string[]): boolean[] {
+	const masked: boolean[] = [];
+	let open: { marker: string; length: number } | undefined;
+	for (const line of lines) {
+		const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line.replace(/\r$/, ""));
+		if (open !== undefined) {
+			masked.push(true);
+			if (
+				match !== null &&
+				match[1][0] === open.marker &&
+				match[1].length >= open.length &&
+				match[2].trim() === ""
+			)
+				open = undefined;
+		} else if (
+			match !== null &&
+			(match[1][0] !== "`" || !match[2].includes("`"))
+		) {
+			open = { marker: match[1][0], length: match[1].length };
+			masked.push(true);
+		} else {
+			masked.push(false);
+		}
+	}
+	return masked;
 }
 
 function isHistoryNote(line: string): boolean {
@@ -299,7 +351,10 @@ export function inspectChangelog(content: Uint8Array): Finding[] {
 		);
 	}
 
-	const firstHeading = lines.findIndex((line) => isMonthHeading(line));
+	const fenced = fenceMask(lines);
+	const firstHeading = lines.findIndex(
+		(line, index) => !fenced[index] && isMonthHeading(line),
+	);
 	if (firstHeading >= 0) {
 		if (!lines.slice(0, firstHeading).some(isHistoryNote)) {
 			findings.push(
@@ -322,7 +377,8 @@ export function inspectChangelog(content: Uint8Array): Finding[] {
 	for (let index = 0; index < lines.length; index += 1) {
 		const line = lines[index];
 		const lineNumber = index + 1;
-		if (line.startsWith("##") && !line.startsWith("###")) {
+		if (fenced[index]) continue;
+		if (line.startsWith("##")) {
 			const month = parseMonthHeading(line);
 			if (month !== undefined) {
 				if (previousMonth !== undefined && previousMonth < month) {
@@ -379,7 +435,7 @@ export function inspectChangelog(content: Uint8Array): Finding[] {
 		const nextItem = itemIndices[position + 1] ?? lines.length;
 		let nextHeading = lines.length;
 		for (let scan = index + 1; scan < nextItem; scan += 1) {
-			if (lines[scan].startsWith("##") && !lines[scan].startsWith("###")) {
+			if (!fenced[scan] && lines[scan].startsWith("##")) {
 				nextHeading = scan;
 				break;
 			}
@@ -431,9 +487,11 @@ function parseSections(
 	| { ok: true; preamble: string; sections: MonthSection[] }
 	| { ok: false; message: string } {
 	const records = splitRecords(content);
+	const lines = records.map(trimLineEnding);
+	const fenced = fenceMask(lines);
 	let first = -1;
 	for (let index = 0; index < records.length; index += 1) {
-		if (isMonthHeading(trimLineEnding(records[index]))) {
+		if (!fenced[index] && isMonthHeading(lines[index])) {
 			first = index;
 			break;
 		}
@@ -447,7 +505,8 @@ function parseSections(
 
 	const starts: Array<{ index: number; month: string }> = [];
 	for (let index = first; index < records.length; index += 1) {
-		const line = trimLineEnding(records[index]);
+		const line = lines[index];
+		if (fenced[index]) continue;
 		if (line.startsWith("##") && !line.startsWith("###")) {
 			const month = parseMonthHeading(line);
 			if (month === undefined) {
