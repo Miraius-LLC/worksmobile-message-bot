@@ -16,8 +16,8 @@
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
-    "secrets:inject": "bun run ./scripts/dump-secrets-to-env.ts",
-    "secrets:check": "bun run ./scripts/dump-secrets-to-env.ts --check",
+    "secrets:inject": "$HOME/Develop/develop-meta/bin/develop-secrets --declaration .develop-secrets.jsonc",
+    "secrets:check": "$HOME/Develop/develop-meta/bin/develop-secrets --declaration .develop-secrets.jsonc --check",
     "dev": "bun run --hot ./src/index.ts",
     "start": "bun run ./build/index.js",
     "build": "bun build ./src/index.ts --outdir=./build --target=bun --minify",

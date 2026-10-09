@@ -61,7 +61,7 @@ Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポ�
 bun run secrets:inject
 ```
 
-`secrets:inject` は `.env.tpl` の `op://` 参照を読み、値を表示せず `.env` にマージする。既存の `.env` にある未管理キーやコメントは残る。`secrets:check` は書き込まずに 1Password 参照の疎通だけ確認する。
+`secrets:inject` は島共通の `develop-secrets` に `.develop-secrets.jsonc` を渡す。宣言は `.env.tpl` の `op://` 参照 8 件を入力とし、参照のない行は取得対象外にする。値を表示せず `.env` にマージし、既存の未管理キーやコメントは残す。必須の参照が 1 件でも取得できなければ `.env` は書き換えない。`secrets:check` は書き込まずに 1Password 参照の疎通だけ確認する。
 
 手動で作成する場合は以下を設定する。
 
