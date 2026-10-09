@@ -78,7 +78,9 @@ describe('OpenSpec repository contract', () => {
     expect(codeGraphIgnore.trim().split('\n').slice(-2)).toEqual(['*', '!.gitignore'])
     expect(gitignore.split('\n')).not.toContain('.codegraph/')
     expect(gitignore).toContain('graphify-out/')
-    expect(lefthook).not.toContain('graphify-refresh:')
+    // 2026-10-09: 島の管理 block が post-merge / post-rewrite で graphify-refresh を呼ぶ
+    expect(lefthook).toContain('develop-meta:lefthook:post-merge:graphify-refresh')
+    expect(lefthook).toContain('develop-meta:lefthook:post-rewrite:graphify-refresh')
     expect(lefthook).toContain('post-rewrite:')
     expect(lefthook).not.toContain('post-rebase:')
   })
