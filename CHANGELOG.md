@@ -6,6 +6,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-10
 
+- **旧 agent-room skill の repo 内 copy を撤去（2026-10-09）**: user scope へ移行済み。
 - **secret 注入を島共通の宣言へ移した（2026-10-09）**: `.develop-secrets.jsonc` に `.env.tpl` の 8 参照と `.env` 出力を定め、旧 TypeScript adapter を撤去した。必須参照の取得失敗時は共通核の all-or-nothing により `.env` を書き換えない（この repo の旧 adapter も取得失敗時は無書込）。
 - **callback転送のredirectを失敗扱いにした（2026-10-04）**: redirectを自動追従せず、upstreamの3xxとopaque redirectで転送失敗としてdedup keyを解除する。仕様差分は[active change](openspec/changes/callback-forward-redirect-safety/proposal.md)。
 
