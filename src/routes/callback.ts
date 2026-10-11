@@ -17,7 +17,7 @@ const CALLER = 'routes/callback'
  * 3. `X-WORKS-BotId` ヘッダを検証 → 欠落なら 400、`config().botId` 不一致なら 403
  * 4. raw body の SHA-256 を dedup key として直近 5 分以内の再送を検出 → 副作用無しで 200
  * 5. raw body を JSON.parse → Zod の `discriminatedUnion` で 8 event type を検証 → NG なら dedup key を unregister して 400
- * 6. 転送先が設定されていればraw bodyと署名をそのまま転送する。5xx / network error時は
+ * 6. 転送先が設定されていればraw bodyと署名をそのまま転送する。転送失敗 (判定は forward.ts のレスポンス方針) 時は
  *    dedup key を unregister し、手動再投入等で再処理できるようにする (公式ページでは再送契約を確認できないため同期await、失敗は500とログ)
  * 7. 正常時は 200 (空 body 返却)
  *
@@ -88,7 +88,7 @@ callbackApp.post('/', async c => {
   try {
     await forwardEventToUpstream(rawBody, signature)
   } catch (error) {
-    // 転送先が5xx / network errorで落ちた場合はdedup keyを取り消し、
+    // 転送に失敗した場合 (判定は forward.ts) はdedup keyを取り消し、
     // 手動再投入時等に再処理できるようにする。throw は `app.onError` に流して 500 + { error } で返す
     unregister(dedupKey)
     throw error

@@ -12,8 +12,10 @@ const CALLER = 'services/lineworks/callback/forward'
  *
  * レスポンス方針:
  *  - upstream が 2xx → 正常 (return)
- *  - upstream が 5xx / network error → throw (callback.ts が dedup を unregister → 500 返却。
- *    公式ページでは再送契約を確認できないため、ログ記録および手動再投入時の再実行用)
+ *  - upstream が 5xx / **429** / network error → throw (callback.ts が dedup を unregister → 500 返却。
+ *    公式ページでは再送契約を確認できないため、ログ記録および手動再投入時の再実行用)。
+ *    429 は流量制限で、待てば通る一時障害。「再送しても解決しない 4xx」と同じに 200 を返すと
+ *    callback が消えるうえ、dedup key が残って手動再投入も 5 分間は弾かれる
  *  - upstream が 3xx / opaque redirect → throw。redirect先へ自動転送せず、転送失敗として扱う
  *  - upstream が **401 / 403** → throw。⚠️ これは「upstream の入口で弾かれた」= **こちらの設定事故**で、
  *    黙って 200 を返すと **callback が消える**。Access の token 誤り・失効を必ず表に出す
@@ -64,9 +66,9 @@ export async function forwardEventToUpstream(
     throw new Error(`forward to upstream failed: ${response.status}`)
   }
 
-  if (response.status >= 500) {
+  if (response.status >= 500 || response.status === 429) {
     const body = await response.text().catch(() => '')
-    logger.error('upstreamへのcallback転送が5xx（転送失敗）', {
+    logger.error('upstreamへのcallback転送が5xxまたは429（転送失敗）', {
       caller: `${CALLER}.forwardEventToUpstream`,
       status: response.status,
       debug: body,

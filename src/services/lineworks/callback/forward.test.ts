@@ -61,6 +61,13 @@ describe('forwardEventToUpstream', () => {
     )
   })
 
+  test('429 は throw する (流量制限は待てば通る一時障害。黙って 200 を返すと callback が消える)', async () => {
+    stubFetch(429)
+    await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).rejects.toThrow(
+      'forward to upstream failed: 429',
+    )
+  })
+
   test('opaque redirect (status 0) は throw する', async () => {
     globalThis.fetch = mock(async (input: string | URL, init?: RequestInit) => {
       calls.push({ url: typeof input === 'string' ? input : input.toString(), init })
