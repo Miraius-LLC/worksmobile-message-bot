@@ -24,7 +24,7 @@ Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポ�
 - **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
 - **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Workers logs / Cloud Run時のCloud Logging severity・trace連携
 - **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
-- **CI**: GitHub Actions (PR + `main` への push で `tsc --noEmit` + `biome check` + `bun test`)
+- **CI**: GitHub Actions (PR + `main` への push で `bun run typecheck` + `biome check` + `bun test`)
 - **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers / Cloud Build → Cloud Run
 
 ### 参考にさせていただいた記事
@@ -136,7 +136,7 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 | 用途 | コマンド |
 |---|---|
 | 開発サーバ起動 (ホットリロード) | `bun run dev` |
-| 型チェック | `bunx tsc --noEmit` |
+| 型チェック | `bun run typecheck`（内蔵 `bun check`） |
 | Lint / format (auto-fix) | `bunx biome check --write ./src ./tests ./scripts` |
 | 本番ビルド (`build/index.js` を出力) | `bun run build` |
 | 本番ビルドを起動 | `bun run start` |
@@ -146,7 +146,7 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 | 1Password 参照の疎通確認 | `bun run secrets:check` |
 | OpenSpec 操作 / strict 検証 | `bun run spec -- <command>` / `bun run spec:validate` |
 
-`pre-commit` で biome auto-fix と `tsc --noEmit` が走るため、手動で先回り実行する必要は無い。
+`pre-commit` で biome auto-fix と `bun run typecheck` が走るため、手動で先回り実行する必要は無い。
 
 ---
 

@@ -96,7 +96,7 @@ pre-commit:
       stage_fixed: true
     typescript:
       glob: "*.{ts,tsx}"
-      run: scripts/with-dev-env bunx tsc --noEmit
+      run: scripts/with-dev-env bun run typecheck
     test:
       # `tests/` 配下だけ編集したコミット (例: feature テストの追加・修正のみ) でも
       # pre-commit でテストを走らせるため、glob には `tests/` も含める

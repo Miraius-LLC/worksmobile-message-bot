@@ -30,7 +30,7 @@ jobs:
         run: bun run spec:validate
 
       - name: TypeScript type check
-        run: bunx tsc --noEmit
+        run: bun run typecheck
 
       - name: Biome lint / format check
         run: >-
