@@ -6,13 +6,14 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-10
 
-- **callback転送の429を失敗扱いにした（2026-10-12）**: upstreamの429で500を返してdedup keyを解除し、同じpayloadの再投入を受け入れる。仕様差分は[active change](openspec/changes/callback-forward-rate-limit/proposal.md)。
-- **公開callbackの本文を署名検証前に1MiBで制限した（2026-10-12）**: Content-Lengthに依存せず実測し、超過時は残りを読まず413で拒否する。仕様差分は[active change](openspec/changes/callback-body-limit/proposal.md)。
-- **添付uploadの署名URL漏出を防いだ（2026-10-12）**: upload先のtimeout・通信例外を固定エラーへ変換し、500本文とログからURLを除く（[active change](openspec/changes/upload-error-url-safety/proposal.md)）。
+- **出荷前の全検査を `bun run check` 1本にまとめた（2026-10-12）**: CIと同じspec検証・型検査・Biome・全テストを順に実行する。`check` scriptがあると `bun check` がscriptを呼ぶため、`typecheck` は内蔵の `bun --check` にした。OpenSpecの完了change 4件をarchiveし、`attachment-upload` specを新設した。
+- **callback転送の429を失敗扱いにした（2026-10-12）**: upstreamの429で500を返してdedup keyを解除し、同じpayloadの再投入を受け入れる。仕様差分は[change](openspec/changes/archive/2026-10-12-callback-forward-rate-limit/proposal.md)。
+- **公開callbackの本文を署名検証前に1MiBで制限した（2026-10-12）**: Content-Lengthに依存せず実測し、超過時は残りを読まず413で拒否する。仕様差分は[change](openspec/changes/archive/2026-10-12-callback-body-limit/proposal.md)。
+- **添付uploadの署名URL漏出を防いだ（2026-10-12）**: upload先のtimeout・通信例外を固定エラーへ変換し、500本文とログからURLを除く（[change](openspec/changes/archive/2026-10-12-upload-error-url-safety/proposal.md)）。
 - **Cloud Runの休止と再開準備を明記した（2026-10-12）**: 現在の稼働はWorkersのみとし、GCP側準備とAccess service tokenの登録・マウント手順を[README](./README.md#再開前の準備)へ追記した。
 - **旧 agent-room skill の repo 内 copy を撤去（2026-10-09）**: user scope へ移行済み。
 - **secret 注入を島共通の宣言へ移した（2026-10-09）**: `.develop-secrets.jsonc` に `.env.tpl` の 8 参照と `.env` 出力を定め、旧 TypeScript adapter を撤去した。必須参照の取得失敗時は共通核の all-or-nothing により `.env` を書き換えない（この repo の旧 adapter も取得失敗時は無書込）。
-- **callback転送のredirectを失敗扱いにした（2026-10-04）**: redirectを自動追従せず、upstreamの3xxとopaque redirectで転送失敗としてdedup keyを解除する。仕様差分は[active change](openspec/changes/callback-forward-redirect-safety/proposal.md)。
+- **callback転送のredirectを失敗扱いにした（2026-10-04）**: redirectを自動追従せず、upstreamの3xxとopaque redirectで転送失敗としてdedup keyを解除する。仕様差分は[change](openspec/changes/archive/2026-10-12-callback-forward-redirect-safety/proposal.md)。
 
 ## 2026-09
 

@@ -43,7 +43,12 @@ callbackはraw bodyのSHA-256 digestをkeyとするin-memory Mapで5分間dedupl
 
 ### Requirement: 設定可能なupstreamへ同期転送する
 
-`FORWARD_CALLBACK_URL`が設定されている場合、callback endpointは検証済みraw bodyと`X-WORKS-Signature`をそのupstreamへ同期的に転送し、完了を待ってから応答しなければならない（SHALL）。
+`FORWARD_CALLBACK_URL`が設定されている場合、callback endpointは検証済みraw bodyと`X-WORKS-Signature`をupstreamへ同期的に転送し、完了を待ってから応答しなければならない（SHALL）。redirectを自動追従してはならず（MUST NOT）、429、3xxまたは`opaqueredirect`を転送失敗として扱わなければならない（SHALL）。
+
+#### Scenario: Opaque redirectを受け取る
+
+- **WHEN** manual redirect responseが`type: opaqueredirect`かつstatus 0で返る
+- **THEN** 転送関数は失敗をthrowし、callback endpointは500を返してdedup keyを解除する
 
 #### Scenario: Upstream転送に成功する
 
@@ -57,8 +62,24 @@ callbackはraw bodyのSHA-256 digestをkeyとするin-memory Mapで5分間dedupl
 
 #### Scenario: Upstream転送に失敗する
 
-- **WHEN** upstream requestがnetwork error、5xx、または認証拒否の401 / 403で失敗する
+- **WHEN** upstream requestがnetwork error、429、5xx、または認証拒否の401 / 403で失敗する
 - **THEN** endpointは500を返してdedup keyを解除し、同じcallbackの手動再投入を受け入れる
+
+#### Scenario: Upstreamが3xxを返す
+
+- **WHEN** upstreamが通常の3xx responseを返す
+- **THEN** 転送関数は失敗をthrowし、redirect先へ追従しない
+
+#### Scenario: Upstreamが429を返す
+
+- **WHEN** 検証済みcallbackのupstreamが429を返す
+- **THEN** endpointは500を返してdedup keyを解除する
+- **AND** 同じpayloadの再投入は再びupstreamへ転送され、再度429なら500、成功応答なら200を返す
+
+#### Scenario: その他4xxの挙動を維持する
+
+- **WHEN** upstreamが401 / 403 / 429以外の4xxを返す
+- **THEN** 転送関数はwarnしてreturnし、endpointは200を返す
 
 ### Requirement: Callbackのbusiness logicをupstreamへ委譲する
 
@@ -68,3 +89,27 @@ callbackはraw bodyのSHA-256 digestをkeyとするin-memory Mapで5分間dedupl
 
 - **WHEN** eventが検証とdedupを通過する
 - **THEN** wmbotはraw eventをupstreamへ届け、domain固有の応答処理を実行しない
+
+### Requirement: Callback本文を署名検証前に制限する
+
+callback endpointは署名検証前にrequest bodyを実測byte数で最大1MiB（1,048,576 byte）までに制限しなければならない（SHALL）。Content-Lengthの有無や申告値によらず実測しなければならない（SHALL）。上限を超えたら残りの本文を読み切らずstreamを中断し、413と`{ error: 'callback body too large' }`を返さなければならない（SHALL）。超過本文の署名検証、dedup登録、upstream転送を行ってはならない（MUST NOT）。この制限はWorkers / Cloud Runの共通routeで適用しなければならない（SHALL）。
+
+#### Scenario: Content-Lengthのない本文が上限を超える
+
+- **WHEN** Content-Lengthなしのstreamが1MiBを超え、残りのchunkがある
+- **THEN** endpointは残りを読まずstreamを中断し、署名検証より前に413を返し、upstreamへ転送しない
+
+#### Scenario: Content-Lengthの過少申告がある
+
+- **WHEN** Content-Lengthは上限内でも実際のstreamが1MiBを超える
+- **THEN** endpointは実測値により残りを読まず中断し、413を返す
+
+#### Scenario: 上限ちょうどの正常callbackを受け取る
+
+- **WHEN** 正常な署名とBot IDのUTF-8本文がちょうど1MiBである
+- **THEN** endpointは既存の検証・dedup・転送を行い、raw bodyと署名を保って200を返す
+
+#### Scenario: 文字数では上限内だがbyte数は上限を超える
+
+- **WHEN** UTF-8の本文byte数が1MiBを超える
+- **THEN** endpointは文字数によらず413を返し、upstreamへ転送しない
