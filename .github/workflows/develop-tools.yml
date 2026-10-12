@@ -12,20 +12,20 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Create release reader token
         id: develop-tools-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ vars.DEVELOP_TOOLS_APP_ID }}
+          client-id: ${{ vars.DEVELOP_TOOLS_CLIENT_ID }}
           private-key: ${{ secrets.DEVELOP_TOOLS_APP_PRIVATE_KEY }}
           owner: fujimogn
           repositories: develop-meta
           permission-contents: read
       - name: Install develop tools
-        uses: fujimogn/develop-tools-action@v1
+        uses: fujimogn/develop-tools-action@1b425e0a95426f53d0c7132e108a47d84142fda0 # v1.0.1
         with:
           token: ${{ steps.develop-tools-token.outputs.token }}
       - name: Smoke installed binaries

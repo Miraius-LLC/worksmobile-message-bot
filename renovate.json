@@ -21,6 +21,11 @@
       "description": "majorはDependency Dashboardで承認されたものだけPR化",
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "develop-tools.yml は develop-meta の template から配る。更新は配布元で行うので、この repo では Renovate の対象にしない",
+      "matchFileNames": [".github/workflows/develop-tools.yml"],
+      "enabled": false
     }
   ]
 }
