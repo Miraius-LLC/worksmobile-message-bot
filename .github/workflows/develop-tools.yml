@@ -1,0 +1,36 @@
+name: Develop tools
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Create release reader token
+        id: develop-tools-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.DEVELOP_TOOLS_APP_ID }}
+          private-key: ${{ secrets.DEVELOP_TOOLS_APP_PRIVATE_KEY }}
+          owner: fujimogn
+          repositories: develop-meta
+          permission-contents: read
+      - name: Install develop tools
+        uses: fujimogn/develop-tools-action@v1
+        with:
+          token: ${{ steps.develop-tools-token.outputs.token }}
+      - name: Smoke installed binaries
+        run: |
+          develop-docs-check --version
+          command -v check-staged-docs
+          command -v check-staged-adr
+          command -v develop-secrets
