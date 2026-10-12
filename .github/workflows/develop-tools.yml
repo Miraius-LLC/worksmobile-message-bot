@@ -25,7 +25,7 @@ jobs:
           repositories: develop-meta
           permission-contents: read
       - name: Install develop tools
-        uses: fujimogn/develop-tools-action@1b425e0a95426f53d0c7132e108a47d84142fda0 # v1.0.1
+        uses: fujimogn/develop-tools-action@ed47dcda36c8a05054fdbb342ed1ca0d37fd94aa # v1.0.2
         with:
           token: ${{ steps.develop-tools-token.outputs.token }}
       - name: Smoke installed binaries
