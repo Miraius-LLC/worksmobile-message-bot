@@ -11,7 +11,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - repo の開発規約（coding-conventions / tests / worktree / routes / services / tests-lineworks）の詳細は `.claude/rules/*.md`（Claude は `CLAUDE.md` 経由で @import、Codex / agy は同ディレクトリを直接参照）。
 - commit / git-log / source-file-naming は全島共通。判断 hook は `~/.agents/AGENTS.md` §7、詳細は `~/.agents/rules/*.md` を該当時に読む。**repo には置かない**。
 - 文書の SoT の分界（ADR / README・CONTEXT / OpenSpec / テスト / TODO / CHANGELOG）は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md) を正とする。
-- env は `src/utils/config.ts` の Zod schema が起動時に検証する（fail-fast）。一覧と本番の渡し方は [`README.md`](./README.md#環境変数の設定)。`pre-commit` で biome auto-fix と `bun run typecheck`（Bun 1.4.3 の内蔵 `bun check`） が走る。
+- env は `src/utils/config.ts` の Zod schema が起動時に検証する（fail-fast）。一覧と本番の渡し方は [`README.md`](./README.md#環境変数の設定)。`pre-commit` で biome auto-fix と `bun run typecheck`（Bun 1.4.3 の内蔵 `bun --check`） が走る。
 
 ## トピック別ルール (作業に応じて読む)
 
