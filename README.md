@@ -14,6 +14,10 @@
 同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。Workers向けの
 Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポジトリで維持している。
 
+**現在の稼働基盤はCloudflare Workersのみで、Cloud Runにはdeployしていない（休止中）。**
+Cloud Runは再利用の可能性があるため、`Dockerfile` / `cloudbuild.yaml` を残している。
+以下のCloud Run手順は再開時に使う。
+
 ### 技術スタック
 
 - **実行基盤**: Cloudflare Workers / Google Cloud Run
@@ -25,7 +29,7 @@ Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポ�
 - **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Workers logs / Cloud Run時のCloud Logging severity・trace連携
 - **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
 - **CI**: GitHub Actions (PR + `main` への push で `bun run typecheck` + `biome check` + `bun test`)
-- **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers / Cloud Build → Cloud Run
+- **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers。Cloud Build → Cloud Runは休止中
 
 ### 参考にさせていただいた記事
 
@@ -158,6 +162,22 @@ Cloud Runへ単独でデプロイできる構成を維持している。
 
 `cloudbuild.yaml` には **runtime SA / Secret Manager マウント / scaling / resources / ingress** 等を全て明示してあり、Cloud Run の構成 drift を防止します。
 
+### 再開前の準備
+
+2026-10-03のGCP project `office-381404` のGET照会では、Cloud Run serviceと専用runtime SA
+`worksmobile-message-bot-sa`、Secret Manager secret、Cloud Build trigger、Artifact Registry
+repositoryはいずれも存在しなかった。全location照会には到達不能な5 locationが含まれたが、
+藤井がCloud Runの廃止を確認済み。これは当日の確認記録であり、再開時には対象project・regionの
+現在値を再確認する（根拠: develop-metaの `infra/docs/registry-history.md`、worksmobile-message-bot節）。
+
+再開時は次を準備してから、下の初回設定へ進む。
+
+- **runtime service account**: 専用SAを作成し、利用するsecretごとにSecret Accessorを付与する。
+- **Secret Manager**: LINE WORKS / BASIC認証のsecretを登録する。Access保護されたupstreamへ転送する場合は、[Access service tokenの設定](#cloud-run再開時のcloudflare-access-service-token)も行う。
+- **Artifact Registryとbuild権限**: `cloudbuild.yaml` の `_AR_HOSTNAME` / `_AR_REPOSITORY` に対応するDocker repositoryを用意する。Cloud Build実行SAにimage push・Cloud Run deploy・runtime SAを使用する権限を設定する。
+- **Cloud Run serviceの初回作成**: 現行pipelineのdeploy stepは `gcloud run services update` なので、存在しないserviceは作成できない。再開時に `cloudbuild.yaml` の構成を基に初回作成用の `gcloud run deploy` を用意し、runtime SA・env・secret・HTTP/1.1・公開IAMを揃える。その後はpipelineで更新する。
+- **Cloud Build trigger**: GitHub接続・対象branch・`cloudbuild.yaml`・substitution variables・実行SAを設定する。triggerを使わない場合は、下のmanual build手順を使う。
+
 ### 初回設定
 
 ```sh
@@ -211,6 +231,34 @@ done
 `_SERVICE_ACCOUNT` / `_CLIENT_ID` / `_SERVICE_ACCOUNT_LW` / `_BOT_ID`はsecretではないが、
 manual buildではprocess argvとCloud Build metadataから、その環境の権限者に見える。secret値は
 `--substitutions`へ渡さず、Secret Manager参照を使う。
+
+### Cloud Run再開時のCloudflare Access service token
+
+`FORWARD_CALLBACK_URL` の転送先がCloudflare Accessで保護されている場合だけ設定する。
+現行 `cloudbuild.yaml` は `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` をマウントしないため、
+**secretを登録するだけでは転送に使われない**。再開時に次を行い、deploy構成へ反映する。
+
+1. 転送先のAccess applicationでservice tokenを発行し、そのtokenを許可するService Auth policyを設定する。既存tokenを使う場合は対象applicationの許可と有効期限を確認する。
+2. Client IDとClient Secretを、それぞれSecret Managerへ登録する。以下の変数は取得済みの値を表し、値を文書・substitution・通常envへ書かない。
+
+   ```sh
+   printf '%s' "$CF_ACCESS_CLIENT_ID_VALUE" | gcloud secrets create lineworks-cf-access-client-id --data-file=-
+   printf '%s' "$CF_ACCESS_CLIENT_SECRET_VALUE" | gcloud secrets create lineworks-cf-access-client-secret --data-file=-
+   for s in lineworks-cf-access-client-id lineworks-cf-access-client-secret; do
+     gcloud secrets add-iam-policy-binding "$s" \
+       --member="serviceAccount:worksmobile-message-bot-sa@<PROJECT_ID>.iam.gserviceaccount.com" \
+       --role=roles/secretmanager.secretAccessor
+   done
+   ```
+
+3. 再開時に `cloudbuild.yaml` のdeploy stepの既存 `--update-secrets` に、次の2 mappingを追加する。初回service作成にも同じmappingを渡す。手動updateだけで済ませず、pipeline側の構成を正本にする。
+
+   ```text
+   CF_ACCESS_CLIENT_ID=lineworks-cf-access-client-id:latest
+   CF_ACCESS_CLIENT_SECRET=lineworks-cf-access-client-secret:latest
+   ```
+
+4. `_FORWARD_CALLBACK_URL` に対象upstream URLを設定し、deploy後に署名付きcallbackがupstreamまで到達することを確認する。両変数の片方だけでは起動時validationに失敗する。転送先の401 / 403はcallbackの500応答になるため、tokenの許可・失効も確認する。
 
 ### Docker イメージの実装上の注意
 
