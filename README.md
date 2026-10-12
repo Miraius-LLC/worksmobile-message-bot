@@ -981,10 +981,11 @@ LINE WORKS から Bot 宛のイベント (メッセージ送信 / ボタン押�
 
 #### 認証
 
+- 本文は署名検証前に実測で **1MiB（1,048,576 byte）** までに制限し、超過時は残りを読まず`413 callback body too large`で拒否する（wmbot独自の防御上限。公式上限ではない）。
 - BASIC 認証は適用しない (LINE WORKS は BASIC 認証ヘッダを付けないため)
 - 代わりに **`X-WORKS-Signature` ヘッダ (= raw body の HMAC-SHA256 を Bot Secret を鍵に計算し Base64 化した値) を検証**して真正性を担保する (検証 NG → `401 invalid signature`)
 - 署名検証成功後、**`X-WORKS-BotId` ヘッダを検証**し、対象 Bot ID の一致を確認する (欠落 → `400 missing bot id`、不一致 → `403 bot id mismatch`)
-- **検証順序**: 署名検証 → Bot ID 検証 → dedup チェック (下記) → JSON.parse → Zod の `discriminatedUnion` で event 形式を確認 → 設定済み upstream へ同期 await 転送 → `200`を返す。upstream 5xx / network error はログを記録して `500` を返す。
+- **検証順序**: 本文サイズ制限 → 署名検証 → Bot ID 検証 → dedup チェック (下記) → JSON.parse → Zod の `discriminatedUnion` で event 形式を確認 → 設定済み upstream へ同期 await 転送 → `200`を返す。upstream 5xx / network error はログを記録して `500` を返す。
 
 #### Dedup (5 分 window)
 

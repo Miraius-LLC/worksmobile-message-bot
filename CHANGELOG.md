@@ -6,6 +6,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-10
 
+- **公開callbackの本文を署名検証前に1MiBで制限した（2026-10-12）**: Content-Lengthに依存せず実測し、超過時は残りを読まず413で拒否する。仕様差分は[active change](openspec/changes/callback-body-limit/proposal.md)。
 - **添付uploadの署名URL漏出を防いだ（2026-10-12）**: upload先のtimeout・通信例外を固定エラーへ変換し、500本文とログからURLを除く（[active change](openspec/changes/upload-error-url-safety/proposal.md)）。
 - **Cloud Runの休止と再開準備を明記した（2026-10-12）**: 現在の稼働はWorkersのみとし、GCP側準備とAccess service tokenの登録・マウント手順を[README](./README.md#再開前の準備)へ追記した。
 - **旧 agent-room skill の repo 内 copy を撤去（2026-10-09）**: user scope へ移行済み。

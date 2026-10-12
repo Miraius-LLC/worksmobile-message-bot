@@ -8,11 +8,42 @@ import { logger } from '@/utils/logger'
 
 const CALLER = 'routes/callback'
 
+// 公式の本文最大値は記載なし (2026-10-12確認):
+// https://developers.worksmobile.com/jp/docs/bot-callback
+// https://developers.worksmobile.com/jp/docs/bot-callback-message
+// 添付はfileIdを含むJSON。1MiBはwmbot独自の防御上限であり、公式上限ではない。
+const MAX_CALLBACK_BODY_BYTES = 1024 * 1024
+
+async function readCallbackBody(request: Request): Promise<string | null> {
+  if (!request.body) return ''
+  const reader = request.body.getReader()
+  const decoder = new TextDecoder()
+  const chunks: string[] = []
+  let size = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      size += value.byteLength
+      // Content-Lengthを信用せず常に実測し、超過chunkも残りの本文も保持しない。
+      if (size > MAX_CALLBACK_BODY_BYTES) {
+        await reader.cancel()
+        return null
+      }
+      chunks.push(decoder.decode(value, { stream: true }))
+    }
+    chunks.push(decoder.decode())
+    return chunks.join('')
+  } finally {
+    reader.releaseLock()
+  }
+}
+
 /**
  * LINE WORKS Bot Callbackの受信エンドポイント。任意のupstream転送にも対応する。
  *
  * 流れ:
- * 1. raw body を `c.req.text()` で取得 (`c.req.json()` を先に呼ぶと再取得できない)
+ * 1. raw body をbyte数の実測で制限して取得 → 1MiB超過なら残りを読まず413
  * 2. `X-WORKS-Signature` を HMAC-SHA256 (with BOT_SECRET) で検証 → NG なら 401
  * 3. `X-WORKS-BotId` ヘッダを検証 → 欠落なら 400、`config().botId` 不一致なら 403
  * 4. raw body の SHA-256 を dedup key として直近 5 分以内の再送を検出 → 副作用無しで 200
@@ -27,7 +58,8 @@ const CALLER = 'routes/callback'
 export const callbackApp = new Hono()
 
 callbackApp.post('/', async c => {
-  const rawBody = await c.req.text()
+  const rawBody = await readCallbackBody(c.req.raw)
+  if (rawBody === null) return c.json({ error: 'callback body too large' }, 413)
   const signature = c.req.header('x-works-signature')
 
   if (!verifyCallbackSignature(rawBody, signature, config().botSecret)) {

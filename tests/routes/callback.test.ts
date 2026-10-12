@@ -71,6 +71,82 @@ const messageEventFixture = {
   content: { type: 'text', text: 'hello' },
 }
 
+describe('POST /callback: 本文サイズ制限', () => {
+  test.each([
+    ['Content-Lengthなし', {}],
+    ['Content-Length過少申告', { 'content-length': '1' }],
+  ])('%sの超過streamは署名検証前に413となり、末尾を読まず中断する', async (_label, headers) => {
+    let chunksRead = 0
+    const cancel = mock(() => {})
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          chunksRead += 1
+          controller.enqueue(new Uint8Array(65_536).fill(65))
+          if (chunksRead === 18) controller.close()
+        },
+        cancel,
+      },
+      { highWaterMark: 0 },
+    )
+    const request = new Request('https://bot.example.test/callback', {
+      method: 'POST',
+      headers,
+      body,
+      // 署名なしでもサイズ超過が先に拒否される
+    })
+    const res = await app.request(request)
+    expect(res.status).toBe(413)
+    expect(await res.json()).toEqual({ error: 'callback body too large' })
+    expect(chunksRead).toBe(17)
+    expect(cancel).toHaveBeenCalledTimes(1)
+    expect(forwardCalls.length).toBe(0)
+  })
+
+  test('上限ちょうどのUTF-8本文は文字途中のchunk境界でも署名とraw bodyを保って200', async () => {
+    const event = JSON.stringify({ ...messageEventFixture, content: { type: 'text', text: 'あ' } })
+    const encoder = new TextEncoder()
+    const raw = event + ' '.repeat(1_048_576 - encoder.encode(event).byteLength)
+    const bytes = encoder.encode(raw)
+    const split = bytes.indexOf(0xe3) + 1
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bytes.subarray(0, split))
+        controller.enqueue(bytes.subarray(split))
+        controller.close()
+      },
+    })
+    const signature = sign(raw)
+    const res = await app.request(
+      new Request('https://bot.example.test/callback', {
+        method: 'POST',
+        headers: { 'x-works-signature': signature, 'x-works-botid': config().botId },
+        body,
+      }),
+    )
+    expect(res.status).toBe(200)
+    expect(forwardCalls.length).toBe(1)
+    expect(forwardCalls[0]?.init?.body).toBe(raw)
+    expect(new Headers(forwardCalls[0]?.init?.headers).get('X-WORKS-Signature')).toBe(signature)
+
+    const oversized = `${raw} `
+    const rejected = await postCallback(oversized, sign(oversized))
+    expect(rejected.status).toBe(413)
+    expect(forwardCalls.length).toBe(1)
+  })
+
+  test('文字数が上限内でもUTF-8 byte数が上限超過なら413で転送しない', async () => {
+    const raw = JSON.stringify({
+      ...messageEventFixture,
+      content: { type: 'text', text: 'あ'.repeat(350_000) },
+    })
+    expect(raw.length).toBeLessThan(1_048_576)
+    const res = await postCallback(raw, sign(raw))
+    expect(res.status).toBe(413)
+    expect(forwardCalls.length).toBe(0)
+  })
+})
+
 describe('POST /callback: 署名検証', () => {
   test('正しい署名 + 正しい event なら 200 + 空 body', async () => {
     const raw = JSON.stringify(messageEventFixture)
