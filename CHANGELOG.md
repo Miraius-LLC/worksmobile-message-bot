@@ -6,6 +6,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-10
 
+- **添付uploadの署名URL漏出を防いだ（2026-10-12）**: upload先のtimeout・通信例外を固定エラーへ変換し、500本文とログからURLを除く（[active change](openspec/changes/upload-error-url-safety/proposal.md)）。
 - **Cloud Runの休止と再開準備を明記した（2026-10-12）**: 現在の稼働はWorkersのみとし、GCP側準備とAccess service tokenの登録・マウント手順を[README](./README.md#再開前の準備)へ追記した。
 - **旧 agent-room skill の repo 内 copy を撤去（2026-10-09）**: user scope へ移行済み。
 - **secret 注入を島共通の宣言へ移した（2026-10-09）**: `.develop-secrets.jsonc` に `.env.tpl` の 8 参照と `.env` 出力を定め、旧 TypeScript adapter を撤去した。必須参照の取得失敗時は共通核の all-or-nothing により `.env` を書き換えない（この repo の旧 adapter も取得失敗時は無書込）。

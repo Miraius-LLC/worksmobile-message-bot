@@ -100,6 +100,52 @@ describe('routes/attachments: upload', () => {
     expect(calls.some(c => c.url.includes('/attachments') && c.init?.method === 'POST')).toBe(true)
   })
 
+  test.each(['header timeout', 'network error'])(
+    '署名付きupload URLの%sを500本文とログに出さない',
+    async failure => {
+      const signedUrl = `https://${UPLOAD_HOST}/u?token=upload-secret-marker`
+      const baseFetch = globalThis.fetch
+      const logEntries: string[] = []
+      logger.error = mock((message: unknown, context?: unknown) => {
+        logEntries.push(
+          JSON.stringify([message, context], (_key, value) =>
+            value instanceof Error
+              ? { ...value, message: value.message, stack: value.stack }
+              : value,
+          ),
+        )
+      }) as typeof logger.error
+      globalThis.fetch = mock(async (url: string | URL, init?: RequestInit) => {
+        const requestedUrl = String(url)
+        if (requestedUrl.includes(API_HOST) && init?.method === 'POST') {
+          return new Response(JSON.stringify({ uploadUrl: signedUrl, fileId: 'F-new' }))
+        }
+        if (requestedUrl === signedUrl) {
+          throw failure === 'header timeout'
+            ? new FetchTimeoutError(signedUrl, 60_000)
+            : new Error(`network failure: ${signedUrl}`)
+        }
+        return baseFetch(url, init)
+      }) as unknown as typeof globalThis.fetch
+
+      const form = new FormData()
+      form.append('file', new Blob(['hello']), 'a.txt')
+      const res = await app.request('/attachments', {
+        method: 'POST',
+        headers: { Authorization: BASIC_AUTH },
+        body: form,
+      })
+      const body = await res.text()
+      expect(res.status).toBe(500)
+      expect(body).not.toContain(signedUrl)
+      expect(logEntries.length).toBeGreaterThan(0)
+      expect(logEntries.join('\n')).not.toContain(signedUrl)
+      expect(logEntries.join('\n')).not.toContain('upload-secret-marker')
+      expect(logEntries.join('\n')).not.toContain('network failure')
+      expect(body).toBe(JSON.stringify({ error: 'ファイルのアップロードに失敗しました。' }))
+    },
+  )
+
   test('file 欠落のリクエストは 400', async () => {
     const form = new FormData()
     form.append('foo', 'bar')

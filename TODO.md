@@ -8,7 +8,6 @@ LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / M
 
 ## 次に着手
 
-- [ ] **添付 upload 経路で署名 URL が 500 応答に出る可能性を直す**。現在地: `src/services/lineworks/attachment.ts:36` が `issued.uploadUrl` を `fetchWithTimeout` に渡し、`src/routes/attachments/upload.ts:16` が例外を通すため、header timeout 時に URL 入りの message が `src/app.ts:107` の onError から返りうる（download 側は 2026-10-09 に固定文言へ修正済み）。次: 再現 test を RED で書き、upload 側も固定文言へ変換する。完了条件: 500 本文とログに署名 URL が出ない回帰 test が緑。
 
 ## いつか
 

@@ -33,15 +33,21 @@ export async function uploadAttachment(
   formData.append('resourceName', fileName)
   formData.append('file', file, fileName)
 
-  const response = await fetchWithTimeout(issued.uploadUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-    // 10 MB までの multipart upload を許容するため長めの timeout
-    timeoutMs: LONG_TIMEOUT_MS,
-  })
+  let response: Response
+  try {
+    response = await fetchWithTimeout(issued.uploadUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+      // 10 MB までの multipart upload を許容するため長めの timeout
+      timeoutMs: LONG_TIMEOUT_MS,
+    })
+  } catch {
+    // 元例外は署名URLを含みうるため、causeにも残さずonErrorへ渡す。
+    throw new Error('ファイルのアップロードに失敗しました。')
+  }
 
   if (!response.ok) {
     const body = await response.text().catch(() => '')
