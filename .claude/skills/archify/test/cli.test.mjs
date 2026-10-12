@@ -635,3 +635,30 @@ test('cli: validate rejects an unknown type without leaking a temp directory', (
 });
 
 process.on('exit', () => fs.rmSync(tmp, { recursive: true, force: true }));
+
+for (const command of ['deliver', 'render']) {
+  for (const outputKind of ['absolute', 'escaping-relative']) {
+    test(`cli: ${command} rejects ${outputKind} metadata output before writing`, () => {
+      const root = fs.mkdtempSync(path.join(tmp, 'metadata-output-'));
+      const cwd = path.join(root, 'cwd');
+      fs.mkdirSync(cwd);
+      const outside = path.join(root, 'outside.html');
+      fs.writeFileSync(outside, 'trusted external artifact');
+      const input = path.join(cwd, 'diagram.json');
+      const source = JSON.parse(fs.readFileSync(path.join(skillRoot, 'examples/web-app.architecture.json'), 'utf8'));
+      source.meta.output = outputKind === 'absolute' ? outside : '../outside.html';
+      fs.writeFileSync(input, JSON.stringify(source));
+      const result = run([command, 'architecture', input, ...(command === 'deliver' ? ['--json'] : [])], { cwd });
+      assert.equal(fs.readFileSync(outside, 'utf8'), 'trusted external artifact', 'metadata overwrote the external target');
+      assert.notEqual(result.status, 0);
+      assert.match(result.stdout + result.stderr, /meta.output.*relative path inside the working directory/);
+      assert.deepEqual(fs.readdirSync(cwd).sort(), ['diagram.json']);
+
+      const explicit = path.join(root, 'explicit.html');
+      const override = run([command, 'architecture', input, explicit], { cwd });
+      assert.equal(override.status, 0, override.stderr);
+      assert.equal(fs.existsSync(explicit), true);
+      assert.equal(fs.readFileSync(outside, 'utf8'), 'trusted external artifact');
+    });
+  }
+}

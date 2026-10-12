@@ -133,10 +133,14 @@ async function commandDeliver(args) {
     return;
   }
 
-  const authoredOutput = typeof diagram?.meta?.output === 'string' && diagram.meta.output
-    ? diagram.meta.output
-    : `${type}.html`;
-  const outputPath = path.resolve(requestedOutput || authoredOutput);
+  let outputPath;
+  try {
+    const { resolveOutputPath } = await import('../renderers/shared/cli.mjs');
+    outputPath = resolveOutputPath(type, diagram, requestedOutput);
+  } catch (error) {
+    reportDeliveryFailure({ json, stage: 'prepare', type, input: inputPath, error: error.message });
+    return;
+  }
   const outputDirectory = path.dirname(outputPath);
   try {
     fs.mkdirSync(outputDirectory, { recursive: true });

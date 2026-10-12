@@ -497,3 +497,62 @@ test('preview: all five typed renderers reach a verified first revision', { time
     }
   }
 });
+
+for (const outputKind of ['absolute', 'escaping-relative']) {
+  test(`preview: rejects ${outputKind} metadata output before writing`, { timeout: 30000 }, async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'archify-preview-metadata-'));
+    const cwd = path.join(root, 'cwd');
+    fs.mkdirSync(cwd);
+    const outside = path.join(root, 'outside.html');
+    fs.writeFileSync(outside, 'trusted external artifact');
+    const input = path.join(cwd, 'diagram.json');
+    const source = JSON.parse(fs.readFileSync(path.join(skillRoot, 'examples/web-app.architecture.json'), 'utf8'));
+    source.meta.output = outputKind === 'absolute' ? outside : '../outside.html';
+    fs.writeFileSync(input, JSON.stringify(source));
+    const previousCwd = process.cwd();
+    let preview;
+    let error;
+    process.chdir(cwd);
+    try {
+      try {
+        preview = await startPreview({ type: 'architecture', input, open: false, watch: false });
+        await waitForState(preview.url, (state) => state.status === 'verified', 'unsafe target did not verify on vulnerable code');
+      } catch (caught) {
+        error = caught;
+      } finally {
+        await preview?.stop();
+      }
+      assert.equal(fs.readFileSync(outside, 'utf8'), 'trusted external artifact', 'metadata overwrote the external target');
+      assert.match(error?.message || '', /meta.output.*relative path inside the working directory/);
+      assert.deepEqual(fs.readdirSync(cwd).sort(), ['diagram.json']);
+
+      const explicit = path.join(root, 'explicit.html');
+      preview = await startPreview({ type: 'architecture', input, output: explicit, open: false, watch: false });
+      await waitForState(preview.url, (state) => state.status === 'verified', 'explicit target did not verify');
+      assert.equal(fs.existsSync(explicit), true);
+    } finally {
+      await preview?.stop();
+      process.chdir(previousCwd);
+    }
+  });
+}
+
+test('preview: preserves relative metadata output inside the working directory', { timeout: 30000 }, async () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'archify-preview-relative-'));
+  const input = path.join(cwd, 'diagram.json');
+  const source = JSON.parse(fs.readFileSync(path.join(skillRoot, 'examples/web-app.architecture.json'), 'utf8'));
+  source.meta.output = 'nested/../safe/default.html';
+  fs.writeFileSync(input, JSON.stringify(source));
+  const previousCwd = process.cwd();
+  let preview;
+  process.chdir(cwd);
+  try {
+    preview = await startPreview({ type: 'architecture', input, open: false, watch: false });
+    await waitForState(preview.url, (state) => state.status === 'verified', 'relative metadata target did not verify');
+    assert.equal(preview.output, path.join(fs.realpathSync(cwd), 'safe/default.html'));
+    assert.equal(fs.existsSync(preview.output), true);
+  } finally {
+    await preview?.stop();
+    process.chdir(previousCwd);
+  }
+});

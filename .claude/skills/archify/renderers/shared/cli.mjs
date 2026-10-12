@@ -3,6 +3,23 @@ import path from 'node:path';
 import { applyTemplate, renderCards, esc } from './utils.mjs';
 import { validateSchema } from './validator.mjs';
 
+// Explicit CLI paths are caller-owned; JSON metadata may only select a
+// relative target that resolves inside the current working directory.
+export function resolveOutputPath(diagramType, diagram, requestedOutput) {
+  if (requestedOutput) return path.resolve(requestedOutput);
+  const authoredOutput = typeof diagram?.meta?.output === 'string' && diagram.meta.output
+    ? diagram.meta.output
+    : `${diagramType}.html`;
+  const cwd = process.cwd();
+  const outputPath = path.resolve(cwd, authoredOutput);
+  const relative = path.relative(cwd, outputPath);
+  if (path.isAbsolute(authoredOutput) || relative === '..'
+    || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error('meta.output must be a relative path inside the working directory; use an explicit output argument for other targets.');
+  }
+  return outputPath;
+}
+
 // Common CLI head: node render-<type>.mjs [input.json] [output.html]
 export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = process.argv }) {
   const skillRoot = path.resolve(rendererDir, '../..');
@@ -14,7 +31,7 @@ export function loadDiagram({ rendererDir, diagramType, defaultExample, argv = p
   const template = fs.readFileSync(path.join(skillRoot, 'assets/template.html'), 'utf8');
   // Optional chaining: in degraded mode (no ajv) malformed input must still
   // reach the renderer's friendly layout checks instead of crashing here.
-  const outPath = path.resolve(process.cwd(), argv[3] || diagram.meta?.output || `${diagramType}.html`);
+  const outPath = resolveOutputPath(diagramType, diagram, argv[3]);
   return { diagram, template, outPath };
 }
 

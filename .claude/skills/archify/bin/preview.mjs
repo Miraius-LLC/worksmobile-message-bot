@@ -5,6 +5,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveOutputPath } from '../renderers/shared/cli.mjs';
 import { openLoopbackUrl } from './open-artifact.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -45,17 +46,14 @@ function canonicalFuturePath(targetPath) {
 }
 
 function initialOutputPath(type, inputPath, requestedOutput) {
-  if (requestedOutput) return path.resolve(requestedOutput);
+  let source;
   try {
-    const source = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-    if (typeof source?.meta?.output === 'string' && source.meta.output) {
-      return path.resolve(source.meta.output);
-    }
+    source = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
   } catch {
     // An invalid initial source still gets a status shell. Its output target is
     // fixed to the same fallback that `deliver` would use after repair.
   }
-  return path.resolve(`${type}.html`);
+  return resolveOutputPath(type, source, requestedOutput);
 }
 
 function previewPage() {
