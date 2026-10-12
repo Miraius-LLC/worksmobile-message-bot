@@ -10,6 +10,9 @@ download/
 # Build (Docker ビルド時に bun build で生成)
 build/
 
+# wrangler dev のローカル状態 (KV / cache / 一時 bundle)
+.wrangler/
+
 # LINE WORKS の RSA 秘密鍵 (誤コミット防御。`base64 -i ./private_*.key` で .env に変換)
 private_*.key
 *.pem
