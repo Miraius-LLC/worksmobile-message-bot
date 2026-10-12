@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -8,8 +9,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skillRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(skillRoot, '..');
 const docsRoot = path.join(repoRoot, 'docs');
-const landing = fs.readFileSync(path.join(docsRoot, 'index.html'), 'utf8');
-const manifest = JSON.parse(fs.readFileSync(path.join(docsRoot, 'gallery', 'manifest.json'), 'utf8'));
 
 const proofs = [
   {
@@ -26,13 +25,16 @@ const proofs = [
   },
 ];
 
-test('landing metadata describes the full technical-diagram product without changing the hero', () => {
+test('landing metadata describes the full technical-diagram product without changing the hero', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.join(docsRoot, 'index.html'), 'utf8');
   assert.match(landing, /<title>Archify — Technical Diagrams from Plain English<\/title>/);
   assert.match(landing, /<meta property="og:title" content="Archify — Technical Diagrams from Plain English">/);
   assert.match(landing, /From plain English<br>to architecture <em>in seconds\.<\/em>/);
 });
 
-test('landing hero leads with three real generated proof artifacts', () => {
+test('landing hero leads with three real generated proof artifacts', { skip: upstreamSkip('docs/index.html', 'docs/gallery/manifest.json') }, () => {
+  const landing = fs.readFileSync(path.join(docsRoot, 'index.html'), 'utf8');
+  const manifest = JSON.parse(fs.readFileSync(path.join(docsRoot, 'gallery', 'manifest.json'), 'utf8'));
   assert.match(landing, /id="hero-proof-stage"/);
   assert.match(landing, /id="hero-proof-panel" role="tabpanel"/);
   assert.equal((landing.match(/class="proof-tab"/g) || []).length, 3);
@@ -56,7 +58,8 @@ test('landing hero leads with three real generated proof artifacts', () => {
   }
 });
 
-test('landing proof switcher is bilingual and keyboard navigable', () => {
+test('landing proof switcher is bilingual and keyboard navigable', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.join(docsRoot, 'index.html'), 'utf8');
   assert.match(landing, /proof-live':'Live proof'/);
   assert.match(landing, /proof-live':'实时成品'/);
   assert.match(landing, /event\.key === 'ArrowRight'/);
@@ -72,7 +75,8 @@ test('landing proof switcher is bilingual and keyboard navigable', () => {
   assert.match(landing, /Pin one exact Story Moment, copy its stable link, and let someone else open the same authored node/);
 });
 
-test('landing makes Route Journey and core exploration shortcuts discoverable in both languages', () => {
+test('landing makes Route Journey and core exploration shortcuts discoverable in both languages', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.join(docsRoot, 'index.html'), 'utf8');
   assert.match(landing, /Route Journey keeps the complete authored path visible/);
   assert.match(landing, /Route Journey 始终保留完整作者路径/);
   assert.match(landing, /one finite, reader-controlled pass over each exact incoming relationship/);

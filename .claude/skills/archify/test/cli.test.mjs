@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
@@ -588,7 +589,7 @@ test('cli: rejects an unknown quality profile', () => {
   assert.match(result.stderr, /Expected standard or showcase/);
 });
 
-test('cli: inspect emits architecture layout json', () => {
+test('cli: inspect emits architecture layout json', { skip: upstreamSkip('examples/archify-repo-grid.architecture.json') }, () => {
   const input = path.resolve(skillRoot, '../examples/archify-repo-grid.architecture.json');
   const result = run(['inspect', 'architecture', input]);
   assert.equal(result.status, 0, result.stderr);

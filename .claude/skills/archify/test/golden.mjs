@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 // Golden-file harness for the archify renderers. No test framework needed:
 // renderers are deterministic, so fresh renders must match the checked-in
 // example HTML aside from platform checkout line endings. Also covers schema enforcement (negative cases),
@@ -17,6 +18,15 @@ const repoRoot = path.resolve(skillRoot, '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'archify-test-'));
 
 let failures = 0;
+let skips = 0;
+
+function skipUpstream(name, ...paths) {
+  const reason = upstreamSkip(...paths);
+  if (!reason) return false;
+  skips += 1;
+  console.log(`  SKIP  ${name} — ${reason}`);
+  return true;
+}
 
 function check(name, ok, detail) {
   if (ok) {
@@ -55,7 +65,7 @@ for (const [mode, input, golden] of GOLDEN) {
   try {
     render(mode, path.join(skillRoot, 'examples', input), out);
     const fresh = fs.readFileSync(out, 'utf8');
-    const checked = fs.readFileSync(path.join(repoRoot, 'examples', golden), 'utf8');
+    const checked = fs.readFileSync(path.join(skillRoot, 'examples', golden), 'utf8');
     check(`${mode}: ${golden}`, normalizeNewlines(fresh) === normalizeNewlines(checked),
       `fresh render differs from examples/${golden}; if the change is intentional, re-render the examples and commit them`);
   } catch (err) {
@@ -115,10 +125,12 @@ function blocks(html, tag) {
 }
 
 const template = fs.readFileSync(path.join(skillRoot, 'assets/template.html'), 'utf8');
-const webApp = fs.readFileSync(path.join(repoRoot, 'examples/web-app.html'), 'utf8');
+
 // <style> and <script> blocks pass through applyTemplate untouched, so the
 // architecture-mode example must contain them verbatim or it has drifted.
 for (const tag of ['style', 'script']) {
+  if (skipUpstream(`web-app.html ${tag} blocks match template`, 'examples/web-app.html')) continue;
+  const webApp = fs.readFileSync(path.join(repoRoot, 'examples/web-app.html'), 'utf8');
   // The guided-view JSON script is generated from meta.views; compare only
   // template-owned executable scripts, not per-diagram data payloads.
   const isTemplateOwned = (block) => !block.includes('type="application/json"');
@@ -149,19 +161,24 @@ check('SKILL.md metadata version matches package.json major.minor',
   `SKILL.md says ${skillVersion}, package.json says ${pkg.version}`);
 
 for (const readmeName of ['README.md', 'README_EN.md', 'README_ZH.md']) {
+  if (skipUpstream(`${readmeName} badge matches package.json version`, readmeName)) continue;
   const readme = fs.readFileSync(path.join(repoRoot, readmeName), 'utf8');
   check(`${readmeName} badge matches package.json version`,
     readme.includes(`/badge/version-${pkg.version}-`),
     `${readmeName} does not advertise ${pkg.version}`);
 }
 
-const landingPage = fs.readFileSync(path.join(repoRoot, 'docs/index.html'), 'utf8');
-const landingVersions = [...landingPage.matchAll(/\bv\d+\.\d+\.\d+\b/g)].map((m) => m[0]);
-check('GitHub Pages version labels match package.json',
-  landingVersions.length > 0 && landingVersions.every((v) => v === `v${pkg.version}`),
-  `landing page says ${[...new Set(landingVersions)].join(', ') || '(no version)'}`);
+if (!skipUpstream('GitHub Pages version labels match package.json', 'docs/index.html')) {
+  const landingPage = fs.readFileSync(path.join(repoRoot, 'docs/index.html'), 'utf8');
+  const landingVersions = [...landingPage.matchAll(/\bv\d+\.\d+\.\d+\b/g)].map((m) => m[0]);
+  check('GitHub Pages version labels match package.json',
+    landingVersions.length > 0 && landingVersions.every((v) => v === `v${pkg.version}`),
+    `landing page says ${[...new Set(landingVersions)].join(', ') || '(no version)'}`);
+
+}
 
 // ---------------------------------------------------------------------------
+console.log(`\n${skips} upstream check(s) skipped`);
 fs.rmSync(tmp, { recursive: true, force: true });
 if (failures) {
   console.error(`\n${failures} check(s) failed`);

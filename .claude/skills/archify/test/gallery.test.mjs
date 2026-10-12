@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -22,7 +23,7 @@ function normalize(text) {
   return text.replace(/\r\n?/g, '\n');
 }
 
-test('generated proof gallery matches its sources, receipts, and checked-in artifacts', () => {
+test('generated proof gallery matches its sources, receipts, and checked-in artifacts', { skip: upstreamSkip('scripts/build-gallery.mjs', 'docs/gallery.html', 'docs/gallery/manifest.json') }, () => {
   const output = execFileSync(process.execPath, [
     path.join(repoRoot, 'scripts', 'build-gallery.mjs'),
     generatedRoot,

@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -5,16 +6,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
 
 function cssRule(selector) {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
+
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = landing.match(new RegExp(`${escaped}\\s*\\{([^}]+)\\}`));
   assert.ok(match, `${selector}: CSS rule missing`);
   return match[1];
 }
 
-test('landing declares a truthful first-fold proof aperture in document order', () => {
+test('landing declares a truthful first-fold proof aperture in document order', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
   assert.match(landing, /<section class="hero" data-proof-aperture="first-fold">/);
   const heroStart = landing.indexOf('data-proof-aperture="first-fold"');
   const headline = landing.indexOf('data-i18n="hero-h1"', heroStart);
@@ -23,7 +26,8 @@ test('landing declares a truthful first-fold proof aperture in document order', 
   assert.ok(heroStart < headline && headline < actions && actions < proof);
 });
 
-test('desktop hero budget exposes live diagram content without shrinking its canvas', () => {
+test('desktop hero budget exposes live diagram content without shrinking its canvas', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
   assert.match(cssRule('.hero'), /padding-top:5\.5rem/);
   assert.match(cssRule('.hero-badge'), /margin-bottom:1\.125rem/);
   assert.match(cssRule('.hero h1'), /margin-bottom:\.875rem/);
@@ -33,7 +37,8 @@ test('desktop hero budget exposes live diagram content without shrinking its can
   assert.match(cssRule('.proof-viewport'), /height:clamp\(500px,52vw,610px\)/);
 });
 
-test('narrow mobile gets an independently tuned proof aperture and full-size actions', () => {
+test('narrow mobile gets an independently tuned proof aperture and full-size actions', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
   const mobile = landing.match(/@media\(max-width:640px\)\s*\{([\s\S]+?)\n\s*\}\n\s*<\/style>/)?.[1];
   assert.ok(mobile, 'narrow mobile media query missing');
   assert.match(mobile, /\.hero\s*\{\s*padding-top:4\.75rem;\s*\}/);
@@ -42,7 +47,8 @@ test('narrow mobile gets an independently tuned proof aperture and full-size act
   assert.match(mobile, /\.proof-viewport\s*\{\s*height:400px;\s*\}/);
 });
 
-test('proof aperture remains one real eager artifact with explicit user-selected identities', () => {
+test('proof aperture remains one real eager artifact with explicit user-selected identities', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
   assert.equal((landing.match(/<iframe id="hero-proof-frame"/g) || []).length, 1);
   assert.match(landing, /loading="eager"/);
   assert.equal((landing.match(/class="proof-tab"/g) || []).length, 3);
@@ -52,7 +58,8 @@ test('proof aperture remains one real eager artifact with explicit user-selected
   assert.doesNotMatch(landing, /setInterval\(|scrollIntoView\(|scroll-triggered|proof-carousel/);
 });
 
-test('initial proof playback waits for 88 visible canvas pixels and can start only once', () => {
+test('initial proof playback waits for 88 visible canvas pixels and can start only once', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
   assert.match(landing, /let initialProofPlaybackStarted = false/);
   assert.match(landing, /visibleHeight < 88/);
   assert.match(landing, /new IntersectionObserver\(entries =>/);
@@ -63,7 +70,8 @@ test('initial proof playback waits for 88 visible canvas pixels and can start on
   assert.match(landing, /initialProofObserver\.disconnect\(\)/);
 });
 
-test('proof visibility handshake has reduced-motion, no-observer, and deliberate-choice boundaries', () => {
+test('proof visibility handshake has reduced-motion, no-observer, and deliberate-choice boundaries', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
   assert.match(landing, /window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
   assert.match(landing, /if \(proofMotionPreference\.matches \|\| !\('IntersectionObserver' in window\)\) return/);
   assert.match(landing, /renderProof\(tab\.dataset\.proof, \{ deliberate: true \}\)/);
@@ -73,7 +81,8 @@ test('proof visibility handshake has reduced-motion, no-observer, and deliberate
   assert.doesNotMatch(landing, /addEventListener\('scroll'/);
 });
 
-test('aperture uses normal flow and preserves reduced-motion boundaries', () => {
+test('aperture uses normal flow and preserves reduced-motion boundaries', { skip: upstreamSkip('docs/index.html') }, () => {
+  const landing = fs.readFileSync(path.resolve(__dirname, '..', '..', 'docs', 'index.html'), 'utf8');
   const hero = cssRule('.hero');
   const proof = cssRule('.hero-proof');
   assert.doesNotMatch(hero + proof, /position:absolute|transform:|top:-|margin-top:-|height:100vh/);

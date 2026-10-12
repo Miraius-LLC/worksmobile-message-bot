@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -114,19 +115,21 @@ test('Share Card stays viewer-only and reuses export cleanup instead of source s
   assert.doesNotMatch(svgBlock(html), /data-last-export-|data-format="share-card"/);
 });
 
-test('the skill and every README make the optional Share Card discoverable', () => {
+test('the skill and every README make the optional Share Card discoverable', async (t) => {
   const skill = fs.readFileSync(path.join(skillRoot, 'SKILL.md'), 'utf8');
   assert.match(skill, /optional 1200(?:×|x)630 Share Card PNG/i);
   assert.match(skill, /current theme and visual preset/i);
   assert.match(skill, /never claim(?:s|ing)? validation/i);
   assert.match(skill, /Copy Share Card/i);
 
-  for (const readme of ['README.md', 'README_EN.md', 'README_ZH.md']) {
-    const text = fs.readFileSync(path.join(repoRoot, readme), 'utf8');
-    assert.match(text, /Share Card/i, readme);
-    assert.match(text, /1200(?:×|x)630/, readme);
-    assert.match(text, /copy|复制/i, readme);
-  }
+  await t.test('upstream documentation and assets', { skip: upstreamSkip('README.md', 'README_EN.md', 'README_ZH.md') }, () => {
+    for (const readme of ['README.md', 'README_EN.md', 'README_ZH.md']) {
+      const text = fs.readFileSync(path.join(repoRoot, readme), 'utf8');
+      assert.match(text, /Share Card/i, readme);
+      assert.match(text, /1200(?:×|x)630/, readme);
+      assert.match(text, /copy|复制/i, readme);
+    }
+  });
 });
 
 process.on('exit', () => fs.rmSync(tmp, { recursive: true, force: true }));

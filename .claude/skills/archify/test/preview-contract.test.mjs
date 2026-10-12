@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,10 +9,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const skillRoot = path.resolve(here, '..');
 const repoRoot = path.resolve(skillRoot, '..');
 const skill = fs.readFileSync(path.join(skillRoot, 'SKILL.md'), 'utf8');
-const readme = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
-const english = fs.readFileSync(path.join(repoRoot, 'README_EN.md'), 'utf8');
-const chinese = fs.readFileSync(path.join(repoRoot, 'README_ZH.md'), 'utf8');
-const roadmap = fs.readFileSync(path.join(repoRoot, 'ROADMAP.md'), 'utf8');
 
 test('preview contract: the skill keeps live preview explicit, desktop-only, and last-good', () => {
   assert.match(skill, /archify\.mjs preview <type> <input>\.json <output>\.html/);
@@ -22,7 +19,10 @@ test('preview contract: the skill keeps live preview explicit, desktop-only, and
   assert.match(skill, /must never enter the generated artifact or any export/i);
 });
 
-test('preview contract: all README languages document the same optional command without changing the hero', () => {
+test('preview contract: all README languages document the same optional command without changing the hero', { skip: upstreamSkip('README.md', 'README_EN.md', 'README_ZH.md') }, () => {
+  const readme = fs.readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
+  const english = fs.readFileSync(path.join(repoRoot, 'README_EN.md'), 'utf8');
+  const chinese = fs.readFileSync(path.join(repoRoot, 'README_ZH.md'), 'utf8');
   assert.equal(readme, english);
   for (const text of [readme, chinese]) {
     assert.match(text, /bin\/archify\.mjs preview workflow/);
@@ -33,7 +33,8 @@ test('preview contract: all README languages document the same optional command 
   }
 });
 
-test('preview contract: roadmap records the no-leak and zero-dependency boundary', () => {
+test('preview contract: roadmap records the no-leak and zero-dependency boundary', { skip: upstreamSkip('ROADMAP.md') }, () => {
+  const roadmap = fs.readFileSync(path.join(repoRoot, 'ROADMAP.md'), 'utf8');
   assert.match(roadmap, /Last-Good Live Preview/);
   assert.match(roadmap, /installed ZIP skills keep the zero-dependency contract/i);
   assert.match(roadmap, /no server state, port, path, error, or reload token enters HTML/i);

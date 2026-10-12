@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -137,7 +138,7 @@ test('Route Share Card reuses one 1200x630 variant seam and publishes a truthful
   assert.match(html, /var ctx = canvas2dOrThrow\(canvas, 'Share Card'\)/);
 });
 
-test('skill and READMEs describe the optional Export variant and show one real card without changing the hero', () => {
+test('skill and READMEs describe the optional Export variant and show one real card without changing the hero', async (t) => {
   const skill = fs.readFileSync(path.join(skillRoot, 'SKILL.md'), 'utf8');
   assert.match(skill, /Export → Route Share Card/);
   assert.match(skill, /format=share-card/);
@@ -145,19 +146,21 @@ test('skill and READMEs describe the optional Export variant and show one real c
   assert.match(skill, /data-share-route-\*/);
   assert.match(skill, /download-only/i);
 
-  for (const readme of ['README.md', 'README_EN.md', 'README_ZH.md']) {
-    const text = fs.readFileSync(path.join(repoRoot, readme), 'utf8');
-    assert.match(text, /Export → Route Share Card/, readme);
-    assert.match(text, /docs\/assets\/archify-route-share-card\.png/, readme);
-  }
+  await t.test('upstream documentation and assets', { skip: upstreamSkip('README.md', 'README_EN.md', 'README_ZH.md', 'docs/assets/archify-route-share-card.png', 'scripts/build-zip.sh') }, () => {
+    for (const readme of ['README.md', 'README_EN.md', 'README_ZH.md']) {
+      const text = fs.readFileSync(path.join(repoRoot, readme), 'utf8');
+      assert.match(text, /Export → Route Share Card/, readme);
+      assert.match(text, /docs\/assets\/archify-route-share-card\.png/, readme);
+    }
 
-  const png = fs.readFileSync(path.join(repoRoot, 'docs/assets/archify-route-share-card.png'));
-  assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-  assert.equal(png.readUInt32BE(16), 1200);
-  assert.equal(png.readUInt32BE(20), 630);
+    const png = fs.readFileSync(path.join(repoRoot, 'docs/assets/archify-route-share-card.png'));
+    assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    assert.equal(png.readUInt32BE(16), 1200);
+    assert.equal(png.readUInt32BE(20), 630);
 
-  const buildZip = fs.readFileSync(path.join(repoRoot, 'scripts/build-zip.sh'), 'utf8');
-  assert.match(buildZip, /--exclude '\.validator-check-\*'/, 'concurrent validator scratch must never leak into archify.zip');
+    const buildZip = fs.readFileSync(path.join(repoRoot, 'scripts/build-zip.sh'), 'utf8');
+    assert.match(buildZip, /--exclude '\.validator-check-\*'/, 'concurrent validator scratch must never leak into archify.zip');
+  });
 });
 
 process.on('exit', () => fs.rmSync(tmp, { recursive: true, force: true }));

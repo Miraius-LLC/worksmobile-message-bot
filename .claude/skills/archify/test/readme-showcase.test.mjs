@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
@@ -75,7 +76,7 @@ function inspectGif(buffer) {
   return { width, height, frameCount, durationSeconds: durationCentiseconds / 100 };
 }
 
-test('README motion proof is compact, looping, and backed by current gallery artifacts', () => {
+test('README motion proof is compact, looping, and backed by current gallery artifacts', { skip: upstreamSkip('scripts/build-readme-showcase.mjs', 'docs/assets/archify-live-proof.gif', 'docs/assets/archify-live-proof.json') }, () => {
   const builder = fs.readFileSync(path.join(repoRoot, 'scripts', 'build-readme-showcase.mjs'), 'utf8');
   assert.match(builder, /\?embed=1&play=1&theme=dark#view=/);
   const buffer = fs.readFileSync(assetPath);
@@ -103,7 +104,7 @@ test('README motion proof is compact, looping, and backed by current gallery art
   }
 });
 
-test('all README languages keep the product hero and retain the verified animated proof', () => {
+test('all README languages keep the product hero and retain the verified animated proof', { skip: upstreamSkip('README.md', 'README_EN.md', 'README_ZH.md') }, () => {
   for (const filename of ['README.md', 'README_EN.md', 'README_ZH.md']) {
     const readme = fs.readFileSync(path.join(repoRoot, filename), 'utf8');
     const heroIndex = readme.indexOf('docs/assets/archify-readme-hero.png');
@@ -122,7 +123,7 @@ test('all README languages keep the product hero and retain the verified animate
   );
 });
 
-test('README demos use checked-in captures and live deep links below the existing hero', () => {
+test('README demos use checked-in captures and live deep links below the existing hero', { skip: upstreamSkip('docs/assets/archify-demo-story.png', 'README.md', 'README_EN.md', 'README_ZH.md') }, () => {
   const demos = [
     {
       asset: 'archify-demo-story.png',
@@ -163,7 +164,7 @@ test('README demos use checked-in captures and live deep links below the existin
   }
 });
 
-test('README stays scannable without deleting the visual proof set', () => {
+test('README stays scannable without deleting the visual proof set', { skip: upstreamSkip('README.md', 'README_EN.md', 'README_ZH.md') }, () => {
   const commonAssets = [
     'archify-readme-hero.png',
     'archify-live-proof.gif',

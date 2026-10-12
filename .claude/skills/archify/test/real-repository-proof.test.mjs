@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -13,7 +14,7 @@ const sourcePath = path.join(repoRoot, 'docs', 'cases', 'mco-runtime.architectur
 const artifactPath = path.join(repoRoot, 'docs', 'cases', 'mco-runtime.architecture.html');
 const shareCardPath = path.join(repoRoot, 'docs', 'assets', 'mco-runtime-share-card.png');
 
-test('MCO proof is source-backed, reproducible, and linked from every README', () => {
+test('MCO proof is source-backed, reproducible, and linked from every README', { skip: upstreamSkip('docs/cases/mco-runtime.architecture.json', 'docs/cases/mco-runtime.architecture.html', 'docs/assets/mco-runtime-share-card.png', 'README.md', 'README_EN.md', 'README_ZH.md') }, () => {
   const source = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
   assert.equal(source.meta.title, 'MCO Runtime Architecture');
   assert.equal(source.meta.quality_profile, 'showcase');

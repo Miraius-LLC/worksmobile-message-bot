@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -11,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skillRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(skillRoot, '..');
 
-test('start page: checked-in HTML is reproducible from canonical scenario recipes', () => {
+test('start page: checked-in HTML is reproducible from canonical scenario recipes', { skip: upstreamSkip('scripts/build-start.mjs', 'docs/start.html') }, () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'archify-start-page-'));
   const generated = path.join(tmp, 'start.html');
   try {
@@ -25,7 +26,7 @@ test('start page: checked-in HTML is reproducible from canonical scenario recipe
   }
 });
 
-test('start page: offers five bounded bilingual starts without ingesting source content', () => {
+test('start page: offers five bounded bilingual starts without ingesting source content', { skip: upstreamSkip('docs/start.html') }, () => {
   const html = fs.readFileSync(path.join(repoRoot, 'docs/start.html'), 'utf8');
   assert.doesNotMatch(html, /\[\[[A-Z0-9_]+\]\]/);
   assert.match(html, /npx skills add tt-a1i\/archify -g/);

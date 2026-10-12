@@ -1,3 +1,4 @@
+import { upstreamSkip } from './_upstream-fixtures.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -198,15 +199,17 @@ test('lifecycle: same-band port spread remains orthogonal', () => {
   ]);
 });
 
-test('skill and READMEs describe automatic port spread as bounded default behavior', () => {
+test('skill and READMEs describe automatic port spread as bounded default behavior', async (t) => {
   const skill = fs.readFileSync(path.join(skillRoot, 'SKILL.md'), 'utf8');
   assert.match(skill, /Automatic Port Spread is a default renderer behavior/);
   assert.match(skill, /single relationship|single relationships/);
   assert.match(skill, /explicit `via`.*`channelX`.*`channelY`.*`labelAt`/);
 
-  const repoRoot = path.resolve(skillRoot, '..');
-  for (const file of ['README.md', 'README_EN.md']) {
-    assert.match(fs.readFileSync(path.join(repoRoot, file), 'utf8'), /shared automatic endpoints spread deterministically/);
-  }
-  assert.match(fs.readFileSync(path.join(repoRoot, 'README_ZH.md'), 'utf8'), /共享的自动端点会确定性展开/);
+  await t.test('upstream documentation and assets', { skip: upstreamSkip('README.md', 'README_EN.md', 'README_ZH.md') }, () => {
+    const repoRoot = path.resolve(skillRoot, '..');
+    for (const file of ['README.md', 'README_EN.md']) {
+      assert.match(fs.readFileSync(path.join(repoRoot, file), 'utf8'), /shared automatic endpoints spread deterministically/);
+    }
+    assert.match(fs.readFileSync(path.join(repoRoot, 'README_ZH.md'), 'utf8'), /共享的自动端点会确定性展开/);
+  });
 });
