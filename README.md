@@ -985,7 +985,7 @@ LINE WORKS から Bot 宛のイベント (メッセージ送信 / ボタン押�
 - BASIC 認証は適用しない (LINE WORKS は BASIC 認証ヘッダを付けないため)
 - 代わりに **`X-WORKS-Signature` ヘッダ (= raw body の HMAC-SHA256 を Bot Secret を鍵に計算し Base64 化した値) を検証**して真正性を担保する (検証 NG → `401 invalid signature`)
 - 署名検証成功後、**`X-WORKS-BotId` ヘッダを検証**し、対象 Bot ID の一致を確認する (欠落 → `400 missing bot id`、不一致 → `403 bot id mismatch`)
-- **検証順序**: 本文サイズ制限 → 署名検証 → Bot ID 検証 → dedup チェック (下記) → JSON.parse → Zod の `discriminatedUnion` で event 形式を確認 → 設定済み upstream へ同期 await 転送 → `200`を返す。upstream 5xx / network error はログを記録して `500` を返す。
+- **検証順序**: 本文サイズ制限 → 署名検証 → Bot ID 検証 → dedup チェック (下記) → JSON.parse → Zod の `discriminatedUnion` で event 形式を確認 → 設定済み upstream へ同期 await 転送 → `200`を返す。upstream 429 / 5xx / network error はログを記録して `500` を返す。
 
 #### Dedup (5 分 window)
 
@@ -993,7 +993,7 @@ LINE WORKS から同一 event が重複して届いた場合に副作用が二�
 
 - **Dedup key**: raw body の SHA-256 hex (`createHash('sha256').update(rawBody).digest('hex')`)。LINE WORKS の callback payload には event ID 相当のフィールドが無いため、payload 全体のハッシュをキーにする
 - **TTL**: 5 分。同じ key が直近 5 分以内に届いていれば skip して 200 を返す (重複実行を抑止)
-- **失敗時リセット**: upstream への同期 await 転送が 5xx または network error で失敗した場合は `500` とログ出力を行い、dedup key を `unregister` する。これは手動再投入時の再実行を受け入れるためであり、LINE WORKS の自動再送契約を前提にしない。厳密な非消失は Durable Queue を将来 TODO とする。
+- **失敗時リセット**: upstream への同期 await 転送が 429 / 5xx または network error で失敗した場合は `500` とログ出力を行い、dedup key を `unregister` する。これは手動再投入時の再実行を受け入れるためであり、LINE WORKS の自動再送契約を前提にしない。厳密な非消失は Durable Queue を将来 TODO とする。
 - **不正 payload は残さない**: JSON parse / Zod 検証で `400` を返すときも dedup key を `unregister` する。同じ不正 payload を 5 分以内に再送しても毎回 `400` になる
 - **検証順序**: 署名検証 → Bot ID 検証 → dedup → JSON parse → Zod検証 → 設定済みupstreamへ転送
 

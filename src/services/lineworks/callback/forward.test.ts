@@ -48,7 +48,7 @@ describe('forwardEventToUpstream', () => {
     await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).resolves.toBeUndefined()
   })
 
-  test('4xx は throw しない (再送ループを防ぐため warn して return)', async () => {
+  test('400 は throw しない (再送ループを防ぐため warn して return)', async () => {
     stubFetch(400)
     await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).resolves.toBeUndefined()
     expect(calls.length).toBe(1)

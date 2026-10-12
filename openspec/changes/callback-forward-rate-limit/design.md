@@ -1,0 +1,13 @@
+## Context
+
+429応答時はupstreamへの配送成功を確認できない。現行のその他4xx経路はwarnしてreturnするため、callback endpointが200を返してdedup keyを残す。
+
+## Decision
+
+429を既存の5xx失敗経路へ含める。serviceがログを記録してthrowし、既存callback routeの後始末でdedup keyをunregisterして500を返す。route自体の変更は不要。その他4xxの扱いは変更しない。内部retry、Retry-After待機、永続queueは追加しない。
+
+同一payloadが429で繰り返し失敗しても毎回転送され、upstreamが回復すれば再投入が200となることをHTTP境界で検証する。LINE WORKSによる自動再送は保証しない。
+
+## Rollback
+
+429を失敗経路から外し、対応するテストとREADMEの429記述を戻す。元の未配送callbackを成功扱いするリスクも戻る。
