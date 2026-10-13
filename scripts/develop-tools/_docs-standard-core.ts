@@ -21,8 +21,8 @@ export interface ArchivePlanFailure {
 
 export type ChangelogArchivePlan = ArchivePlan | ArchivePlanFailure;
 
-export const TODO_MAX_BYTES = 24_000;
-export const CHANGELOG_MAX_BYTES = 60_000;
+export const TODO_MAX_BYTES = 36_000;
+export const CHANGELOG_MAX_BYTES = 120_000;
 export const TODO_ITEM_WARNING_BYTES = 500;
 export const CHANGELOG_ARCHIVE_TARGET_PERCENT = 80;
 const TODO_SECTIONS = ["進行中", "次に着手", "待ち", "いつか"];
