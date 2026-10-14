@@ -50,6 +50,20 @@ post-rewrite:
 pre-commit:
   parallel: true
   commands:
+# <!-- BEGIN develop-meta:lefthook:pre-commit:island-docs v1 sha256=d994cd50105ba42ca496da80111349681fc086e2fa8897410bae04aa7a5d9ba9 -->
+    island-docs:
+      run: |
+        saved_index_file="${GIT_INDEX_FILE:-}"
+        for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
+        checker="$(command -v develop-docs-check 2>/dev/null || true)"
+        if [ -z "$checker" ]; then
+          checker="$HOME/Develop/develop-meta/bin/develop-docs-check"
+        fi
+        if [ -n "$saved_index_file" ]; then
+          exec "$checker" --staged --index-file "$saved_index_file"
+        fi
+        exec "$checker" --staged
+# <!-- END develop-meta:lefthook:pre-commit:island-docs -->
 # <!-- BEGIN develop-meta:lefthook:pre-commit:develop-tools-version v1 sha256=a5db45817bc82b4fad178e43de43a8aedb288f61698004f0fec614d3d5f0d9c6 -->
     develop-tools-version:
       run: |
