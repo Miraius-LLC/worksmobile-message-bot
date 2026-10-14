@@ -3,6 +3,7 @@ name: Develop tools
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -17,6 +18,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Create release reader token
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         id: develop-tools-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
@@ -26,18 +28,28 @@ jobs:
           repositories: develop-meta
           permission-contents: read
       - name: Install develop tools
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: fujimogn/develop-tools-action@ed47dcda36c8a05054fdbb342ed1ca0d37fd94aa # v1.0.2
         with:
           token: ${{ steps.develop-tools-token.outputs.token }}
       - name: Smoke installed binaries
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           develop-docs-check --version
           command -v check-staged-docs
           command -v check-staged-adr
           command -v develop-secrets
       - name: Check changed documentation
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
-          BASE_SHA: ${{ github.event.before || '0000000000000000000000000000000000000000' }}
-          HEAD_SHA: ${{ github.sha }}
-        run: develop-docs-check --range "$BASE_SHA" "$HEAD_SHA"
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            BASE_SHA="$(git merge-base "$BASE_SHA" "$HEAD_SHA")"
+          fi
+          develop-docs-check --range "$BASE_SHA" "$HEAD_SHA"
+      - name: Explain skipped fork PR check
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: echo "Skipping develop-docs-check for fork PR because the private release token is unavailable."
