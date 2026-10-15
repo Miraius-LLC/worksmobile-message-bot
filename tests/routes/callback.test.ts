@@ -277,22 +277,25 @@ describe('POST /callback: upstreamへの転送', () => {
     expect(forwardCalls.length).toBe(1)
   })
 
-  test('upstreamが429でも同一callbackを再転送し、回復後は200を返す', async () => {
-    forwardStatus = 429
-    const raw = JSON.stringify(messageEventFixture)
-    const signature = sign(raw)
+  test.each([408, 429])(
+    'upstreamが%iでも同一callbackを再転送し、回復後は200を返す',
+    async status => {
+      forwardStatus = status
+      const raw = JSON.stringify(messageEventFixture)
+      const signature = sign(raw)
 
-    const first = await postCallback(raw, signature)
-    const retry = await postCallback(raw, signature)
-    forwardStatus = 200
-    const recovered = await postCallback(raw, signature)
+      const first = await postCallback(raw, signature)
+      const retry = await postCallback(raw, signature)
+      forwardStatus = 200
+      const recovered = await postCallback(raw, signature)
 
-    expect(first.status).toBe(500)
-    expect(retry.status).toBe(500)
-    expect(recovered.status).toBe(200)
-    expect(forwardCalls.length).toBe(3)
-    expect(forwardCalls.map(call => call.init?.body)).toEqual([raw, raw, raw])
-  })
+      expect(first.status).toBe(500)
+      expect(retry.status).toBe(500)
+      expect(recovered.status).toBe(200)
+      expect(forwardCalls.length).toBe(3)
+      expect(forwardCalls.map(call => call.init?.body)).toEqual([raw, raw, raw])
+    },
+  )
 
   test('upstreamが302を返すと500となり同じcallbackを再投入できる', async () => {
     forwardStatus = 302
