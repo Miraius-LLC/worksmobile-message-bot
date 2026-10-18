@@ -1,6 +1,6 @@
 # TODO.md と CHANGELOG.md
 
-この repo の直下 `TODO.md` と `CHANGELOG.md` の書き方である。数値の例外は作らない。検査と退避は、この repo に同梱された `scripts/develop-tools/` の CLI だけを使う。
+この repo の直下 `TODO.md` と `CHANGELOG.md` の書き方である。数値の例外は作らない。検査には島の `check-staged-docs` binary、退避には repo に同梱された `scripts/develop-tools/archive-changelog.ts` を使う。
 
 ## 役割
 
@@ -100,7 +100,7 @@ pre-commit が、stage された直下の `TODO.md` と `CHANGELOG.md` を見る
 同じ検査を手で走らせるときは、この repo の直下で次を実行する。
 
 ```bash
-bun scripts/develop-tools/check-staged-docs.ts
+$HOME/Develop/develop-meta/bin/check-staged-docs
 ```
 
 一時 index を渡すときは `--index-file` を 1 回だけ付ける。path は、すでに存在する一時 index で、`git rev-parse --absolute-git-dir` の配下にある通常ファイルにする。linked worktree では `.git` はファイルなので、`.git/` の下とは限らない。

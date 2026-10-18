@@ -78,27 +78,28 @@ pre-commit:
         fi
         true
 # <!-- END develop-meta:lefthook:pre-commit:develop-tools-version -->
-# <!-- BEGIN develop-meta:lefthook:pre-commit:adr-structure v1 sha256=d167fbee3c02a4c4a0ef9f0318379001e94cd1a141a07e6e0752129db9529054 -->
+# <!-- BEGIN develop-meta:lefthook:pre-commit:adr-structure v1 sha256=515acf09b56a3af9eec0ee6ba8dc8b5dfbd52c09c7f75c5cb96c57cd92ea0a81 -->
     adr-structure:
       glob: "docs/adr/**"
       run: |
         saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
         if [ -n "$saved_index_file" ]; then
-          exec scripts/with-dev-env bun run scripts/develop-tools/check-staged-adr.ts --index-file "$saved_index_file"
+          exec "$HOME/Develop/develop-meta/bin/check-staged-adr" --index-file "$saved_index_file"
         fi
-        exec scripts/with-dev-env bun run scripts/develop-tools/check-staged-adr.ts
+        exec "$HOME/Develop/develop-meta/bin/check-staged-adr"
 # <!-- END develop-meta:lefthook:pre-commit:adr-structure -->
-# <!-- BEGIN develop-meta:lefthook:pre-commit:docs-structure v1 sha256=80212fa612913168e27bd51958cba14192a462f1b481d4371ca0b12b99d0d264 -->
+# <!-- BEGIN develop-meta:lefthook:pre-commit:docs-structure v1 sha256=488c8900dc6aa14a6d07ab65cf3603b78a9992500c0800cb9739c014189b7137 -->
     docs-structure:
       glob: "{TODO.md,CHANGELOG.md}"
       run: |
         saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
+        checker="$HOME/Develop/develop-meta/bin/check-staged-docs"
         if [ -n "$saved_index_file" ]; then
-          exec scripts/with-dev-env bun run scripts/develop-tools/check-staged-docs.ts --index-file "$saved_index_file"
+          exec "$checker" --index-file "$saved_index_file"
         fi
-        exec scripts/with-dev-env bun run scripts/develop-tools/check-staged-docs.ts
+        exec "$checker"
 # <!-- END develop-meta:lefthook:pre-commit:docs-structure -->
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
