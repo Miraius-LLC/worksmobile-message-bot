@@ -14,7 +14,7 @@ commit-msg:
 
 post-merge:
   commands:
-# <!-- BEGIN develop-meta:lefthook:post-merge:graphify-refresh v1 sha256=0b0949ab61236fe8c4a36cac738cd391ddd0f4e11600804093557645819cd1cd -->
+# <!-- BEGIN develop-tools:lefthook:post-merge:graphify-refresh v1 sha256=0b0949ab61236fe8c4a36cac738cd391ddd0f4e11600804093557645819cd1cd -->
     graphify-refresh:
       run: |
         refresher="$HOME/Develop/develop-meta/bin/graphify-refresh"
@@ -24,13 +24,13 @@ post-merge:
           printf '%s\n' 'graphify-refresh: refresh failed' >&2
         fi
         true
-# <!-- END develop-meta:lefthook:post-merge:graphify-refresh -->
+# <!-- END develop-tools:lefthook:post-merge:graphify-refresh -->
     install:
       run: scripts/with-dev-env bun i
 
 post-rewrite:
   commands:
-# <!-- BEGIN develop-meta:lefthook:post-rewrite:graphify-refresh v1 sha256=4fc87be19bf008fe7473f52dfa06384008a462fb587fe05bb88038a3fab4cb00 -->
+# <!-- BEGIN develop-tools:lefthook:post-rewrite:graphify-refresh v1 sha256=4fc87be19bf008fe7473f52dfa06384008a462fb587fe05bb88038a3fab4cb00 -->
     graphify-refresh:
       run: |
         if [ "{1}" = amend ]; then
@@ -43,14 +43,14 @@ post-rewrite:
           printf '%s\n' 'graphify-refresh: refresh failed' >&2
         fi
         true
-# <!-- END develop-meta:lefthook:post-rewrite:graphify-refresh -->
+# <!-- END develop-tools:lefthook:post-rewrite:graphify-refresh -->
     install:
       run: scripts/with-dev-env bun i
 
 pre-commit:
   parallel: true
   commands:
-# <!-- BEGIN develop-meta:lefthook:pre-commit:island-docs v1 sha256=d994cd50105ba42ca496da80111349681fc086e2fa8897410bae04aa7a5d9ba9 -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:island-docs v1 sha256=d994cd50105ba42ca496da80111349681fc086e2fa8897410bae04aa7a5d9ba9 -->
     island-docs:
       run: |
         saved_index_file="${GIT_INDEX_FILE:-}"
@@ -63,8 +63,8 @@ pre-commit:
           exec "$checker" --staged --index-file "$saved_index_file"
         fi
         exec "$checker" --staged
-# <!-- END develop-meta:lefthook:pre-commit:island-docs -->
-# <!-- BEGIN develop-meta:lefthook:pre-commit:develop-tools-version v1 sha256=a5db45817bc82b4fad178e43de43a8aedb288f61698004f0fec614d3d5f0d9c6 -->
+# <!-- END develop-tools:lefthook:pre-commit:island-docs -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:develop-tools-version v1 sha256=a5db45817bc82b4fad178e43de43a8aedb288f61698004f0fec614d3d5f0d9c6 -->
     develop-tools-version:
       run: |
         checker="$(command -v develop-docs-check 2>/dev/null || true)"
@@ -77,8 +77,8 @@ pre-commit:
           fi
         fi
         true
-# <!-- END develop-meta:lefthook:pre-commit:develop-tools-version -->
-# <!-- BEGIN develop-meta:lefthook:pre-commit:adr-structure v1 sha256=515acf09b56a3af9eec0ee6ba8dc8b5dfbd52c09c7f75c5cb96c57cd92ea0a81 -->
+# <!-- END develop-tools:lefthook:pre-commit:develop-tools-version -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:adr-structure v1 sha256=515acf09b56a3af9eec0ee6ba8dc8b5dfbd52c09c7f75c5cb96c57cd92ea0a81 -->
     adr-structure:
       glob: "docs/adr/**"
       run: |
@@ -88,8 +88,8 @@ pre-commit:
           exec "$HOME/Develop/develop-meta/bin/check-staged-adr" --index-file "$saved_index_file"
         fi
         exec "$HOME/Develop/develop-meta/bin/check-staged-adr"
-# <!-- END develop-meta:lefthook:pre-commit:adr-structure -->
-# <!-- BEGIN develop-meta:lefthook:pre-commit:docs-structure v1 sha256=488c8900dc6aa14a6d07ab65cf3603b78a9992500c0800cb9739c014189b7137 -->
+# <!-- END develop-tools:lefthook:pre-commit:adr-structure -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:docs-structure v1 sha256=488c8900dc6aa14a6d07ab65cf3603b78a9992500c0800cb9739c014189b7137 -->
     docs-structure:
       glob: "{TODO.md,CHANGELOG.md}"
       run: |
@@ -100,7 +100,7 @@ pre-commit:
           exec "$checker" --index-file "$saved_index_file"
         fi
         exec "$checker"
-# <!-- END develop-meta:lefthook:pre-commit:docs-structure -->
+# <!-- END develop-tools:lefthook:pre-commit:docs-structure -->
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact
     # staged のファイルだけを検査・整形する (501 と同じ)。ディレクトリ全体へ --write をかけると
