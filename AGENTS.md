@@ -55,7 +55,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_`で始まるファイルは内部ヘルパ**: `routes/_middleware.ts`のように、サブルータへ直接mountしない補助moduleであることを示す。
 
-<!-- BEGIN develop-meta:AGENTS.md v1 sha256=29989ee2e37779960a98880fc1eec7bd8d4a115751b41ae6b72b7fb4de3bbd44 -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=29989ee2e37779960a98880fc1eec7bd8d4a115751b41ae6b72b7fb4de3bbd44 -->
 ### 3.1 目的に対して過不足なく
 
 - repo の状態・CI の時間と費用・文書の残り・依存の滞り・クラウドの台帳を知りたいときは develop-island-cli skill（island / infra の読み取り）を使う。
@@ -65,4 +65,4 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **review は根拠で判定する**: blocker は (a) 今回の範囲の誤動作を再現手順かコード・仕様で示せるもの、(b) 本節「質」に反する箇所を `file:line` で示せるもの。reviewer がどちらも示せない指摘は理由を記録して閉じる。再 review は修正箇所と影響範囲に絞り、解決済みの論点は新しい根拠が無ければ再開しない。blocker かどうかの判定が割れたら 藤井 に判断を渡す。
 - **記録先を分ける**: 各 repo の完了した成果は root `CHANGELOG.md`、残る作業・判断・運用 gate は root `TODO.md` に置く。
 
-<!-- END develop-meta:AGENTS.md -->
+<!-- END develop-tools:AGENTS.md -->
