@@ -1,8 +1,11 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // `src/test-helpers/setup.ts` の no-op logger を spy 化して上書きする。
 // 静的 import 前に呼ばないと SUT (`@/services/lineworks/api`) が
 // 古い mock を捕まえてしまうため、SUT は `await import(...)` で取り込む。
+const realLogger = await import('@/utils/logger')
+const originalLoggerModule = { ...realLogger }
+
 type LoggerCall = (message: unknown, option?: { caller?: string; status?: number }) => void
 const loggerSpies = {
   failure: mock<LoggerCall>(() => {}),
@@ -14,9 +17,14 @@ const loggerSpies = {
   debug: mock<LoggerCall>(() => {}),
 }
 mock.module('@/utils/logger', () => ({
+  ...originalLoggerModule,
   logger: loggerSpies,
   withDuration: async <T>(action: () => Promise<T>) => action(),
 }))
+
+afterAll(() => {
+  mock.module('@/utils/logger', () => originalLoggerModule)
+})
 
 const { postJson, LineWorksApiError } = await import('@/services/lineworks/api')
 

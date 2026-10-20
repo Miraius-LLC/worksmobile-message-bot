@@ -1,7 +1,10 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 // SUT (`@/utils/request-log`) より前に logger を spy 化する。
 // setup.ts の no-op logger を上書きする形なので静的 import 不可、SUT は動的 import で取り込む。
+const realLogger = await import('@/utils/logger')
+const originalLoggerModule = { ...realLogger }
+
 type LoggerCall = (
   message: unknown,
   option?: { caller?: string; method?: string; url?: string; status?: number; duration?: number },
@@ -16,9 +19,14 @@ const loggerSpies = {
   debug: mock<LoggerCall>(() => {}),
 }
 mock.module('@/utils/logger', () => ({
+  ...originalLoggerModule,
   logger: loggerSpies,
   withDuration: async <T>(action: () => Promise<T>) => action(),
 }))
+
+afterAll(() => {
+  mock.module('@/utils/logger', () => originalLoggerModule)
+})
 
 const { Hono } = await import('hono')
 const { requestLogMiddleware } = await import('@/utils/request-log')
