@@ -1,7 +1,7 @@
 {
-  "version": "0.5.24",
+  "version": "0.5.25",
   "sha256": {
-    "x86_64-unknown-linux-gnu": "42f2949bc43f70b44efb1970693ba4b15b7d159cedbca7ffdb2718a9e82a578a"
+    "x86_64-unknown-linux-gnu": "d23239c821c6f989a8cc95d1b31240b91ad96d620afa3897357f261c00ea3f03"
   },
   "adrMigratedThrough": 9,
   "adrReservedNumbers": [],
