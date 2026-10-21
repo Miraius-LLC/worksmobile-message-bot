@@ -2,15 +2,11 @@
 
 @AGENTS.md
 
-> ホームの `~/AGENTS.md` / `~/CLAUDE.md` が人物・作法・機微情報ルールを担保。
+> 共通規約は `~/.agents/AGENTS.md`。
 > worksmobile-message-bot 固有の規約・注意点は **エージェント中立の `@AGENTS.md` に集約済み**（主要コマンド・アーキテクチャ・環境変数は `README.md`）。Codex / agy も同じ AGENTS.md を読む。
-> 本ファイルには **Claude Code 固有のロード機構（`.claude/rules/` の @import / Agent skills の per-repo 設定）だけ**を残す。
+> 本ファイルには **Claude Code 固有の設定（Agent skills の per-repo 設定）だけ**を残す。
 
-## ルール (常時適用)
-
-@./.claude/rules/coding-conventions.md
-@./.claude/rules/worktree.md
-@./.claude/rules/tests.md
+`.claude/rules/` の frontmatter の無い rule（develop-meta が配布する `coding-conventions` / `tests` / `worktree` と、`routes` / `services` / `tests-lineworks`）は常時載る。
 
 ## Agent skills
 
