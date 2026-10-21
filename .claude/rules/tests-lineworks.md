@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.test.ts"
+---
+
 # LINE WORKS 関連のテストパターン (worksmobile-message-bot 固有)
 
 `.claude/rules/tests.md` (Develop 共通) の補足。LINE WORKS Bot API を扱う上での典型モックと feature テストの書き方をまとめる。

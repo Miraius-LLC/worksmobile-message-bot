@@ -1,3 +1,8 @@
+---
+paths:
+  - "src/services/**"
+---
+
 # Service 層の規約・ゴッチャ
 
 `src/services/lineworks/` の各モジュールは LINE WORKS Bot API の薄いラッパ。

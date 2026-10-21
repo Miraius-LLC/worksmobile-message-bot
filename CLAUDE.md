@@ -6,7 +6,7 @@
 > worksmobile-message-bot 固有の規約・注意点は **エージェント中立の `@AGENTS.md` に集約済み**（主要コマンド・アーキテクチャ・環境変数は `README.md`）。Codex / agy も同じ AGENTS.md を読む。
 > 本ファイルには **Claude Code 固有の設定（Agent skills の per-repo 設定）だけ**を残す。
 
-`.claude/rules/` の frontmatter の無い rule（develop-meta が配布する `coding-conventions` / `tests` / `worktree` と、`routes` / `services` / `tests-lineworks`）は常時載る。
+`.claude/rules/` の frontmatter の無い rule（develop-meta が配布する `coding-conventions` / `tests` / `worktree`）は常時載る。`routes`・`services`・`tests-lineworks` は `paths:` で対象コードを触るときだけ載る。
 
 ## Agent skills
 

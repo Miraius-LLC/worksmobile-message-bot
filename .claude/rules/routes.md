@@ -1,3 +1,8 @@
+---
+paths:
+  - "src/routes/**"
+---
+
 # ルート (HTTP エンドポイント) の規約
 
 `src/routes/` 配下に Hono の `Hono` インスタンスをサブルータとして定義し、`src/index.ts` の root Hono に `app.route(prefix, subApp)` で mount する。
