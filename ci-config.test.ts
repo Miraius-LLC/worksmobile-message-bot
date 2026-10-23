@@ -25,6 +25,27 @@ interface WorkflowConfig {
 }
 
 describe('CI workflow', () => {
+  test('全部入りCIはmainだけ、developとPRは軽いCIで検査する', async () => {
+    const workflow = YAML.parse(
+      await file(new URL('./.github/workflows/ci.yml', import.meta.url)).text(),
+    ) as WorkflowConfig
+    expect(workflow.on?.push).toEqual({ branches: ['main'] })
+    expect(workflow.on).not.toHaveProperty('pull_request')
+    const light = YAML.parse(
+      await file(new URL('./.github/workflows/ci-develop.yml', import.meta.url)).text(),
+    ) as WorkflowConfig
+    expect(light.on?.push).toEqual({ branches: ['develop'] })
+    expect(light.on?.pull_request).toEqual({ branches: ['main', 'develop'] })
+    const commands = light.jobs?.bun?.steps?.map(step => step.run).filter(Boolean)
+    expect(commands).toEqual([
+      'bun run ci:install',
+      'bun run lint',
+      'bun run typecheck',
+      'bun run test:fast',
+    ])
+    expect(light.jobs).not.toHaveProperty('deploy')
+  })
+
   test('check job は token 不要の Wrangler dry-run を実行する', async () => {
     const source = await file(new URL('./.github/workflows/ci.yml', import.meta.url)).text()
     const workflow = YAML.parse(source) as WorkflowConfig
@@ -100,12 +121,14 @@ describe('CI workflow', () => {
   test('Biome gateはrootのconfig contract testsも検査する', async () => {
     const source = await file(new URL('./.github/workflows/ci.yml', import.meta.url)).text()
     const workflow = YAML.parse(source) as WorkflowConfig
-    const biomeStep = workflow.jobs?.check?.steps?.find(step => step.run?.startsWith('bunx biome'))
+    const packageJson = await file(new URL('./package.json', import.meta.url)).json()
+    const biomeStep = workflow.jobs?.check?.steps?.find(step => step.run === 'bun run lint')
 
-    expect(biomeStep?.run).toContain('ci-config.test.ts')
-    expect(biomeStep?.run).toContain('ci-install.test.ts')
-    expect(biomeStep?.run).toContain('lockfile-config.test.ts')
-    expect(biomeStep?.run).toContain('wrangler-config.test.ts')
-    expect(biomeStep?.run).toContain('operations-config.test.ts')
+    expect(biomeStep).toBeDefined()
+    expect(packageJson.scripts.lint).toContain('ci-config.test.ts')
+    expect(packageJson.scripts.lint).toContain('ci-install.test.ts')
+    expect(packageJson.scripts.lint).toContain('lockfile-config.test.ts')
+    expect(packageJson.scripts.lint).toContain('wrangler-config.test.ts')
+    expect(packageJson.scripts.lint).toContain('operations-config.test.ts')
   })
 })

@@ -28,7 +28,7 @@ Cloud Runは再利用の可能性があるため、`Dockerfile` / `cloudbuild.ya
 - **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
 - **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Workers logs / Cloud Run時のCloud Logging severity・trace連携
 - **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
-- **CI**: GitHub Actions (PR + `main` への push で `bun run typecheck` + `biome check` + `bun test`)
+- **CI**: GitHub Actions（develop / PR は lint・型検査・`test:fast`、main は OpenSpec・全テスト・Wrangler dry-run を含む全部入り）
 - **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers。Cloud Build → Cloud Runは休止中
 
 ### 参考にさせていただいた記事
@@ -152,6 +152,10 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 | OpenSpec 操作 / strict 検証 | `bun run spec -- <command>` / `bun run spec:validate` |
 
 `pre-commit` で biome auto-fix と `bun run typecheck` が走るため、手動で先回り実行する必要は無い。
+
+通常の変更は `develop` に取り込む。pre-push は `check-release-version` による版照合だけ。`test:fast` は実 timer に依存する `src/services/lineworks/_fetch.test.ts` を除き、`bun run test` は同ファイルも含めて全件実行する。
+
+本番へ反映するときは develop 上で島の `release patch`（または `minor`）→ `release push` を使う。`release push` が develop → main の順に同じ SHA を push し、main の検査成功後に tag と GitHub Release を作る。main の push で既存の Workers deploy が走る。Miraius-LLC の branch 作成・push は藤井の確認後に行う。
 
 ---
 

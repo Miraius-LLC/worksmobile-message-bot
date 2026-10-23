@@ -5,9 +5,20 @@
   },
   "adrMigratedThrough": 9,
   "adrReservedNumbers": [],
-  "adrSanitizedNumbers": [
-    1,
-    4,
-    5
-  ]
+  "adrSanitizedNumbers": [1, 4, 5],
+  "integrationBranch": "develop",
+  "ci": {
+    "bun": {
+      "dirs": ["."],
+      "ciInstall": true
+    }
+  },
+  "release": {
+    "versionFiles": [
+      {
+        "path": "package.json",
+        "kind": "package-json"
+      }
+    ]
+  }
 }

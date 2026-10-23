@@ -6,6 +6,8 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-10
 
+- **develop 用の軽い CI を追加（2026-10-24）**: develop / PR は lint・型検査・`test:fast`、main は OpenSpec・全テスト・Wrangler dry-run と deploy。pre-push は版照合だけとし、Renovate の宛先を develop にする。版は島の `release` で管理する。
+
 - **callback転送の408を失敗扱いにした（2026-10-16）**: upstreamの408（Request Timeout）で429と同じく500を返してdedup keyを解除し、同じpayloadの再投入を受け入れる。Night Shiftの指摘と修正を取り込んだ。仕様差分は[change](openspec/changes/archive/2026-10-16-callback-forward-request-timeout/proposal.md)。
 - **出荷前の全検査を `bun run check` 1本にまとめた（2026-10-12）**: CIと同じspec検証・型検査・Biome・全テストを順に実行する。`check` scriptがあると `bun check` がscriptを呼ぶため、`typecheck` は内蔵の `bun --check` にした。OpenSpecの完了change 4件をarchiveし、`attachment-upload` specを新設した。
 - **callback転送の429を失敗扱いにした（2026-10-12）**: upstreamの429で500を返してdedup keyを解除し、同じpayloadの再投入を受け入れる。仕様差分は[change](openspec/changes/archive/2026-10-12-callback-forward-rate-limit/proposal.md)。

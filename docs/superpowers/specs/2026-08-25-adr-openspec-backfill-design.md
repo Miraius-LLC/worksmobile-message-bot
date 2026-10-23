@@ -60,7 +60,7 @@ active change名は`backfill-adr-contracts`とする。
 - superseded ADR-0001が現行contractとして独立spec化されていない
 - 7 current specsとworkflow specがOpenSpec strict validationを通る
 
-CIのBiome対象へ新しいroot contract testを追加する。通常の`bun test`、pre-push、CIは既存経路のまま利用する。
+CIのBiome対象へ新しいroot contract testを追加する。通常の `bun test` と main の CI で全件検証する。pre-push は版照合だけとし、develop / PR は軽い CI を使う。
 
 ## 文書運用の変更
 

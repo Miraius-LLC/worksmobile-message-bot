@@ -51,7 +51,7 @@ worksmobile-message-botの文書は目的ごとにSoT（Single Source of Truth�
 ## 検証
 
 - 手動: `bun run spec:validate`
-- pre-push: 全テストとOpenSpec strict validation
-- CI: check jobでOpenSpec strict validation
+- pre-push: `check-release-version` による版照合だけ
+- CI: main の check job で全テストと OpenSpec strict validation。develop / PR は `CI (develop)` の lint・型検査・`test:fast`
 
 OpenSpecのversionとCLI引数は`package.json`のscriptsを正とし、hookやCIからCLIを直接組み立てない。

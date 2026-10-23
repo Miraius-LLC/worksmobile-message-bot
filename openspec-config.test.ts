@@ -38,17 +38,20 @@ describe('OpenSpec repository contract', () => {
     expect(workflowSpec).toContain(`OpenSpec ${openspecVersion}`)
   })
 
-  test('pre-pushとCIは同じstrict validationを実行する', async () => {
+  test('strict validationは全部入りCIに置き、pre-pushは版照合だけにする', async () => {
     const [lefthook, workflow] = await Promise.all([
       file(new URL('./lefthook.yml', import.meta.url)).text(),
       file(new URL('./.github/workflows/ci.yml', import.meta.url)).text(),
     ])
 
-    expect(lefthook).toContain('openspec-validate:')
-    expect(lefthook).toContain('scripts/with-dev-env bun run spec:validate')
+    const prePush = lefthook.split('\npre-push:')[1]
+    expect(prePush).toBeDefined()
+    expect(prePush).toContain('check-release-version')
+    expect(prePush).not.toContain('openspec-validate:')
+    expect(prePush).not.toContain('full-test:')
     expect(workflow).toContain('- name: Validate OpenSpec')
     expect(workflow).toContain('run: bun run spec:validate')
-    expect(workflow).toContain('openspec-config.test.ts')
+    expect(workflow).toContain('run: bun run lint')
   })
 
   test('既存GraphifyとCodeGraphはlocal cache境界を維持し、自動refresh hookを要求しない', async () => {

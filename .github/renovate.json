@@ -27,5 +27,8 @@
       "matchFileNames": [".github/workflows/develop-tools.yml"],
       "enabled": false
     }
-  ]
+  ],
+  "baseBranchPatterns": ["develop"],
+  "platformAutomerge": false,
+  "automergeType": "pr"
 }

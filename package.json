@@ -23,14 +23,16 @@
     "build": "bun build ./src/index.ts --outdir=./build --target=bun --minify",
     "test": "bun test",
     "typecheck": "bun --check",
-    "check": "bun run spec:validate && bun run typecheck && bun run lint ci-config.test.ts ci-install.test.ts lockfile-config.test.ts wrangler-config.test.ts operations-config.test.ts openspec-config.test.ts openspec-adr-coverage.test.ts && bun run test",
-    "lint": "bunx biome check ./src ./tests ./scripts",
+    "check": "bun run spec:validate && bun run typecheck && bun run lint && bun run test",
+    "lint": "bunx biome check ./src ./tests ./scripts ci-config.test.ts ci-install.test.ts lockfile-config.test.ts wrangler-config.test.ts operations-config.test.ts openspec-config.test.ts openspec-adr-coverage.test.ts",
     "format": "bunx biome check --write ./src ./tests ./scripts",
     "spec": "OPENSPEC_TELEMETRY=0 openspec",
     "spec:validate": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict --no-interactive",
     "docker:build": "docker build -t worksmobile-message-bot .",
     "docker:run": "docker run -p 8080:8080 --env-file=.env worksmobile-message-bot",
-    "lefthook:install": "lefthook install"
+    "lefthook:install": "lefthook install",
+    "ci:install": "./scripts/ci-install.sh --frozen-lockfile",
+    "test:fast": "bun test --path-ignore-patterns \"**/_fetch.test.ts\""
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",

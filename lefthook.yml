@@ -118,14 +118,11 @@ pre-commit:
       glob: "{src,tests}/**/*.{ts,tsx}"
       run: scripts/with-dev-env bun run scripts/run-related-tests.ts {staged_files}
 
-# pre-push では `bun test` を全件実行する (co-located unit + tests/ feature)。
-# pre-commit は staged された本体に対応する関連テストしか拾わないため、
-# テストヘルパや preload (src/test-helpers/setup.ts) 経路で壊れる失敗を逃しがち。
-# push 前に全件走らせて main を緑に保つ。全件でも数秒なのでコストは無視できる。
+# pre-push は版照合だけ。全テストと OpenSpec strict validation は main の CI で実行する。
 pre-push:
-  parallel: true
-  commands:
-    full-test:
-      run: scripts/with-dev-env bun test
-    openspec-validate:
-      run: scripts/with-dev-env bun run spec:validate
+  scripts:
+# <!-- BEGIN develop-tools:lefthook:pre-push:check-release-version v1 sha256=e9a10c170a2331ecc94e9346f8fcdd05b104cebb55406cfc4fb0b6051d6a6475 -->
+    check-release-version.sh:
+      runner: sh
+      use_stdin: true
+# <!-- END develop-tools:lefthook:pre-push:check-release-version -->
