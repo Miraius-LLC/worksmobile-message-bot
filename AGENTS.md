@@ -55,8 +55,16 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_`で始まるファイルは内部ヘルパ**: `routes/_middleware.ts`のように、サブルータへ直接mountしない補助moduleであることを示す。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=29989ee2e37779960a98880fc1eec7bd8d4a115751b41ae6b72b7fb4de3bbd44 -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=cce51d123a8101661a036cd50afe1255a5625b62ca0589c62869ef9af9e3cb13 -->
+### 1.1 島で共通の開始と記録
+<!-- island -->
+
+- この区画は Develop 島（`~/Develop/`）の共通規約の抜粋。全文は `~/Develop/develop-meta/AGENTS.md`、人物・禁止事項・承認・commit 規約は `~/.agents/AGENTS.md` を正とする。repo 固有の規約が具体的ならそちらを優先する。
+- **開発・commit・pushは `dev` (Linux) だけで行う。** Macのrepoは CLIとドキュメントのための置き場で、`git pull --ff-only` で追従するだけにする（`~/Develop/develop-meta/docs/adr/0022-dev-primary-island-distribution.md`）。
+- 用語は repo の `CONTEXT.md`、決定は `docs/adr/`、進行中は root `TODO.md`、完了履歴は root `CHANGELOG.md` / git logを読む。
+
 ### 3.1 目的に対して過不足なく
+<!-- island -->
 
 - repo の状態・CI の時間と費用・文書の残り・依存の滞り・クラウドの台帳を知りたいときは develop-island-cli skill（island / infra の読み取り）を使う。
 - **範囲は最小**: 目の前の問題は原因まで直す。起きていない問題・依頼に無い機能・将来用の拡張点・同じ性質を重ねる守りは足さない。範囲外の発見は、すぐ直せるものは報告し、重いものは TODO へ。
@@ -64,5 +72,33 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **検証は壊れた時の被害で決める**: データ・権限・本番・配布に関わる判定はテストで証明し、壊して落ちることを確かめる（L69）。既存テストで証明済みなら足さない。文言や表示だけの変更にテストを足さない。網羅のためのマトリクスは作らない。
 - **review は根拠で判定する**: blocker は (a) 今回の範囲の誤動作を再現手順かコード・仕様で示せるもの、(b) 本節「質」に反する箇所を `file:line` で示せるもの。reviewer がどちらも示せない指摘は理由を記録して閉じる。再 review は修正箇所と影響範囲に絞り、解決済みの論点は新しい根拠が無ければ再開しない。blocker かどうかの判定が割れたら 藤井 に判断を渡す。
 - **記録先を分ける**: 各 repo の完了した成果は root `CHANGELOG.md`、残る作業・判断・運用 gate は root `TODO.md` に置く。
+
+### 3.2 秘密の引き方
+<!-- island -->
+
+- `op` はサービスアカウントで引く: `OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.config/op/service-account.token)"`。素の `op` は藤井の画面に承認dialogを出す（D11）。
+
+### 4.1 配布物を直接直さない
+<!-- island -->
+
+- 子repoの配布物（`.claude/rules/`・`.claude/skills/`・settings・hook の管理区画、この `AGENTS.md` の管理区画）は develop-meta から配る。子repoで直接直さず、変えたいときは `~/Develop/develop-meta` の元を直して配り直す。
+
+### 5.1 Git と worktree
+<!-- island -->
+
+- 編集は `.claude/worktrees/<name>` のlinked worktreeで行い、作成直後に `git rev-parse --show-toplevel` で対象を固定する。
+- エージェントが一時 directory を作るときは `/tmp/<repo名>-...` または既存の `dev-task-temp` を使い、作成 path をこの session の作業記録に残す（名前だけで既存物の帰属は認定しない）。
+- build 物（`CARGO_TARGET_DIR`）を `/tmp` に向けず、worktree の target か `dev-task-temp` を使う。
+- 取り込みは `git merge --ff-only`。**統合先**は台帳 `~/Develop/develop-meta/config/projects.json` と repo の `.develop-tools.json` の `integrationBranch`（無ければ main）。develop を持つ repo は普段の取り込みと push を develop に行い、main は Release のときだけ動かす（`~/Develop/develop-meta/docs/adr/0032-develop-branch-and-release-only-main.md`）。
+- 藤井個人所有private repoは、検証済みworktreeを統合先へff merge → push → cleanupまで自走可。Miraius-LLC所有・共同開発repoは統合先への反映前に確認する。ただしRenovateの依存更新（patch / minor、CI緑）のautomergeと、agent-roomのFormation Shipper経由の出荷は例外（majorはDashboard承認のまま。Shipperは2026-10-01藤井決定）。
+- 既存dirty、他sessionのworktree、未確定assetを利用者の状態として保護する。
+- **通常開発でPull Requestを作らない。** PRは自律実行（夜間チェック・監査）の産物だけ。
+
+### 6.1 review と完走
+<!-- island -->
+
+- 外部へのreview・調査の依頼は対象repoのcwdから `agent-room delegate` を使う。本文に `repo:<project>`、対象、観点、read-only/work境界を書く。
+- reviewの量は変更のリスクに比例させる（§3.1）。後戻りしにくい判断は藤井が決める。
+- 完走時は検証 → review採否 → docs/TODO/CHANGELOG → commit → §5.1 の統合先へff-only → push → CI/deploy/remote equality → cleanupまで閉じる。未回収review・未監視CI/deploy・未push commit・残worktreeを残して完了としない。詳細は `shimekukuri` skill。
 
 <!-- END develop-tools:AGENTS.md -->
