@@ -40,7 +40,7 @@ describe('OpenSpec repository contract', () => {
 
   test('strict validationは全部入りCIに置き、pre-pushは版照合だけにする', async () => {
     const [lefthook, workflow] = await Promise.all([
-      file(new URL('./lefthook.yml', import.meta.url)).text(),
+      file(new URL('./.config/lefthook.yml', import.meta.url)).text(),
       file(new URL('./.github/workflows/ci.yml', import.meta.url)).text(),
     ])
 
@@ -62,7 +62,7 @@ describe('OpenSpec repository contract', () => {
         file(new URL('./.graphifyignore', import.meta.url)).text(),
         file(new URL('./.codegraph/.gitignore', import.meta.url)).text(),
         file(new URL('./.gitignore', import.meta.url)).text(),
-        file(new URL('./lefthook.yml', import.meta.url)).text(),
+        file(new URL('./.config/lefthook.yml', import.meta.url)).text(),
       ])
 
     expect(mcp).toMatchObject({

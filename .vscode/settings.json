@@ -33,7 +33,7 @@
   // ファイルのグループ化設定
   "explorer.fileNesting.patterns": {
     // パッケージとビルド設定ファイル
-    "package.json": ".editorconfig, biome.json, .tool-versions, package-lock.json, yarn.lock, .npmrc, .nvmrc, .gitignore, tsconfig.json, tsconfig.*.json, biome.jsonc, tsconfig.jsonc, vite.config.ts, .swcrc, bun.lock, bun.lockb, lefthook.yml",
+    "package.json": ".editorconfig, biome.json, .tool-versions, package-lock.json, yarn.lock, .npmrc, .nvmrc, .gitignore, tsconfig.json, tsconfig.*.json, biome.jsonc, tsconfig.jsonc, vite.config.ts, .swcrc, bun.lock, bun.lockb",
     // ソースコード関連ファイル
     "index.js": "index.d.ts, index.test.js, index.spec.js",
     // ドキュメント関連ファイル
