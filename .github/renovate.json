@@ -23,8 +23,14 @@
       "dependencyDashboardApproval": true
     },
     {
-      "description": "develop-tools.yml は develop-meta の template から配る。更新は配布元で行うので、この repo では Renovate の対象にしない",
-      "matchFileNames": [".github/workflows/develop-tools.yml"],
+      "description": "develop-meta が配る workflow の action pin は配布元で更新する",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchFileNames": [
+        ".github/workflows/develop-tools.yml",
+        ".github/workflows/ci-develop.yml"
+      ],
       "enabled": false
     }
   ],
