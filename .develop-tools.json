@@ -1,15 +1,22 @@
 {
-  "version": "0.5.26",
+  "version": "0.6.3",
   "sha256": {
-    "x86_64-unknown-linux-gnu": "ae01154f5f92f7ff8837bbbb40409bd89feebe975005192f70485300041466bd"
+    "x86_64-unknown-linux-gnu": "df386bc082fcd73da19e0c6ae667001a96b49b231a7b8f9ace4c3feab453221a",
+    "aarch64-apple-darwin": "9e6ce0eba1eefad8ec774d22889b59b52c4b8c2ddba0573c3c9d6c6dd4b3f4af"
   },
   "adrMigratedThrough": 9,
   "adrReservedNumbers": [],
-  "adrSanitizedNumbers": [1, 4, 5],
+  "adrSanitizedNumbers": [
+    1,
+    4,
+    5
+  ],
   "integrationBranch": "develop",
   "ci": {
     "bun": {
-      "dirs": ["."],
+      "dirs": [
+        "."
+      ],
       "ciInstall": true
     }
   },

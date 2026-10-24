@@ -50,56 +50,45 @@ post-rewrite:
 pre-commit:
   parallel: true
   commands:
-# <!-- BEGIN develop-tools:lefthook:pre-commit:island-docs v1 sha256=d994cd50105ba42ca496da80111349681fc086e2fa8897410bae04aa7a5d9ba9 -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:island-docs v1 sha256=534b22e17cacc1fc6b40f7c6e4f13769bef1e8ee7d54da685068929c6531cf9c -->
     island-docs:
       run: |
         saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
-        checker="$(command -v develop-docs-check 2>/dev/null || true)"
-        if [ -z "$checker" ]; then
-          checker="$HOME/Develop/develop-meta/bin/develop-docs-check"
-        fi
         if [ -n "$saved_index_file" ]; then
-          exec "$checker" --staged --index-file "$saved_index_file"
+          exec .develop-tools/resolve pre-commit develop-docs-check --staged --index-file "$saved_index_file"
         fi
-        exec "$checker" --staged
+        exec .develop-tools/resolve pre-commit develop-docs-check --staged
 # <!-- END develop-tools:lefthook:pre-commit:island-docs -->
-# <!-- BEGIN develop-tools:lefthook:pre-commit:develop-tools-version v1 sha256=a5db45817bc82b4fad178e43de43a8aedb288f61698004f0fec614d3d5f0d9c6 -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:develop-tools-version v1 sha256=a3b39c8086dd1d07b2310a82335ab40564604a2fd9940482ee6365296801b114 -->
     develop-tools-version:
       run: |
-        checker="$(command -v develop-docs-check 2>/dev/null || true)"
-        if [ -z "$checker" ] && [ -x "$HOME/Develop/develop-meta/bin/develop-docs-check" ]; then
-          checker="$HOME/Develop/develop-meta/bin/develop-docs-check"
-        fi
-        if [ -n "$checker" ]; then
-          if ! "$checker" --check-local-version; then
-            printf '%s\n' 'develop tools: 版を確認できません。~/Develop/develop-meta/bin/install-tools を実行してください' >&2
-          fi
+        if ! .develop-tools/resolve pre-commit develop-docs-check --check-local-version; then
+          printf '%s\n' 'develop tools: 版を確認できません' >&2
         fi
         true
 # <!-- END develop-tools:lefthook:pre-commit:develop-tools-version -->
-# <!-- BEGIN develop-tools:lefthook:pre-commit:adr-structure v1 sha256=515acf09b56a3af9eec0ee6ba8dc8b5dfbd52c09c7f75c5cb96c57cd92ea0a81 -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:adr-structure v1 sha256=b4b851e9d520488b6b06ed28e9e355718381d778ee626d32fff0b29a4dd694c0 -->
     adr-structure:
       glob: "docs/adr/**"
       run: |
         saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
         if [ -n "$saved_index_file" ]; then
-          exec "$HOME/Develop/develop-meta/bin/check-staged-adr" --index-file "$saved_index_file"
+          exec .develop-tools/resolve pre-commit check-staged-adr --index-file "$saved_index_file"
         fi
-        exec "$HOME/Develop/develop-meta/bin/check-staged-adr"
+        exec .develop-tools/resolve pre-commit check-staged-adr
 # <!-- END develop-tools:lefthook:pre-commit:adr-structure -->
-# <!-- BEGIN develop-tools:lefthook:pre-commit:docs-structure v1 sha256=488c8900dc6aa14a6d07ab65cf3603b78a9992500c0800cb9739c014189b7137 -->
+# <!-- BEGIN develop-tools:lefthook:pre-commit:docs-structure v1 sha256=e239a04b5cfdc3fca5d65e80c0d7bdfcd1e324c422dcf987e432e928f0c790d6 -->
     docs-structure:
       glob: "{TODO.md,CHANGELOG.md}"
       run: |
         saved_index_file="${GIT_INDEX_FILE:-}"
         for name in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$name"; done
-        checker="$HOME/Develop/develop-meta/bin/check-staged-docs"
         if [ -n "$saved_index_file" ]; then
-          exec "$checker" --index-file "$saved_index_file"
+          exec .develop-tools/resolve pre-commit check-staged-docs --index-file "$saved_index_file"
         fi
-        exec "$checker"
+        exec .develop-tools/resolve pre-commit check-staged-docs
 # <!-- END develop-tools:lefthook:pre-commit:docs-structure -->
     gitleaks:
       run: gitleaks protect --staged --no-banner --redact

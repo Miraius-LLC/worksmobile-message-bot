@@ -16,19 +16,8 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Create release reader token
-        id: develop-tools-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.DEVELOP_TOOLS_CLIENT_ID }}
-          private-key: ${{ secrets.DEVELOP_TOOLS_APP_PRIVATE_KEY }}
-          owner: fujimogn
-          repositories: develop-meta
-          permission-contents: read
       - name: Install develop tools
-        uses: fujimogn/develop-tools-action@ed47dcda36c8a05054fdbb342ed1ca0d37fd94aa # v1.0.2
-        with:
-          token: ${{ steps.develop-tools-token.outputs.token }}
+        uses: fujimogn/develop-tools-action@d9b4fcce621e2e22862bd0d9b696c8b67f170ce7 # v0.3.2
       - name: Smoke installed binaries
         run: |
           develop-docs-check --version

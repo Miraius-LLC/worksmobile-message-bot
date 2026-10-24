@@ -1,4 +1,4 @@
-# <!-- BEGIN develop-tools:ci-develop:standard v1 sha256=fdc25dab6c0c8b75606d953a278b20be999b5d16109fe5236cc4c50e21e3288d -->
+# <!-- BEGIN develop-tools:ci-develop:standard v1 sha256=4f26c9d478912e2e3d1b9cfb9136da7e49896ce367e6a7c743581a9bebd08b5d -->
 name: CI (develop)
 
 # develop の push と PR で走らせる軽い CI の標準の区画。develop-sync が .develop-tools.json の ci 宣言から作る。
@@ -37,22 +37,15 @@ jobs:
           echo "${checksum}  $RUNNER_TEMP/$archive" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
           export PATH="$RUNNER_TEMP:$PATH"
-          gitleaks git . --redact --no-banner --log-opts=--all
-      # 切り替え前の形: develop-meta の private Release から .develop-tools.json の版で固定した道具を入れ、変わった文書を見る。
-      # App の secret が要るので fork の PR は扱わない（切り替えで解消）。
-      - name: Create release reader token
-        id: develop-tools-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.DEVELOP_TOOLS_CLIENT_ID }}
-          private-key: ${{ secrets.DEVELOP_TOOLS_APP_PRIVATE_KEY }}
-          owner: fujimogn
-          repositories: develop-meta
-          permission-contents: read
+          # 移した設定があれば明示して渡す。無ければ旧配置と標準の規則を gitleaks の探索に任せる。
+          set --
+          if [ -f .config/gitleaks.toml ]; then
+            set -- --config .config/gitleaks.toml
+          fi
+          gitleaks git . --redact --no-banner "$@" --log-opts=--all
+      # 公開版の形: .develop-tools.json の版で固定した道具を入れ、変わった文書を見る。
       - name: Install develop tools
-        uses: fujimogn/develop-tools-action@ed47dcda36c8a05054fdbb342ed1ca0d37fd94aa # v1.0.2
-        with:
-          token: ${{ steps.develop-tools-token.outputs.token }}
+        uses: fujimogn/develop-tools-action@d9b4fcce621e2e22862bd0d9b696c8b67f170ce7 # v0.3.2
       - name: Check changed documentation
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}
@@ -70,9 +63,51 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Resolve Bun version
+        id: develop-bun-version
+        run: |
+          python3 - <<'PY'
+          import os, re, sys, tomllib
+          FIXED = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+          def fail(message):
+              sys.exit("develop-bun-version: " + message)
+          declared = {}
+          try:
+              with open(".config/mise.toml", "rb") as handle:
+                  tools = tomllib.load(handle).get("tools")
+          except FileNotFoundError:
+              pass
+          except (OSError, tomllib.TOMLDecodeError) as error:
+              fail(".config/mise.toml を読めない: %s" % error)
+          else:
+              value = tools.get("bun") if isinstance(tools, dict) else None
+              if not isinstance(value, str) or not FIXED.fullmatch(value):
+                  fail(".config/mise.toml の [tools].bun は固定した x.y.z の文字列にする")
+              declared[".config/mise.toml"] = value
+          try:
+              with open(".tool-versions", encoding="utf-8") as handle:
+                  lines = handle.read().splitlines()
+          except FileNotFoundError:
+              lines = []
+          except (OSError, UnicodeDecodeError) as error:
+              fail(".tool-versions を読めない: %s" % error)
+          for line in lines:
+              fields = line.split("#", 1)[0].split()
+              if fields[:1] == ["bun"]:
+                  if len(fields) != 2 or not FIXED.fullmatch(fields[1]):
+                      fail(".tool-versions の bun は固定した x.y.z を 1 つだけ書く")
+                  if ".tool-versions" in declared:
+                      fail(".tool-versions に bun が複数ある")
+                  declared[".tool-versions"] = fields[1]
+          if not declared:
+              fail("bun の版が .config/mise.toml にも .tool-versions にも無い")
+          if len(set(declared.values())) != 1:
+              fail("bun の版が食い違う: %r" % declared)
+          open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8").write("version=%s\n" % next(iter(declared.values())))
+          PY
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version-file: .tool-versions
+          bun-version: ${{ steps.develop-bun-version.outputs.version }}
       - run: bun run ci:install
         working-directory: '.'
       - run: bun run lint
