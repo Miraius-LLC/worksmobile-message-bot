@@ -36,7 +36,17 @@ describe('CI workflow', () => {
     ) as WorkflowConfig
     expect(light.on?.push).toEqual({ branches: ['develop'] })
     expect(light.on?.pull_request).toEqual({ branches: ['main', 'develop'] })
-    const commands = light.jobs?.bun?.steps?.map(step => step.run).filter(Boolean)
+    const steps = light.jobs?.bun?.steps
+    const resolver = steps?.find(step => step.id === 'develop-bun-version')
+    expect(resolver?.run).toContain('GITHUB_OUTPUT')
+    const setupBun = steps?.find(step => step.uses?.startsWith('oven-sh/setup-bun@'))
+    expect(setupBun?.with?.['bun-version']).toBe(
+      '${{ steps.develop-bun-version.outputs.version }}',
+    )
+    const commands = steps
+      ?.filter(step => step.id !== 'develop-bun-version')
+      .map(step => step.run)
+      .filter(Boolean)
     expect(commands).toEqual([
       'bun run ci:install',
       'bun run lint',
