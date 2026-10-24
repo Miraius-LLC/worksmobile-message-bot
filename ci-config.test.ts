@@ -40,9 +40,7 @@ describe('CI workflow', () => {
     const resolver = steps?.find(step => step.id === 'develop-bun-version')
     expect(resolver?.run).toContain('GITHUB_OUTPUT')
     const setupBun = steps?.find(step => step.uses?.startsWith('oven-sh/setup-bun@'))
-    expect(setupBun?.with?.['bun-version']).toBe(
-      '${{ steps.develop-bun-version.outputs.version }}',
-    )
+    expect(setupBun?.with?.['bun-version']).toBe('${{ steps.develop-bun-version.outputs.version }}')
     const commands = steps
       ?.filter(step => step.id !== 'develop-bun-version')
       .map(step => step.run)
