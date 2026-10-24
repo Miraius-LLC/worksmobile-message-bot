@@ -47,11 +47,11 @@ container imageはBun Debian builderとBun slim runtimeのmulti-stage buildを�
 
 ### Requirement: RuntimeとtoolchainのBun versionを同期する
 
-Dockerfileのbuilder/runtime base imageで固定するBun versionは`.tool-versions`と一致しなければならない（SHALL）。
+Dockerfileのbuilder/runtime base imageで固定するBun versionは`.config/mise.toml` の `[tools].bun`と一致しなければならない（SHALL）。
 
 #### Scenario: Bun versionを更新する
 
-- **WHEN** Dockerfileまたは`.tool-versions`のBun versionを変更する
+- **WHEN** Dockerfile または `.config/mise.toml` の `[tools].bun` を変更する
 - **THEN** すべての固定versionを同じ値へ更新する
 
 ### Requirement: Cloud Build設定をCloud Run deployのSoTとする

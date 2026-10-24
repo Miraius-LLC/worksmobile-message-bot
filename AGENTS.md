@@ -45,7 +45,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 ### Docker / デプロイ
 
-- **`bun` のバージョンは Dockerfile 冒頭の `ARG BUN_VERSION`（1.4.4）で固定**。`.tool-versions` と一致させる (片方だけ上げないこと)
+- **`bun` のバージョンは Dockerfile 冒頭の `ARG BUN_VERSION`（1.4.4）で固定**。`.config/mise.toml` の `[tools].bun` と一致させる (片方だけ上げないこと)
 - **機密 env を Cloud Run の env に直書きしない** ([ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md))。Secret Manager の `:latest` を参照するので、`gcloud secrets versions add` だけで再 deploy なしに差し替えられる
 - **Workers / Cloud Runの両方をサポートする**: 共通Hono appを`src/worker.ts`と`src/index.ts`から起動する。どちらを採用するかは利用者の運用要件で決め、リポジトリ内に特定環境の主系・待機系を固定しない。
 

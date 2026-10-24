@@ -9,7 +9,7 @@
 # - HEALTHCHECK は curl を入れず Bun の fetch で済ませる
 # =============================================================================
 
-# global ARG (FROM 行で参照可能)。`.tool-versions` と同じ値に揃えること。
+# global ARG (FROM 行で参照可能)。`.config/mise.toml` の `[tools].bun` と同じ値に揃えること。
 # Cloud Build なら `--build-arg BUN_VERSION=...` で外部から上書き可能
 ARG BUN_VERSION=1.4.4
 

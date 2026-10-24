@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { file, Glob } from 'bun'
+import Bun, { file, Glob } from 'bun'
 
 describe('public repository contract', () => {
   test('.gcloudignoreはGitと全env実体をupload対象外にする', async () => {
@@ -77,21 +77,21 @@ describe('public repository contract', () => {
     expect(cloudBuild).not.toContain('Cloud Build trigger substitution(s) missing')
   })
 
-  test('bunのバージョンは.tool-versions / Dockerfile / cloudbuild.yaml / docsで揃う', async () => {
-    const [toolVersions, dockerfile, cloudBuild, readme, changelog] = await Promise.all([
-      file(new URL('./.tool-versions', import.meta.url)).text(),
+  test('bunのバージョンはmise / Dockerfile / cloudbuild.yaml / docsで揃う', async () => {
+    const [miseSource, dockerfile, cloudBuild, readme, changelog] = await Promise.all([
+      file(new URL('./.config/mise.toml', import.meta.url)).text(),
       file(new URL('./Dockerfile', import.meta.url)).text(),
       file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
       file(new URL('./README.md', import.meta.url)).text(),
       file(new URL('./CHANGELOG.md', import.meta.url)).text(),
     ])
 
-    const bunVersion = toolVersions.match(/^bun\s+(\d+\.\d+\.\d+)$/m)?.[1]
+    const bunVersion = Bun.TOML.parse(miseSource).tools.bun
     expect(bunVersion).toBeDefined()
 
     expect(dockerfile).toContain(`ARG BUN_VERSION=${bunVersion}`)
 
-    // cloudbuild.yaml が pin する image は .tool-versions と同一 patch であること
+    // cloudbuild.yaml が pin する image は mise の宣言と同一 patch であること
     const cloudBuildImages = [...cloudBuild.matchAll(/oven\/bun:(\S+)/g)].map(match => match[1])
     expect(cloudBuildImages.length).toBeGreaterThan(0)
     for (const image of cloudBuildImages) {

@@ -119,7 +119,7 @@ LINE WORKS API 呼び出しに使用する OAuth 認可スコープは環境変�
 
 ## セットアップ手順
 
-事前に [Bun](https://bun.sh/) をインストール (`.tool-versions` に対応した [asdf](https://asdf-vm.com/) / [mise](https://mise.jdx.dev/) 等を推奨)。
+事前に [Bun](https://bun.sh/) をインストール (`.config/mise.toml` の `[tools].bun` を読む [mise](https://mise.jdx.dev/) を推奨)。
 
 ```zsh
 # 1. クローン
