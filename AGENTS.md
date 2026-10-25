@@ -55,7 +55,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_`で始まるファイルは内部ヘルパ**: `routes/_middleware.ts`のように、サブルータへ直接mountしない補助moduleであることを示す。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=cce51d123a8101661a036cd50afe1255a5625b62ca0589c62869ef9af9e3cb13 -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=7c0d0c8ea95f5339921905e92354518a9b0630a3d0882b2fa4aaed95e3fcf34e -->
 ### 1.1 島で共通の開始と記録
 <!-- island -->
 
@@ -89,7 +89,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - 編集は `.claude/worktrees/<name>` のlinked worktreeで行い、作成直後に `git rev-parse --show-toplevel` で対象を固定する。
 - エージェントが一時 directory を作るときは `/tmp/<repo名>-...` または既存の `dev-task-temp` を使い、作成 path をこの session の作業記録に残す（名前だけで既存物の帰属は認定しない）。
 - build 物（`CARGO_TARGET_DIR`）を `/tmp` に向けず、worktree の target か `dev-task-temp` を使う。
-- 取り込みは `git merge --ff-only`。**統合先**は台帳 `~/Develop/develop-meta/config/projects.json` と repo の `.develop-tools.json` の `integrationBranch`（無ければ main）。develop を持つ repo は普段の取り込みと push を develop に行い、main は Release のときだけ動かす（`~/Develop/develop-meta/docs/adr/0032-develop-branch-and-release-only-main.md`）。
+- 取り込みは `git merge --ff-only`。**統合先**は台帳 `~/Develop/develop-meta/config/projects.json` と repo の `.config/develop-tools.json`（移す前の repo は root の `.develop-tools.json`）の `integrationBranch`（無ければ main）。develop を持つ repo は普段の取り込みと push を develop に行い、main は Release のときだけ動かす（`~/Develop/develop-meta/docs/adr/0032-develop-branch-and-release-only-main.md`）。
 - 藤井個人所有private repoは、検証済みworktreeを統合先へff merge → push → cleanupまで自走可。Miraius-LLC所有・共同開発repoは統合先への反映前に確認する。ただしRenovateの依存更新（patch / minor、CI緑）のautomergeと、agent-roomのFormation Shipper経由の出荷は例外（majorはDashboard承認のまま。Shipperは2026-10-01藤井決定）。
 - 既存dirty、他sessionのworktree、未確定assetを利用者の状態として保護する。
 - **通常開発でPull Requestを作らない。** PRは自律実行（夜間チェック・監査）の産物だけ。
