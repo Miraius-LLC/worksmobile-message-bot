@@ -1,4 +1,4 @@
-# <!-- BEGIN develop-tools:ci-develop:standard v1 sha256=aac7787271ec153aeca8dee8da961a9199abc73a1e005ede87dbdfa889249316 -->
+# <!-- BEGIN develop-tools:ci-develop:standard v1 sha256=8e09758805a844c6d1d5ba0fde231e900dfbad006c7528d91ddc3b501683ce48 -->
 name: CI (develop)
 
 # develop の push と PR で走らせる軽い CI の標準の区画。develop-sync が .develop-tools.json の ci 宣言から作る。
@@ -45,7 +45,7 @@ jobs:
           gitleaks git . --redact --no-banner "$@" --log-opts=--all
       # 公開版の形: .develop-tools.json の版で固定した道具を入れ、変わった文書を見る。
       - name: Install develop tools
-        uses: fujimogn/develop-tools-action@75e221834b070558105db5167b320eb013d719b2 # v0.3.4
+        uses: fujimogn/develop-tools-action@e5308ce03abf2d4d5e9eee4511d8541ad266c51b # v0.3.5
       - name: Check changed documentation
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}
