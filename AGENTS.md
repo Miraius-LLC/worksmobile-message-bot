@@ -55,12 +55,12 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_`で始まるファイルは内部ヘルパ**: `routes/_middleware.ts`のように、サブルータへ直接mountしない補助moduleであることを示す。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=7c0d0c8ea95f5339921905e92354518a9b0630a3d0882b2fa4aaed95e3fcf34e -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=c1120fadb96ff327a0a0d9b19397aca5160b6a2386f2de44c970fd6414c49c58 -->
 ### 1.1 島で共通の開始と記録
 <!-- island -->
 
 - この区画は Develop 島（`~/Develop/`）の共通規約の抜粋。全文は `~/Develop/develop-meta/AGENTS.md`、人物・禁止事項・承認・commit 規約は `~/.agents/AGENTS.md` を正とする。repo 固有の規約が具体的ならそちらを優先する。
-- **開発・commit・pushは `dev` (Linux) だけで行う。** Macのrepoは CLIとドキュメントのための置き場で、`git pull --ff-only` で追従するだけにする（`~/Develop/develop-meta/docs/adr/0022-dev-primary-island-distribution.md`）。
+- **宣言した単一の主機が開発・commit・push を担う。** 初期値は `dev`。非主機の repo は CLI・文書用に `git pull --ff-only` で追従する。Mac への実切替は別承認とし、切替時は `~/Develop/develop-meta/docs/adr/0035-declared-single-primary-host.md` に従う。
 - 用語は repo の `CONTEXT.md`、決定は `docs/adr/`、進行中は root `TODO.md`、完了履歴は root `CHANGELOG.md` / git logを読む。
 
 ### 3.1 目的に対して過不足なく
