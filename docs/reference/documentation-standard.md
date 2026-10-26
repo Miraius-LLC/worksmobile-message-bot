@@ -100,7 +100,9 @@ pre-commit が、stage された直下の `TODO.md` と `CHANGELOG.md` を見る
 同じ検査を手で走らせるときは、この repo の直下で次を実行する。
 
 ```bash
-$HOME/Develop/develop-meta/bin/check-staged-docs
+.develop-tools/resolve pre-commit check-staged-docs
 ```
+
+道具を取得できないとき、`pre-commit` は検査を省いて終了 0 で抜ける。stderr の「検査を省きます」を見たら検査は走っていない。
 
 一時 index を渡すときは `--index-file` を 1 回だけ付ける。path は、すでに存在する一時 index で、`git rev-parse --absolute-git-dir` の配下にある通常ファイルにする。linked worktree では `.git` はファイルなので、`.git/` の下とは限らない。

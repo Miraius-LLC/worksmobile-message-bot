@@ -17,6 +17,12 @@ _with_dev_env_run() {
     return 64
   fi
 
+  if [ -n "${HOME:-}" ] && [ -r "$HOME/.config/shell/postgres-path.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/shell/postgres-path.sh" || return "$?"
+    __shell_setup_postgres_path || return "$?"
+  fi
+
   # Resolution order: PATH, then the profile fallback directory, then 127.
   # Positional parameters: <fallback dir> <command> [args...].
   # The same constant source runs in two places: inside `mise exec` (so mise
