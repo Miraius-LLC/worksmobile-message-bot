@@ -48,6 +48,60 @@ describe('forwardEventToUpstream', () => {
     await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).resolves.toBeUndefined()
   })
 
+  for (const status of [200, 302]) {
+    test(`${status}: 未使用の本文を cancel して既存の転送結果を保つ`, async () => {
+      const cancel = mock(() => {})
+      globalThis.fetch = mock(
+        async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                controller.enqueue(new TextEncoder().encode('unused'))
+              },
+              cancel,
+            }),
+            { status },
+          ),
+      ) as unknown as typeof fetch
+
+      const result = forwardEventToUpstream(RAW_BODY, SIGNATURE)
+      if (status === 200) {
+        await expect(result).resolves.toBeUndefined()
+      } else {
+        await expect(result).rejects.toThrow('forward to upstream failed: 302')
+      }
+      expect(cancel).toHaveBeenCalledTimes(1)
+    })
+  }
+
+  for (const status of [200, 302]) {
+    test(`${status}: cancel が失敗しても転送結果を変えない`, async () => {
+      const cancel = mock(async () => {
+        throw new Error('cancel failed')
+      })
+      globalThis.fetch = mock(
+        async () =>
+          new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                controller.enqueue(new TextEncoder().encode('unused'))
+              },
+              cancel,
+            }),
+            { status },
+          ),
+      ) as unknown as typeof fetch
+
+      const result = forwardEventToUpstream(RAW_BODY, SIGNATURE)
+      if (status === 200) {
+        await expect(result).resolves.toBeUndefined()
+      } else {
+        await expect(result).rejects.toThrow('forward to upstream failed: 302')
+      }
+      expect(cancel).toHaveBeenCalledTimes(1)
+    })
+  }
+
   test('400 は throw しない (再送ループを防ぐため warn して return)', async () => {
     stubFetch(400)
     await expect(forwardEventToUpstream(RAW_BODY, SIGNATURE)).resolves.toBeUndefined()

@@ -62,6 +62,7 @@ export async function forwardEventToUpstream(
       caller: `${CALLER}.forwardEventToUpstream`,
       status: response.status,
     })
+    await discardBody(response)
     throw new Error(`forward to upstream failed: ${response.status}`)
   }
 
@@ -97,8 +98,14 @@ export async function forwardEventToUpstream(
     return
   }
 
+  // Cancel unused bodies to release the fetch timeout without changing delivery results.
+  await discardBody(response)
   logger.info('callbackをupstreamへ転送', {
     caller: `${CALLER}.forwardEventToUpstream`,
     status: response.status,
   })
+}
+
+async function discardBody(response: Response): Promise<void> {
+  await response.body?.cancel().catch(() => undefined)
 }
