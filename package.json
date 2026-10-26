@@ -16,6 +16,7 @@
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
+    "fmt": "bunx biome format --write .",
     "secrets:inject": "$HOME/Develop/develop-meta/bin/develop-secrets --declaration .config/develop-secrets.jsonc --repo-root .",
     "secrets:check": "$HOME/Develop/develop-meta/bin/develop-secrets --declaration .config/develop-secrets.jsonc --repo-root . --check",
     "dev": "bun run --hot ./src/index.ts",
