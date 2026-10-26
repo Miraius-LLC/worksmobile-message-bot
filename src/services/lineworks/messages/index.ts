@@ -64,6 +64,8 @@ const imageUrlSchema = z
   })
   .refine(
     url => {
+      // Invalid URLs are reported by the preceding HTTPS refinement.
+      if (!isWebUrl(url)) return true
       const ext = new URL(url).pathname.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase()
       if (!ext) return true
       return ALLOWED_IMAGE_EXTENSIONS.has(ext)
@@ -326,6 +328,8 @@ const audioBodySchema = z
 // spec で previewImageUrl は **PNG 限定** (image / list_template の imageUrlSchema より strict)
 const videoPreviewImageUrlSchema = httpsUrlSchema.refine(
   url => {
+    // Invalid URLs are reported by httpsUrlSchema.
+    if (!isWebUrl(url)) return true
     const ext = new URL(url).pathname.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase()
     if (!ext) return true
     return ext === 'png'

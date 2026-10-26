@@ -97,3 +97,17 @@ describe('sendMessageByType: URL + wire format', () => {
     }
   })
 })
+
+describe('messageSchemas: 不正な画像 URL', () => {
+  for (const type of ['image', 'video'] as const) {
+    test(`${type}: 不正な previewImageUrl は throw せず検証失敗になる`, () => {
+      const parse = () =>
+        messageSchemas[type].safeParse({
+          previewImageUrl: 'not-a-url',
+          originalContentUrl: 'https://example.test/original.png',
+        })
+      expect(parse).not.toThrow()
+      expect(parse().success).toBe(false)
+    })
+  }
+})
