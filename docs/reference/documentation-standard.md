@@ -1,6 +1,6 @@
 # TODO.md と CHANGELOG.md
 
-この repo の直下 `TODO.md` と `CHANGELOG.md` の書き方である。数値の例外は作らない。検査には島の `check-staged-docs` binary、退避には repo に同梱された `scripts/develop-tools/archive-changelog.ts` を使う。
+この repo の直下 `TODO.md` と `CHANGELOG.md` の書き方である。数値の例外は作らない。検査には `.develop-tools/resolve pre-commit check-staged-docs`、退避には `.develop-tools/resolve ci archive-changelog` を使う。
 
 ## 役割
 
@@ -74,13 +74,13 @@ UTF-8 のバイト数である。
 `CHANGELOG.md` が 120,000 B 以下なら退避しない。超えたら、先に dry-run する。
 
 ```bash
-bun scripts/develop-tools/archive-changelog.ts
+.develop-tools/resolve ci archive-changelog
 ```
 
 問題がなければ `--yes` を付ける。
 
 ```bash
-bun scripts/develop-tools/archive-changelog.ts --yes
+.develop-tools/resolve ci archive-changelog --yes
 ```
 
 古い月の節から、注記と空行を含む全文が 96,000 B 以下になるまで削る。当月の節は残す。当月が無ければ、存在する最新月を残す。削れる古い月が尽きて全文が 120,000 B 以下なら、その内容で成功する。120,001 B 以上ならファイルを変えず失敗する。
