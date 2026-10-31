@@ -6,6 +6,8 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-10
 
+- **依存のpatch・minorを更新（2026-10-31）**: Biome 2.6.4・OpenSpec 1.16.0・Wrangler 4.156.0へ更新し、OpenSpecのexact指定とcurrent specの版、Biome schemaを同期した。
+
 - **develop 用の軽い CI を追加（2026-10-24）**: develop / PR は lint・型検査・`test:fast`、main は OpenSpec・全テスト・Wrangler dry-run と deploy。pre-push は版照合だけとし、Renovate の宛先を develop にする。版は島の `release` で管理する。
 
 - **callback転送の408を失敗扱いにした（2026-10-16）**: upstreamの408（Request Timeout）で429と同じく500を返してdedup keyを解除し、同じpayloadの再投入を受け入れる。Night Shiftの指摘と修正を取り込んだ。仕様差分は[change](openspec/changes/archive/2026-10-16-callback-forward-request-timeout/proposal.md)。
