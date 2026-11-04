@@ -178,10 +178,17 @@ const imageBodySchema = z
   })
   // spec: previewImageUrl と originalContentUrl は **両方**セット、または fileId 単独。
   // 旧実装はいずれか 1 つで通していたが LINE WORKS 側は preview/original の片方だけだと 400
-  .refine(b => (Boolean(b.previewImageUrl) && Boolean(b.originalContentUrl)) || Boolean(b.fileId), {
-    message:
-      "'previewImageUrl' と 'originalContentUrl' を両方指定するか、'fileId' を指定してください",
-  })
+  // fileId 指定時は URL 系を併用させない (README の「fileId 単独」と一致させる)
+  .refine(
+    b =>
+      b.fileId
+        ? !b.previewImageUrl && !b.originalContentUrl
+        : Boolean(b.previewImageUrl && b.originalContentUrl),
+    {
+      message:
+        "'previewImageUrl' と 'originalContentUrl' を両方指定するか、'fileId' 単独で指定してください",
+    },
+  )
 
 const fileBodySchema = z
   .object({
@@ -344,10 +351,17 @@ const videoBodySchema = z
     fileId: z.string().min(1).optional(),
     quickReply: quickReplySchema.optional(),
   })
-  .refine(b => (Boolean(b.previewImageUrl) && Boolean(b.originalContentUrl)) || Boolean(b.fileId), {
-    message:
-      "'previewImageUrl' と 'originalContentUrl' を両方指定するか、'fileId' を指定してください",
-  })
+  // image と同じ: fileId 指定時は URL 系を併用させない
+  .refine(
+    b =>
+      b.fileId
+        ? !b.previewImageUrl && !b.originalContentUrl
+        : Boolean(b.previewImageUrl && b.originalContentUrl),
+    {
+      message:
+        "'previewImageUrl' と 'originalContentUrl' を両方指定するか、'fileId' 単独で指定してください",
+    },
+  )
 
 // location: 位置情報。緯度経度の範囲は spec で明示されていないが、地理座標として
 // 自明な範囲 (-90..90 / -180..180) を防御的にチェックする

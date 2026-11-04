@@ -47,6 +47,22 @@ describe('services/lineworks/messages', () => {
     test('fileId のみで OK', () => {
       expect(schema.safeParse({ fileId: 'fid' }).success).toBe(true)
     })
+    for (const urlField of ['previewImageUrl', 'originalContentUrl']) {
+      test(`fileId と ${urlField} だけの混在は NG`, () => {
+        expect(
+          schema.safeParse({ fileId: 'fid', [urlField]: 'https://example.com/a.png' }).success,
+        ).toBe(false)
+      })
+    }
+    test('fileId と URL の混在は NG (fileId 単独が仕様)', () => {
+      expect(
+        schema.safeParse({
+          fileId: 'fid',
+          previewImageUrl: 'https://example.com/a.png',
+          originalContentUrl: 'https://example.com/a.png',
+        }).success,
+      ).toBe(false)
+    })
     test('previewImageUrl だけは NG (spec: preview と original は両方必須)', () => {
       expect(schema.safeParse({ previewImageUrl: 'https://example.com/a.png' }).success).toBe(false)
     })
@@ -449,6 +465,22 @@ describe('services/lineworks/messages', () => {
     })
     test('fileId 単独で OK', () => {
       expect(schema.safeParse({ fileId: 'F1' }).success).toBe(true)
+    })
+    for (const urlField of ['previewImageUrl', 'originalContentUrl']) {
+      test(`fileId と ${urlField} だけの混在は NG`, () => {
+        expect(
+          schema.safeParse({ fileId: 'fid', [urlField]: 'https://example.com/a.png' }).success,
+        ).toBe(false)
+      })
+    }
+    test('fileId と URL の混在は NG (fileId 単独が仕様)', () => {
+      expect(
+        schema.safeParse({
+          fileId: 'F1',
+          previewImageUrl: 'https://example.com/p.png',
+          originalContentUrl: 'https://example.com/v.mp4',
+        }).success,
+      ).toBe(false)
     })
     test('preview のみ / original のみは NG', () => {
       expect(schema.safeParse({ previewImageUrl: 'https://example.com/p.png' }).success).toBe(false)
