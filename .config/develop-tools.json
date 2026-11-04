@@ -1,8 +1,8 @@
 {
-  "version": "0.6.5",
+  "version": "0.6.6",
   "sha256": {
-    "x86_64-unknown-linux-gnu": "cd2742e6c0beb427cfe17ecc26bd6ecf9df31f43bda95c4030c6b302e5a10245",
-    "aarch64-apple-darwin": "771f8ee4450510c85566c2b881d2dd2dbf8fd3025651e855da51e40a9ee5fb58"
+    "x86_64-unknown-linux-gnu": "ff496982bff359c7fd75926be93ad3c6736d3e7e2b0793ac4871598c85edc9c2",
+    "aarch64-apple-darwin": "1fb26adab89e2b02227c822880a4e4eba484769fdd4c6bff3ed507d26cf5f69f"
   },
   "adrMigratedThrough": 9,
   "adrReservedNumbers": [],
@@ -21,6 +21,12 @@
     }
   },
   "release": {
+    "notes": {
+      "mode": "ai",
+      "fallback": "changelog-additions",
+      "language": "ja",
+      "audience": "public"
+    },
     "versionFiles": [
       {
         "path": "package.json",
