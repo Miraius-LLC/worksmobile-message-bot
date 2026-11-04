@@ -14,13 +14,13 @@ commit-msg:
 
 post-merge:
   commands:
-# <!-- BEGIN develop-tools:lefthook:post-merge:graphify-refresh v1 sha256=0b0949ab61236fe8c4a36cac738cd391ddd0f4e11600804093557645819cd1cd -->
+# <!-- BEGIN develop-tools:lefthook:post-merge:graphify-refresh v1 sha256=d6ae2eda9f53f1e8d0601a63f07dd1a186782a164f6533f08972c1aca2619426 -->
     graphify-refresh:
       run: |
         refresher="$HOME/Develop/develop-meta/bin/graphify-refresh"
         if [ ! -x "$refresher" ]; then
           printf '%s\n' 'graphify-refresh: binary missing or not executable' >&2
-        elif ! "$refresher" --repo-root .; then
+        elif ! "$refresher" --repo-root . --background; then
           printf '%s\n' 'graphify-refresh: refresh failed' >&2
         fi
         true
@@ -30,7 +30,7 @@ post-merge:
 
 post-rewrite:
   commands:
-# <!-- BEGIN develop-tools:lefthook:post-rewrite:graphify-refresh v1 sha256=4fc87be19bf008fe7473f52dfa06384008a462fb587fe05bb88038a3fab4cb00 -->
+# <!-- BEGIN develop-tools:lefthook:post-rewrite:graphify-refresh v1 sha256=092eb2edb1ec17f0941c9b387a6f599d0a95c525cee39f6a452844cf08a932c1 -->
     graphify-refresh:
       run: |
         if [ "{1}" = amend ]; then
@@ -39,7 +39,7 @@ post-rewrite:
         refresher="$HOME/Develop/develop-meta/bin/graphify-refresh"
         if [ ! -x "$refresher" ]; then
           printf '%s\n' 'graphify-refresh: binary missing or not executable' >&2
-        elif ! "$refresher" --repo-root .; then
+        elif ! "$refresher" --repo-root . --background; then
           printf '%s\n' 'graphify-refresh: refresh failed' >&2
         fi
         true
