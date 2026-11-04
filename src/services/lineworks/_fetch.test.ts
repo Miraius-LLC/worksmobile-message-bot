@@ -142,6 +142,41 @@ describe('fetchWithTimeout', () => {
     }
   })
 
+  test('FetchTimeoutError は URL の資格情報・query・fragment を message / url に残さない', async () => {
+    globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const err = new Error('aborted')
+          err.name = 'AbortError'
+          reject(err)
+        })
+      })
+    }) as unknown as typeof globalThis.fetch
+
+    try {
+      await fetchWithTimeout('https://user:s3cret@x.test/cb?token=abc123#private-fragment', {
+        timeoutMs: 20,
+      })
+      throw new Error('should have thrown')
+    } catch (e) {
+      expect(e).toBeInstanceOf(FetchTimeoutError)
+      const err = e as FetchTimeoutError
+      expect(err.url).toBe('https://x.test/cb')
+      expect(err.message).toBe(
+        'LINE WORKS API への fetch がタイムアウトしました (timeoutMs=20, url=https://x.test/cb)',
+      )
+    }
+  })
+
+  test('不正な URL は message / url で固定文字列へ置き換える', () => {
+    const error = new FetchTimeoutError('invalid-url?token=private#secret', 20)
+    expect(error.url).toBe('[invalid-url]')
+    expect(error.message).toBe(
+      'LINE WORKS API への fetch がタイムアウトしました (timeoutMs=20, url=[invalid-url])',
+    )
+    expect(error.timeoutMs).toBe(20)
+  })
+
   test('caller signal 経由の abort は FetchTimeoutError ではなく素の AbortError として伝播', async () => {
     globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
       return new Promise<Response>((_resolve, reject) => {

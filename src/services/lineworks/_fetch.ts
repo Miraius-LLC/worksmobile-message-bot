@@ -24,10 +24,30 @@ export class FetchTimeoutError extends Error {
   readonly timeoutMs: number
 
   constructor(url: string, timeoutMs: number) {
-    super(`LINE WORKS API への fetch がタイムアウトしました (timeoutMs=${timeoutMs}, url=${url})`)
+    const safeUrl = redactUrl(url)
+    super(
+      `LINE WORKS API への fetch がタイムアウトしました (timeoutMs=${timeoutMs}, url=${safeUrl})`,
+    )
     this.name = 'FetchTimeoutError'
-    this.url = url
+    this.url = safeUrl
     this.timeoutMs = timeoutMs
+  }
+}
+
+/**
+ * ログ・エラー message に残す URL から資格情報 (userinfo) と query / fragment を落とす。
+ * upstream の URL に埋め込まれた認証情報や token が timeout error 経由で露出しないようにする。
+ */
+function redactUrl(url: string): string {
+  try {
+    const parsed = new URL(url)
+    parsed.username = ''
+    parsed.password = ''
+    parsed.search = ''
+    parsed.hash = ''
+    return parsed.toString()
+  } catch {
+    return '[invalid-url]'
   }
 }
 
