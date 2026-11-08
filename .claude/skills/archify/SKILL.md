@@ -26,6 +26,8 @@ Direct Relationship Pin makes every unique compiled relationship directly operab
 
 No dependency installation is required. The distributed skill includes standalone validators compiled from all five JSON Schemas, so schema and layout validation work immediately after installation. The generated HTML and the renderer runtime are both dependency-free.
 
+Distributed copies omit the five generated example HTML files and the development `test/` directory. The JSON examples and renderers remain available; `node bin/archify.mjs examples` regenerates all five HTML files when examples are needed.
+
 Run `node bin/archify.mjs doctor` to verify an installation. Run `node bin/archify.mjs demo [output-directory]` to generate a ready-to-open example before creating the first custom diagram.
 
 If you have no shell access at all (e.g. the skill was added as project knowledge), fall back to architecture mode for every request: hand-place SVG into `assets/template.html` following the Design System below, and run the self-review checklist before delivering.

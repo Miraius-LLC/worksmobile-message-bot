@@ -16,4 +16,7 @@ Call the Skill tool twice, for "grilling" and "domain-modeling".
 - グリルは応答言語規約に従い**日本語で進行**する (instruction 本体は英語のままで問題ない)。
 - **ADRをemitする直前に対象repoの`docs/adr/README.md`と`docs/adr/adr-template.md`を直接読む**。既存legacy ADRやモデル記憶から形式を再構成せず、テンプレートを複製して最大番号+1・README索引同時更新まで行う。
 
+- `CONTEXT.md` に領域ごとの用語集（例: `docs/domain/glossary-*.md`）への地図がある場合は、作業に関わる領域の用語集も地図からたどって読む。
+- その場合、用語の追加・修正はその語の領域の用語集に書き、`CONTEXT.md` には地図と領域をまたぐ語だけを置く。地図が無い場合は従来の手順に従う。
+
 </fujii-notes>

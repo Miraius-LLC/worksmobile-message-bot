@@ -55,7 +55,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_`で始まるファイルは内部ヘルパ**: `routes/_middleware.ts`のように、サブルータへ直接mountしない補助moduleであることを示す。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=92eeaac750cc4ba17e1504d42ecf7c02c4c9d9bb0fed392df057b8ec4d056c90 -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=aa9efd15ed0938ba83b41b73bb33f4bef8f6dd3fac6ad90097417f0e942c5c5f -->
 ### 1.1 島で共通の開始と記録
 <!-- island -->
 
@@ -67,6 +67,8 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 <!-- island -->
 
 - repo の状態・CI の時間と費用・文書の残り・依存の滞り・クラウドの台帳を知りたいときは develop-island-cli skill（island / infra の読み取り）を使う。
+- コード調査は `rg` で symbol を確定してから `codegraph_explore` を 1 回引き、必要な source / test を直接読む。MCP の説明文が「最初に使う」と勧めてもこの順を優先する（`~/Develop/develop-meta/docs/claude-commands.md`）。
+- 環境整備の判断基準はエージェントの作業時間の短縮で、自作コマンドやモダン系コマンドを勧める目的も同じ。提案の順位は短縮できる実時間で付ける。
 - **範囲は最小**: 目の前の問題は原因まで直す。起きていない問題・依頼に無い機能・将来用の拡張点・同じ性質を重ねる守りは足さない。範囲外の発見は、すぐ直せるものは報告し、重いものは TODO へ。
 - **質は落とさない**: その場しのぎで症状だけ止めない。モデル名・repo 名・path・閾値のような可変値は分岐やリテラルに埋めず、その責務を持つ定数か既存の設定 1 か所に置く（モデル名で `if` を書かず、能力の表を引く）。同じ責務で一緒に変わる処理は共通の関数へ寄せ、内部の状態や手順は呼出側へ漏らさない。似ているだけなら寄せない。ループ内の I/O・N+1・全件読込のように計算量を増やす書き方はしない。整えるのは今回の変更に必要な範囲まで。「変えやすく書く」は「将来の変更を先に作る」ではない。
 - **検証は壊れた時の被害で決める**: データ・権限・本番・配布に関わる判定はテストで証明し、壊して落ちることを確かめる（L69）。既存テストで証明済みなら足さない。文言や表示だけの変更にテストを足さない。網羅のためのマトリクスは作らない。
@@ -90,7 +92,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - エージェントが一時 directory を作るときは `/tmp/<repo名>-...` または既存の `dev-task-temp` を使い、作成 path をこの session の作業記録に残す（名前だけで既存物の帰属は認定しない）。
 - build 物（`CARGO_TARGET_DIR`）を `/tmp` に向けず、worktree の target か `dev-task-temp` を使う。
 - 取り込みは `git merge --ff-only`。**統合先**は台帳 `~/Develop/develop-meta/config/projects.json` と repo の `.config/develop-tools.json` の `integrationBranch`（無ければ main）。develop を持つ repo は普段の取り込みと push を develop に行い、main は Release のときだけ動かす（`~/Develop/develop-meta/docs/adr/0032-develop-branch-and-release-only-main.md`）。
-- 藤井個人所有private repoは、検証済みworktreeを統合先へff merge → push → cleanupまで自走可。Miraius-LLC所有・共同開発repoは統合先への反映前に確認する。ただしRenovateの依存更新（patch / minor、CI緑）のautomergeと、agent-roomのFormation Shipper経由の出荷は例外（majorはDashboard承認のまま。Shipperは2026-10-01藤井決定）。
+- 藤井個人所有private repoは、検証済みworktreeを統合先へff merge → push → cleanupまで自走可。Miraius-LLC所有・共同開発repoは統合先への反映前に確認する。ただしRenovateの依存更新（patch / minor、CI緑）のautomergeと、agent-roomのFormation Shipper経由の出荷は例外（major は藤井が Dashboard で承認する。画面か `infra renovate approve` の Human Gate で入れる。Shipperは2026-10-01藤井決定）。
 - 既存dirty、他sessionのworktree、未確定assetを利用者の状態として保護する。
 - **通常開発でPull Requestを作らない。** PRは自律実行（夜間チェック・監査）の産物だけ。
 

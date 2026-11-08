@@ -82,4 +82,7 @@ If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](
 - テンプレートが欠落・driftしている場合は作成を止め、`~/Develop/develop-meta/bin/sync-adr-template`のdry-run結果を報告する。
 - 最大番号+1を使って欠番を再利用せず、同じ変更でREADME索引を更新する。Accepted後の判断変更は新しいADRで行い、旧ADRを`superseded by ADR-NNNN`へ更新する。
 
+- `CONTEXT.md` に領域ごとの用語集（例: `docs/domain/glossary-*.md`）への地図がある場合は、作業に関わる領域の用語集も地図からたどって読む。
+- その場合、用語の追加・修正はその語の領域の用語集に書き、`CONTEXT.md` には地図と領域をまたぐ語だけを置く。地図が無い場合は従来の手順に従う。
+
 </fujii-notes>

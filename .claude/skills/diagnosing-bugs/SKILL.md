@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: 原因未確定のバグや性能劣化を、再現→最小化→仮説→計測→修正→回帰テストで診断する。「diagnose」「debug this」、壊れている・例外・失敗・遅いという報告で使う。
+description: ~/Develop/ 配下で原因未確定のバグ・例外・失敗・遅い等の性能劣化（diagnose / debug this）を再現・最小化・仮説・計測で診断する入口。superpowers:systematic-debugging と二重実行せず、明示指定は指定先、島外はpluginを優先する。
 ---
 
 # Diagnosing Bugs
@@ -136,3 +136,9 @@ Required before declaring done:
 - [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
 - [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
 - [ ] The hypothesis that turned out correct is stated in the commit / PR message, so the next debugger learns
+
+## Develop routing
+
+`~/Develop/` 配下の通常依頼は `diagnosing-bugs` を入口とし、対応する `superpowers:systematic-debugging` と同じworkflowを二重実行しない。明示指定は指定先を優先し、島外はpluginの既存入口を使う。
+
+再現から原因の検証、最小修正と回帰テストまでを本skillで進める。pluginの必要手順を参照した場合はその手順を一度だけ満たし、島skillへ戻る循環を作らない。plugin明示時も島の承認・検証・独立reviewのgateを維持する。必須手順と共存できない場合は当該組の有効化を保留し、Formationでは司令塔へ報告する。
