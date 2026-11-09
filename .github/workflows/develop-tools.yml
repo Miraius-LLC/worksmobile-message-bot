@@ -16,16 +16,26 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          ref: ${{ github.sha }}
       - name: Install develop tools
-        uses: fujimogn/develop-tools-action@e5308ce03abf2d4d5e9eee4511d8541ad266c51b # v0.3.5
+        uses: fujimogn/develop-tools-action@7a8d259bb8b5ca07b2eea1fcd1d103d24c20ff0f # v0.3.6
       - name: Smoke installed binaries
         run: |
           develop-docs-check --version
           command -v check-staged-docs
           command -v check-staged-adr
           command -v develop-secrets
-      - name: Check changed documentation
+      - name: Check documentation
         env:
-          BASE_SHA: ${{ github.event.before || '0000000000000000000000000000000000000000' }}
-          HEAD_SHA: ${{ github.sha }}
-        run: develop-docs-check --range "$BASE_SHA" "$HEAD_SHA"
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            develop-docs-check --tracked
+          else
+            if [ "$EVENT_NAME" = "pull_request" ]; then
+              BASE_SHA="$(git merge-base "$BASE_SHA" "$HEAD_SHA")"
+            fi
+            develop-docs-check --range "$BASE_SHA" "$HEAD_SHA"
+          fi

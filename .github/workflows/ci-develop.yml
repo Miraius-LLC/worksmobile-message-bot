@@ -1,7 +1,9 @@
-# <!-- BEGIN develop-tools:ci-develop:standard v1 sha256=8e09758805a844c6d1d5ba0fde231e900dfbad006c7528d91ddc3b501683ce48 -->
+# <!-- BEGIN develop-tools:ci-develop:standard v1 sha256=355eebc77faa5c271a8fddb3551880cc051f14415de16241faa520c28837fbc2 -->
 name: CI (develop)
 
-# develop の push と PR で走らせる軽い CI の標準の区画。develop-sync が .develop-tools.json の ci 宣言から作る。
+# develop の push と PR で走らせる軽い CI の標準の区画。develop-sync が .config/develop-tools.json の ci 宣言から作る。
+# Rust は cargo test --workspace --locked --lib --bins を使い、標準 step では integration test と doc test は走らせない。
+# integration test と doc test は main と Release の CI で確かめる。ci.rust.extraSteps に宣言したコマンドは、この区画の rust job の最後で走る。
 # 区画の中は手で直さず、宣言を直して develop-sync --ci-develop で配り直す。repo 固有の job は END の目印の後ろに書く。
 on:
   push:
@@ -25,15 +27,31 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.sha }}
       - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
       - name: gitleaks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -eu
           version=8.30.1
           archive="gitleaks_${version}_linux_x64.tar.gz"
           checksum=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
-          curl -fsSL -o "$RUNNER_TEMP/$archive" \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}"
+          curl --help all | grep -q -- --retry-all-errors || { echo 'curl requires --retry-all-errors' >&2; exit 1; }
+          token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+          if [ -n "$token" ]; then
+            command -v jq >/dev/null || { echo 'jq is required for authenticated release download' >&2; exit 1; }
+            release=$(curl --fail --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 60 --proto '=https' --proto-redir '=https' \
+              -H "Authorization: Bearer $token" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/gitleaks/gitleaks/releases/tags/v${version}" 2>/dev/null) || { echo 'gitleaks release metadata unavailable' >&2; exit 1; }
+            asset_id=$(printf '%s' "$release" | jq -er --arg name "$archive" '[.assets[] | select(.name == $name) | .id] | if length == 1 and (.[0] | type == "number") then .[0] else error("asset_not_unique") end') || { echo 'gitleaks asset is not unique' >&2; exit 1; }
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 120 --proto '=https' --proto-redir '=https' \
+              -H "Authorization: Bearer $token" -H 'Accept: application/octet-stream' -o "$RUNNER_TEMP/$archive" \
+              "https://api.github.com/repos/gitleaks/gitleaks/releases/assets/$asset_id" 2>/dev/null || { echo 'gitleaks asset unavailable' >&2; exit 1; }
+          else
+            curl --fail --silent --show-error --location --retry 3 --retry-all-errors --connect-timeout 10 --max-time 120 --proto '=https' --proto-redir '=https' \
+              -o "$RUNNER_TEMP/$archive" "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}" 2>/dev/null || { echo 'gitleaks asset unavailable' >&2; exit 1; }
+          fi
           echo "${checksum}  $RUNNER_TEMP/$archive" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
           export PATH="$RUNNER_TEMP:$PATH"
@@ -43,10 +61,14 @@ jobs:
             set -- --config .config/gitleaks.toml
           fi
           gitleaks git . --redact --no-banner "$@" --log-opts=--all
-      # 公開版の形: .develop-tools.json の版で固定した道具を入れ、変わった文書を見る。
+      # 公開版の形: .config/develop-tools.json の版で固定した道具を入れ、変わった文書を見る。
       - name: Install develop tools
-        uses: fujimogn/develop-tools-action@e5308ce03abf2d4d5e9eee4511d8541ad266c51b # v0.3.5
+        uses: fujimogn/develop-tools-action@7a8d259bb8b5ca07b2eea1fcd1d103d24c20ff0f # v0.3.6
+      - name: Check tracked documentation
+        if: github.event_name == 'push'
+        run: develop-docs-check --tracked
       - name: Check changed documentation
+        if: github.event_name != 'push'
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
