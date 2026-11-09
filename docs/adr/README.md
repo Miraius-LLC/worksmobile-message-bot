@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-本リポの**設計決定の単一の家**。「なぜそうしたか」はここに集約する（用語集は [`CONTEXT.md`](../../CONTEXT.md)、運用ゴッチャは [`CLAUDE.md`](../../CLAUDE.md)、エンドポイント仕様は [`README.md`](../../README.md)）。
+本リポの**設計決定の単一の家**。「なぜそうしたか」はここに集約する（用語集は [`CONTEXT.md`](../../CONTEXT.md)、運用ゴッチャは [`CLAUDE.md`](../../CLAUDE.md)、エンドポイント仕様は [HTTP API](../reference/http-api.md) と [Callback](../reference/callback.md)）。
 
 ## 形式
 

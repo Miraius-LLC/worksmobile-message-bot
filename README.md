@@ -16,7 +16,7 @@ Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポ�
 
 **現在の稼働基盤はCloudflare Workersのみで、Cloud Runにはdeployしていない（休止中）。**
 Cloud Runは再利用の可能性があるため、`Dockerfile` / `cloudbuild.yaml` を残している。
-以下のCloud Run手順は再開時に使う。
+[Cloud Run のデプロイ手順](./docs/operations/deploy-cloud-run.md)は再開時に使う。
 
 ### 技術スタック
 

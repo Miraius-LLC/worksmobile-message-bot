@@ -27,7 +27,7 @@ app.route('/foo', fooApp)
 ## メッセージ系エンドポイント (`/channels/:id/messages/type/<type>` / `/users/:id/messages/type/<type>`)
 
 - 個別ファイルは追加しない。`src/services/lineworks/messages/index.ts` の `messageSchemas` マップに登録すれば、`routes/messages.ts` のループが両 base × 全 type を自動で `messagesApp.post(...)` する
-- type 名 (`text`, `button_template`, `flex` 等) は **README 記載の URL の type 部分そのまま**。スネークケースを保つ (LINE WORKS の URL 仕様に合わせる)
+- type 名 (`text`, `button_template`, `flex` 等) は **docs/reference/http-api.md 記載の URL の type 部分そのまま**。スネークケースを保つ (LINE WORKS の URL 仕様に合わせる)
 - `messagesApp` は `src/app.ts` で `app.route('/', messagesApp)` で mount している (prefix なし)
 
 ## 添付ファイル系 (`/attachments`)

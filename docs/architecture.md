@@ -1,12 +1,12 @@
 # アーキテクチャ
 
-Cloudflare Workers と Cloud Run は、同じ Hono app を別のエントリから起動する。Workers はリクエストごとに binding を検証して `app.fetch` に渡す。Cloud Run は起動時に環境変数を検証し、HTTP/1.1 で listen する。どちらもルート以降の処理は共通である。
+Cloudflare Workers と Cloud Run は、同じ Hono app を別のエントリから起動する。Workers は初回 request 時に binding を検証し、各 request を `app.fetch` に渡す。Cloud Run は起動時に環境変数を検証し、HTTP/1.1 で listen する。どちらもルート以降の処理は共通である。
 
 ## 送信と管理 API の流れ
 
 1. 共通 app が trace・リクエストログ・セキュリティヘッダを適用する。ルート `/`、health probe、`/callback` を除くリクエストは BASIC 認証を通す。
-2. ルート層が path・query・JSON・multipart を受けて検証する。メッセージ送信では `messageSchemas` の型ごとの Zod schema が本文を検証し、添付アップロードでは 10 MB の body limit を適用する。
-3. LINE WORKS API を使うルートの middleware が server token を取得して `c.var.token` に渡す。token の JWT 生成、キャッシュ、期限切れ時の single-flight は認証サービス層が担う。
+2. LINE WORKS API を使うルートの middleware が server token を取得して `c.var.token` に渡す。token の JWT 生成、キャッシュ、期限切れ時の single-flight は認証サービス層が担う。
+3. ルート層が path・query・JSON・multipart を受けて検証する。メッセージ送信では `messageSchemas` の型ごとの Zod schema が本文を検証し、添付アップロードでは 10 MB の body limit を適用する。
 4. LINE WORKS サービス層が送信先 URL と API リクエストを組み立てる。メッセージ型は `messageSchemas` と `sendMessageByType` に集約し、チャンネルまたはユーザーの片方を送信先にする。添付のアップロード URL 発行とダウンロード時の 3xx Location 解決もサービス層が担う。
 5. 共通 app が例外を処理する。LINE WORKS API のエラーは upstream の HTTP status と code・hint を返し、Hono の `HTTPException` は元の応答を保つ。それ以外はログを残して 500 を返す。
 
