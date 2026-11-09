@@ -16,7 +16,6 @@
 - **ノーコードですぐ連携**: ツールの「HTTP リクエスト」機能や AI エージェントから、そのまま呼び出せます。
 - **多彩なメッセージ**: テキスト、画像、ファイル、カルーセルなど 13 種類を、トークルームにも個人宛にも送れます。
 - **受信にも対応**: LINE WORKS で起きたイベントを検証して、自分のシステムへ転送できます。
-- **自分の環境で運用**: 同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。必要な構成はこのリポジトリに揃っています。
 
 ![IFTTT、Make、n8n や AI エージェントからの Webhook 呼び出しは BASIC 認証と worksmobile-message-bot を通り、LINE WORKS API から指定のトークルームやユーザーへ届く。LINE WORKS の Callback は署名・Bot ID・重複・内容を順に検証して転送先へ渡す。](./docs/diagrams/request-flow.svg)
 

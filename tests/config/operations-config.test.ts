@@ -30,9 +30,6 @@ describe('public repository contract', () => {
     expect(workers).toContain('# Cloudflare Workers へのデプロイ')
     expect(readme).toContain('![Cloudflare Workers]')
     expect(readme).toContain('![Google Cloud Run]')
-    expect(readme).toContain(
-      '同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。',
-    )
     expect(workers).toContain('`WORKER_CUSTOM_DOMAIN`')
     for (const content of [readme, cloudRun, workers]) {
       expect(content).not.toMatch(/主系|待機系|切戻し|社内運用|現在の運用/)
