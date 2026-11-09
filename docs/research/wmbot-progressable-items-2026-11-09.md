@@ -11,6 +11,7 @@
 | 完了済み OpenSpec change `lineworks-b1-b2` を archive する | `openspec/changes/lineworks-b1-b2/tasks.md:3-5` は全 3 タスクが完了。対応実装は `89dce68`（image/video の排他）と `30aa37b`（timeout URL の機微要素除去）として `origin/develop` に含まれる。現行仕様への取り込みを確認して archive する。archive は正本の `openspec/specs/` も更新するため、この調査 lane では実施しない。 |
 | ADR-0008 の Bun バージョン管理の記述を現況に合わせる | `docs/adr/0008-docker-cloud-build-constraints.md:48` は Dockerfile の `FROM` 2 行と `.tool-versions` を版の固定箇所とするが、実体は `Dockerfile:14,17,31` の `ARG BUN_VERSION=1.4.4` と `.config/mise.toml:2`。`AGENTS.md:48` も後者を指定する。SHA-256 固定の Original Record は保存し、その外側に現況を注記する（同 ADR `:37-48`）。 |
 | ADR-0003・AGENTS.md・service rule の秘密鍵記述を直す | `docs/adr/0003-jwt-node-crypto-rs256.md:48` と `.claude/rules/services.md:38` は存在しない `getPrivateKey` で decode すると記す。実体は `src/utils/config.ts:33,92-99` の config load 時の decode・検証である。さらに `AGENTS.md:29` と同 ADR `:48` の「生 PEM は JWT 署名で失敗」は、実際には Base64 decode で先に失敗する（`config.ts:34,93`。Bun 1.4.4 で生 PEM ヘッダーを `atob` に渡すと `InvalidCharacterError` を確認）。ADR は SHA-256 固定の Original Record の外側に現況を注記する（同 ADR `:37-48`）。`.claude/rules/.distributed:1-2` に `services.md` はなく、repo 固有の rule としてこの repo で直す。 |
+| repo 固有の route・service rule の旧記述を直す | `.claude/rules/routes.md:8,21,29,31,36` は mount 先を `src/index.ts` と記し、存在しない `messageSenders` を案内する。実体は `src/app.ts:79-80` の mount と `src/services/lineworks/messages/index.ts:381-400` の `messageSchemas`。`.claude/rules/services.md:32` の route handler による `reply.code(500)` も `src/app.ts:90-107` の `app.onError` と異なる。両 rule は `.claude/rules/.distributed:1-2` の配布対象外なので repo で修正できる。 |
 | README の検証時点と表記を直す | `README.md:525` は各メッセージ本文を「起動時」に検証すると記すが、`src/routes/messages.ts:26-33` の `zValidator('json', ...)` は各リクエストを検証する。`README.md:386` の「フレキシブルステンプレート」も誤記。API contract を変えず説明だけ修正する。 |
 
 ## 要設計
@@ -21,7 +22,7 @@
 
 | 項目 | 根拠と必要な判断 |
 | --- | --- |
-| JWT 秘密鍵 decode の時点について仕様と実装のどちらを正とするか | `openspec/specs/lineworks-jwt-authentication/spec.md:31` は起動時 validation 後に「署名直前で」decode することを SHALL とする。一方、`src/utils/config.ts:92-99` は config load 時に decode し、`src/services/lineworks/auth.ts:44-46` は decode 済み PEM を署名に使う。外から観測できる差については、正しい鍵での JWT 署名と不正な鍵での起動時 fail-fast は仕様の各 scenario（同 spec `:33-40`）と一致し、現時点のコードから差を確認できない。decode の時点は内部手順の不一致である。ただし正本の SHALL 文言を変えるか実装を変えるかは owner 判断待ちとし、この調査では決めない。 |
+| JWT 秘密鍵 decode の時点について仕様と実装のどちらを正とするか | `openspec/specs/lineworks-jwt-authentication/spec.md:31` は起動時 validation 後に「署名直前で」decode することを SHALL とする。一方、`src/utils/config.ts:92-99` は config load 時に decode し、`src/services/lineworks/auth.ts:44-46` は decode 済み PEM を署名に使う。有効な鍵の署名結果については差を確認できない。不正な鍵では Cloud Run が `src/index.ts:13` で起動時に config を読み、Workers は `src/worker.ts:8-10` で初回 request の処理時に読むため、失敗時点に外から観測できる差がある（コードからの見立て、実機未検証）。これは spec の起動時 fail-fast scenario（同 spec `:37-41`）とも一致しない。仕様を変えるか実装を変えるかは owner 判断待ちとし、この調査では決めない。 |
 
 将来の着手条件は次節に分けて記す。
 
