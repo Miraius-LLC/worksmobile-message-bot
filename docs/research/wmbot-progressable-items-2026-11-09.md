@@ -22,7 +22,8 @@
 
 | 項目 | 根拠と必要な判断 |
 | --- | --- |
-| JWT 秘密鍵 decode の時点について仕様と実装のどちらを正とするか | `openspec/specs/lineworks-jwt-authentication/spec.md:31` は起動時 validation 後に「署名直前で」decode することを SHALL とする。一方、`src/utils/config.ts:92-99` は config load 時に decode し、`src/services/lineworks/auth.ts:44-46` は decode 済み PEM を署名に使う。有効な鍵の署名結果については差を確認できない。不正な鍵では Cloud Run が `src/index.ts:13` で起動時に config を読み、Workers は `src/worker.ts:8-10` で初回 request の処理時に読むため、失敗時点に外から観測できる差がある（コードからの見立て、実機未検証）。これは spec の起動時 fail-fast scenario（同 spec `:37-41`）とも一致しない。仕様を変えるか実装を変えるかは owner 判断待ちとし、この調査では決めない。 |
+| JWT 秘密鍵 decode の時点 | `openspec/specs/lineworks-jwt-authentication/spec.md:31` は起動時 validation 後に「署名直前で」decode することを SHALL とする。一方、`src/utils/config.ts:92-99` は config load 時に decode し、`src/services/lineworks/auth.ts:44-46` は decode 済み PEM を署名に使う。有効な鍵の署名結果については外から観測できる差を確認できない。内部手順を仕様へ合わせるか現行仕様の文言を改めるかは owner 判断待ち。 |
+| Workers の不正鍵 fail-fast の時点 | spec は不正な `PRIVATE_KEY` を起動時 validation で fail-fast すると定める（`openspec/specs/lineworks-jwt-authentication/spec.md:37-41`）。Cloud Run は `src/index.ts:13` で起動時に `load` するが、Workers は `src/worker.ts:10` で初回 request 時に `load(env)` する。しかも `load` は同 `:11` の `app.fetch` の外なので、失敗は `src/app.ts:90-107` の `app.onError` を通らない。失敗時点とエラー経路に外から観測できる差がある（コードからの見立て、実機未検証）。仕様を変えるか実装を変えるかは owner 判断待ち。 |
 
 将来の着手条件は次節に分けて記す。
 
