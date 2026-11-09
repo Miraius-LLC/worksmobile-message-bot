@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 1600 1000" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="entity-model-title entity-model-desc">
+<svg viewBox="0 0 1600 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="entity-model-title entity-model-desc">
     <title id="entity-model-title">LINE WORKS Bot conceptual entity model</title>
     <desc id="entity-model-desc">Bot, domain registration, channels, users, message targets, thirteen outbound message types, attachments, menus and eight callback event types, with separate process-local token and deduplication state. This wrapper has no persistent store.</desc>
     <defs>
@@ -7,7 +7,7 @@
       <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
       <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
     </defs>
-    <rect width="1600" height="1000" fill="#f5f5f5"/>
+    <rect width="1600" height="1024" fill="#f5f5f5"/>
 
     <!-- Three zones keep conceptual resources distinct from process-local state. -->
     <rect x="40" y="48" width="1520" height="252" rx="8" fill="#ececec" stroke="#bfc0c0"/>
@@ -24,10 +24,11 @@
     <text x="312" y="172" fill="#4f5d75" font-size="16" font-family="monospace">1</text>
     <text x="332" y="172" fill="#4f5d75" font-size="16" font-family="monospace">0..*</text>
     <path d="M 304,152 H 332 Q 340,152 340,144 V 112 Q 340,104 348,104 H 824 Q 832,104 832,112 V 120" fill="none" stroke="#4f5d75"/>
-    <text x="312" y="140" fill="#4f5d75" font-size="16" font-family="monospace">1</text>
+    <rect x="448" y="68" width="168" height="24" fill="#ececec"/>
+    <text x="456" y="88" fill="#4f5d75" font-size="16" font-family="sans-serif">BOT_ID で操作</text>
     <text x="776" y="96" fill="#4f5d75" font-size="16" font-family="monospace">0..*</text>
     <path d="M 528,248 V 264 Q 528,272 536,272 H 1256 Q 1264,272 1264,264 V 248" fill="none" stroke="#4f5d75"/>
-    <text x="540" y="264" fill="#4f5d75" font-size="16" font-family="monospace">1</text>
+    <text x="540" y="264" fill="#4f5d75" font-size="12" font-family="monospace">0..*</text>
     <text x="1200" y="264" fill="#4f5d75" font-size="16" font-family="monospace">0..*</text>
     <line x1="1048" y1="184" x2="1112" y2="184" stroke="#4f5d75"/>
     <text x="1052" y="172" fill="#4f5d75" font-size="12" font-family="monospace">0..*</text>
@@ -37,9 +38,9 @@
     <line x1="320" y1="484" x2="376" y2="484" stroke="#eb6c36"/>
     <text x="328" y="472" fill="#4f5d75" font-size="16" font-family="monospace">1</text>
     <text x="356" y="472" fill="#4f5d75" font-size="16" font-family="monospace">1</text>
-    <line x1="872" y1="484" x2="944" y2="484" stroke="#4f5d75"/>
-    <text x="880" y="472" fill="#4f5d75" font-size="16" font-family="monospace">1</text>
-    <text x="904" y="472" fill="#4f5d75" font-size="12" font-family="monospace">0..*</text>
+    <line x1="872" y1="484" x2="960" y2="484" stroke="#4f5d75"/>
+    <text x="880" y="472" fill="#4f5d75" font-size="12" font-family="monospace">0..*</text>
+    <text x="920" y="472" fill="#4f5d75" font-size="12" font-family="monospace">0..*</text>
     <path d="M 280,868 V 876 Q 280,884 288,884 H 1304 Q 1312,884 1312,876 V 868" fill="none" stroke="#4f5d75"/>
     <text x="524" y="872" fill="#4f5d75" font-size="12" font-family="monospace">1 event</text>
     <text x="1020" y="872" fill="#4f5d75" font-size="12" font-family="monospace">0..1 key</text>
@@ -98,14 +99,14 @@
       <text x="16" y="184" fill="#4f5d75" font-size="16" font-family="monospace">POST /channels|users/:id/messages/type/:type</text>
       <text x="16" y="212" fill="#4f5d75" font-size="16" font-family="monospace">{ type, ...body }</text>
     </g>
-    <g transform="translate(944 404)">
-      <rect width="280" height="160" rx="6" fill="#fff" stroke="#2d3142"/>
+    <g transform="translate(960 404)">
+      <rect width="264" height="160" rx="6" fill="#fff" stroke="#2d3142"/>
       <text x="16" y="24" fill="#4f5d75" font-size="16" font-family="monospace">ENTITY · FILE HANDLE</text>
       <text x="16" y="48" fill="#2d3142" font-size="20" font-weight="600" font-family="sans-serif">Attachment</text>
-      <line x1="0" y1="60" x2="280" y2="60" stroke="#bfc0c0"/>
+      <line x1="0" y1="60" x2="264" y2="60" stroke="#bfc0c0"/>
       <text x="16" y="88" fill="#2d3142" font-size="16" font-family="monospace"># fileId</text>
       <text x="16" y="112" fill="#4f5d75" font-size="16" font-family="monospace">upload / download</text>
-      <text x="16" y="136" fill="#4f5d75" font-size="16" font-family="monospace">optional in message body</text>
+      <text x="16" y="136" fill="#4f5d75" font-size="16" font-family="monospace">optional message fileId</text>
     </g>
     <g transform="translate(1248 380)">
       <rect width="280" height="120" rx="6" fill="#fff" stroke="#2d3142"/>
@@ -157,4 +158,5 @@
     <text x="160" y="948" fill="#2d3142" font-size="20" font-family="sans-serif">永続ストアなし</text>
     <text x="344" y="948" fill="#4f5d75" font-size="16" font-family="monospace">Cards describe upstream API concepts; dashed cards are process-local memory.</text>
     <text x="344" y="972" fill="#4f5d75" font-size="16" font-family="monospace">1 / 0..1 / 0..* = cardinality at each endpoint. No local database or table is implied.</text>
+    <text x="344" y="1000" fill="#4f5d75" font-size="16" font-family="sans-serif">多重度の記号がない端は、この repo から確定できません。</text>
   </svg>
