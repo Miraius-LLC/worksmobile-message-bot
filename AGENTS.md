@@ -6,7 +6,7 @@ Claude Code は `CLAUDE.md` から本ファイルを読み込む。Codex / agy �
 
 ## 作業に応じて読む
 
-- HTTP route: [`.claude/rules/routes.md`](./.claude/rules/routes.md)。callback は [受信・転送仕様](./docs/reference/callback.md) も読む。
+- HTTP route: [`.claude/rules/routes.md`](./.claude/rules/routes.md)。callback は [受信・転送仕様](./docs/reference/callback.md) も読む。API contract 等の観測可能な挙動を変えるときは、[適用基準](./docs/conventions/documentation.md)に従い実装前に OpenSpec active change を作る。
 - LINE WORKS service: [`.claude/rules/services.md`](./.claude/rules/services.md)。認証・添付の注意点は同 rule にある。
 - テスト: [`.claude/rules/tests-lineworks.md`](./.claude/rules/tests-lineworks.md)。共通規約は `.claude/rules/tests.md`。
 - Docker / Cloud Build / Cloud Run: [ADR-0002](./docs/adr/0002-container-http1-only-no-h2c.md)、[ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md)、[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)。
