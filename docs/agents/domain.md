@@ -12,8 +12,9 @@ engineering skill（`tdd` / `grill-with-docs` / `improve-codebase-architecture` 
 ## 補助文書
 
 - **[`README.md`](../../README.md)** — 現在の構成と詳細文書への入口。**[HTTP API](../reference/http-api.md)** に全 HTTP ルートとリクエスト本文制約、**[Callback](../reference/callback.md)** に受信フローの仕様を置く。**用語集ではない**（用語集は CONTEXT.md）。
-- **[`CLAUDE.md`](../../CLAUDE.md)** — コードから読めない規約・運用ゴッチャ（MUST / よくあるハマり / Docker・デプロイ / 命名）。決定の「なぜ」は ADR、ここは「触るとき気をつけること」。
+- **[`AGENTS.md`](../../AGENTS.md)** — 常時読む注意点と作業別文書への導線。決定の「なぜ」は ADR に置く。
 - **[`.claude/rules/`](../../.claude/rules/)** — 作業別の規約。`routes.md`（HTTP エンドポイント追加）/ `services.md`（LINE WORKS API ラッパ）/ `tests-lineworks.md`（典型モック・app.request・multipart）。living spec であって決定（ADR）ではない。
+- 新機能・bugfix の進め方は `tdd` skill の red-green vertical（1 テスト → 1 実装）。テストの配置・mock は配布済みの [`.claude/rules/tests.md`](../../.claude/rules/tests.md) を参照する。
 
 ## 用語集に無い概念に出くわしたら
 

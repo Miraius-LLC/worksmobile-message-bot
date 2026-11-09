@@ -7,7 +7,7 @@
 | [`TODO.md`](../../TODO.md) | 進行中・未着手の作業。完了後はCHANGELOGとgit logへ移す |
 | [`README.md`](../../README.md) | 現在の構成と詳細文書への入口 |
 | [HTTP API](../reference/http-api.md) / [Callback](../reference/callback.md) | HTTP ルート・入力制約・callback 受信仕様 |
-| [`CLAUDE.md`](../../CLAUDE.md) | コードから読めない規約・運用ゴッチャ |
+| [`AGENTS.md`](../../AGENTS.md) | エージェント向け注意点と作業別文書への導線 |
 | git commits | 完了した変更履歴（gitmoji + 日本語 subject）|
 
 ## product 系 skill は現状非アクティブ
