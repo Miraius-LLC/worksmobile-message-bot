@@ -9,10 +9,14 @@
 ![LINE WORKS](https://img.shields.io/badge/-LINE_WORKS-00C300.svg?logo=line&logoColor=white&style=flat-square)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)
 
-[LINE WORKS API](https://developers.worksmobile.com/jp/docs/api)を利用して各種メッセージ（テキスト、画像、ファイル、カルーセルなど）をBotから送信するWebhookサーバー。[IFTTT](https://ifttt.com/)や[Make](https://www.make.com/)などからWebhook経由でLINE WORKS Botを利用できる。
+**[IFTTT](https://ifttt.com/) や [Make](https://www.make.com/)、[n8n](https://n8n.io/)、AI エージェントから、HTTP リクエストを 1 回送るだけで LINE WORKS のトークルームに投稿できる Webhook サーバーです。**
 
-同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。Workers向けの
-Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポジトリで維持している。
+[LINE WORKS API](https://developers.worksmobile.com/jp/docs/api) を直接呼ぶには、JWT の署名やアクセストークンの取得・更新を自分で実装する必要があります。このサーバーがそれを引き受けるので、呼び出す側は投稿したい内容を JSON で送るだけで済みます。
+
+- **ノーコードですぐ連携**: ツールの「HTTP リクエスト」機能や AI エージェントから、そのまま呼び出せます。
+- **多彩なメッセージ**: テキスト、画像、ファイル、カルーセルなど 13 種類を、トークルームにも個人宛にも送れます。
+- **受信にも対応**: LINE WORKS で起きたイベントを検証して、自分のシステムへ転送できます。
+- **自分の環境で運用**: 同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。必要な構成はこのリポジトリに揃っています。
 
 ![IFTTT、Make、n8n や AI エージェントからの Webhook 呼び出しは BASIC 認証と worksmobile-message-bot を通り、LINE WORKS API から指定のトークルームやユーザーへ届く。LINE WORKS の Callback は署名・Bot ID・重複・内容を順に検証して転送先へ渡す。](./docs/diagrams/request-flow.svg)
 
