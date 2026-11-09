@@ -3,7 +3,7 @@ import Bun, { file, Glob } from 'bun'
 
 describe('public repository contract', () => {
   test('.gcloudignoreはGitと全env実体をupload対象外にする', async () => {
-    const source = await file(new URL('./.gcloudignore', import.meta.url)).text()
+    const source = await file(new URL('../../.gcloudignore', import.meta.url)).text()
     const patterns = source
       .split('\n')
       .map(line => line.trim())
@@ -18,9 +18,9 @@ describe('public repository contract', () => {
 
   test('READMEは両基盤を対等なdeploy先として説明する', async () => {
     const [readme, cloudRun, workers] = await Promise.all([
-      file(new URL('./README.md', import.meta.url)).text(),
-      file(new URL('./docs/operations/deploy-cloud-run.md', import.meta.url)).text(),
-      file(new URL('./docs/operations/deploy-workers.md', import.meta.url)).text(),
+      file(new URL('../../README.md', import.meta.url)).text(),
+      file(new URL('../../docs/operations/deploy-cloud-run.md', import.meta.url)).text(),
+      file(new URL('../../docs/operations/deploy-workers.md', import.meta.url)).text(),
     ])
 
     expect(readme).toContain('./docs/operations/deploy-cloud-run.md')
@@ -40,9 +40,9 @@ describe('public repository contract', () => {
 
   test('公開設定は環境固有の転送先とidentityをsubstitutionに要求する', async () => {
     const [cloudBuild, monitoring, cloudRunMonitoring] = await Promise.all([
-      file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
-      file(new URL('./scripts/setup-monitoring.sh', import.meta.url)).text(),
-      file(new URL('./scripts/setup-cloud-run-log-monitoring.sh', import.meta.url)).text(),
+      file(new URL('../../cloudbuild.yaml', import.meta.url)).text(),
+      file(new URL('../../scripts/setup-monitoring.sh', import.meta.url)).text(),
+      file(new URL('../../scripts/setup-cloud-run-log-monitoring.sh', import.meta.url)).text(),
     ])
 
     for (const name of ['_SERVICE_ACCOUNT', '_CLIENT_ID', '_SERVICE_ACCOUNT_LW', '_BOT_ID']) {
@@ -70,8 +70,8 @@ describe('public repository contract', () => {
 
   test('Cloud Buildはtriggerとmanual buildの両方からsubstitutionを受け取る', async () => {
     const [cloudRun, cloudBuild] = await Promise.all([
-      file(new URL('./docs/operations/deploy-cloud-run.md', import.meta.url)).text(),
-      file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
+      file(new URL('../../docs/operations/deploy-cloud-run.md', import.meta.url)).text(),
+      file(new URL('../../cloudbuild.yaml', import.meta.url)).text(),
     ])
 
     expect(cloudRun).toContain('gcloud builds submit . --config=cloudbuild.yaml')
@@ -87,14 +87,14 @@ describe('public repository contract', () => {
 
   test('bunのバージョンはmise / Dockerfile / cloudbuild.yaml / docsで揃う', async () => {
     const [miseSource, dockerfile, cloudBuild, readme, changelog] = await Promise.all([
-      file(new URL('./.config/mise.toml', import.meta.url)).text(),
-      file(new URL('./Dockerfile', import.meta.url)).text(),
-      file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
-      file(new URL('./README.md', import.meta.url)).text(),
-      file(new URL('./CHANGELOG.md', import.meta.url)).text(),
+      file(new URL('../../.config/mise.toml', import.meta.url)).text(),
+      file(new URL('../../Dockerfile', import.meta.url)).text(),
+      file(new URL('../../cloudbuild.yaml', import.meta.url)).text(),
+      file(new URL('../../README.md', import.meta.url)).text(),
+      file(new URL('../../CHANGELOG.md', import.meta.url)).text(),
     ])
 
-    const bunVersion = Bun.TOML.parse(miseSource).tools.bun
+    const bunVersion = (Bun.TOML.parse(miseSource) as { tools: { bun: string } }).tools.bun
     expect(bunVersion).toBeDefined()
 
     expect(dockerfile).toContain(`ARG BUN_VERSION=${bunVersion}`)
@@ -114,7 +114,9 @@ describe('public repository contract', () => {
 
   test('公開docsとdeploy設定は移行時の実測runbookを含まない', async () => {
     const paths = ['README.md', 'TODO.md', 'CHANGELOG.md', 'CONTEXT.md', 'AGENTS.md']
-    for await (const path of new Glob('docs/**/*.md').scan({ cwd: import.meta.dir })) {
+    for await (const path of new Glob('docs/**/*.md').scan({
+      cwd: new URL('../..', import.meta.url).pathname,
+    })) {
       paths.push(path)
     }
     paths.push(
@@ -126,7 +128,7 @@ describe('public repository contract', () => {
       'scripts/setup-cloud-run-log-monitoring.sh',
     )
     const source = (
-      await Promise.all(paths.map(path => file(new URL(`./${path}`, import.meta.url)).text()))
+      await Promise.all(paths.map(path => file(new URL(`../../${path}`, import.meta.url)).text()))
     ).join('\n')
 
     expect(source).not.toMatch(/scheduler-[0-9]+|Task [0-9]+|failed run|fallback profile/)

@@ -7,7 +7,7 @@ describe('bun.lock', () => {
   // configVersion 1 は workspaces の linker 既定を isolated へ切り替えるが、
   // この repo は単一 package なので hoisted のままで実害がない。
   test('lockfileVersion 2 / configVersion 1 を保つ', async () => {
-    const lockfile = await file(new URL('./bun.lock', import.meta.url)).text()
+    const lockfile = await file(new URL('../../bun.lock', import.meta.url)).text()
     const header = JSON.parse(`${lockfile.split('"workspaces"')[0]?.replace(/,\s*$/, '')}}`)
 
     expect(header.lockfileVersion).toBe(2)
@@ -15,7 +15,7 @@ describe('bun.lock', () => {
   })
 
   test('package.json に workspaces を持たない (configVersion 1 の前提)', async () => {
-    const packageJson = (await file(new URL('./package.json', import.meta.url)).json()) as {
+    const packageJson = (await file(new URL('../../package.json', import.meta.url)).json()) as {
       workspaces?: unknown
     }
 

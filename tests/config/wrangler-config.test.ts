@@ -11,7 +11,7 @@ interface WranglerConfig {
 
 describe('wrangler config', () => {
   test('Worker entry と Node compatibility を固定する', async () => {
-    const source = await file(new URL('./wrangler.jsonc', import.meta.url)).text()
+    const source = await file(new URL('../../wrangler.jsonc', import.meta.url)).text()
     const config = JSONC.parse(source) as WranglerConfig
 
     expect(config.name).toBe('worksmobile-message-bot')

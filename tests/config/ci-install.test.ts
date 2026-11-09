@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import Bun from 'bun'
 
-const ROOT = import.meta.dirname
+const ROOT = path.resolve(import.meta.dirname, '../..')
 const SCRIPT = path.join(ROOT, 'scripts/ci-install.sh')
 const NO_SCANNER_CONFIG = path.join(ROOT, '.github/bunfig.ci-no-scanner.toml')
 

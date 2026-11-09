@@ -27,12 +27,12 @@ interface WorkflowConfig {
 describe('CI workflow', () => {
   test('全部入りCIはmainだけ、developとPRは軽いCIで検査する', async () => {
     const workflow = YAML.parse(
-      await file(new URL('./.github/workflows/ci.yml', import.meta.url)).text(),
+      await file(new URL('../../.github/workflows/ci.yml', import.meta.url)).text(),
     ) as WorkflowConfig
     expect(workflow.on?.push).toEqual({ branches: ['main'] })
     expect(workflow.on).not.toHaveProperty('pull_request')
     const light = YAML.parse(
-      await file(new URL('./.github/workflows/ci-develop.yml', import.meta.url)).text(),
+      await file(new URL('../../.github/workflows/ci-develop.yml', import.meta.url)).text(),
     ) as WorkflowConfig
     expect(light.on?.push).toEqual({ branches: ['develop'] })
     expect(light.on?.pull_request).toEqual({ branches: ['main', 'develop'] })
@@ -55,7 +55,7 @@ describe('CI workflow', () => {
   })
 
   test('check job は token 不要の Wrangler dry-run を実行する', async () => {
-    const source = await file(new URL('./.github/workflows/ci.yml', import.meta.url)).text()
+    const source = await file(new URL('../../.github/workflows/ci.yml', import.meta.url)).text()
     const workflow = YAML.parse(source) as WorkflowConfig
     const dryRunStep = workflow.jobs?.check?.steps?.find(step => step.id === 'wrangler-dry-run')
 
@@ -69,8 +69,8 @@ describe('CI workflow', () => {
 
   test('CI成功済みmainだけをSHA pinしたWrangler actionでdeployする', async () => {
     const [source, packageJson] = await Promise.all([
-      file(new URL('./.github/workflows/ci.yml', import.meta.url)).text(),
-      file(new URL('./package.json', import.meta.url)).json() as Promise<{
+      file(new URL('../../.github/workflows/ci.yml', import.meta.url)).text(),
+      file(new URL('../../package.json', import.meta.url)).json() as Promise<{
         devDependencies?: Record<string, string>
       }>,
     ])
@@ -126,17 +126,13 @@ describe('CI workflow', () => {
     expect(resolveStep?.run).toContain('exit 1')
   })
 
-  test('Biome gateはrootのconfig contract testsも検査する', async () => {
-    const source = await file(new URL('./.github/workflows/ci.yml', import.meta.url)).text()
+  test('Biome gateはtests/configのconfig contract testsも検査する', async () => {
+    const source = await file(new URL('../../.github/workflows/ci.yml', import.meta.url)).text()
     const workflow = YAML.parse(source) as WorkflowConfig
-    const packageJson = await file(new URL('./package.json', import.meta.url)).json()
+    const packageJson = await file(new URL('../../package.json', import.meta.url)).json()
     const biomeStep = workflow.jobs?.check?.steps?.find(step => step.run === 'bun run lint')
 
     expect(biomeStep).toBeDefined()
-    expect(packageJson.scripts.lint).toContain('ci-config.test.ts')
-    expect(packageJson.scripts.lint).toContain('ci-install.test.ts')
-    expect(packageJson.scripts.lint).toContain('lockfile-config.test.ts')
-    expect(packageJson.scripts.lint).toContain('wrangler-config.test.ts')
-    expect(packageJson.scripts.lint).toContain('operations-config.test.ts')
+    expect(packageJson.scripts.lint).toContain('./tests')
   })
 })

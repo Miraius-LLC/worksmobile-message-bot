@@ -18,7 +18,7 @@ const adrCapabilities = {
 
 describe('ADRとOpenSpec current specのcoverage contract', () => {
   test('ADR-0001〜0011を固定mappingで過不足なく網羅する', async () => {
-    const actualAdrFiles = (await readdir(new URL('./docs/adr/', import.meta.url)))
+    const actualAdrFiles = (await readdir(new URL('../../docs/adr/', import.meta.url)))
       .filter(name => /^\d{4}-.*\.md$/.test(name))
       .sort()
 
@@ -29,7 +29,7 @@ describe('ADRとOpenSpec current specのcoverage contract', () => {
     const specSources = new Map<string, string>()
 
     for (const [adrFile, capabilities] of Object.entries(adrCapabilities)) {
-      const adr = await file(new URL(`./docs/adr/${adrFile}`, import.meta.url)).text()
+      const adr = await file(new URL(`../../docs/adr/${adrFile}`, import.meta.url)).text()
 
       for (const capability of capabilities) {
         const adrToSpec = `../../openspec/specs/${capability}/spec.md`
@@ -38,7 +38,7 @@ describe('ADRとOpenSpec current specのcoverage contract', () => {
         let spec = specSources.get(capability)
         if (spec === undefined) {
           spec = await file(
-            new URL(`./openspec/specs/${capability}/spec.md`, import.meta.url),
+            new URL(`../../openspec/specs/${capability}/spec.md`, import.meta.url),
           ).text()
           specSources.set(capability, spec)
         }
@@ -55,7 +55,7 @@ describe('ADRとOpenSpec current specのcoverage contract', () => {
 
     for (const capability of capabilities) {
       const spec = await file(
-        new URL(`./openspec/specs/${capability}/spec.md`, import.meta.url),
+        new URL(`../../openspec/specs/${capability}/spec.md`, import.meta.url),
       ).text()
 
       expect(spec).toContain('## Purpose\n\n')
@@ -65,7 +65,9 @@ describe('ADRとOpenSpec current specのcoverage contract', () => {
 
   test('superseded ADR-0001を独立current specへ復活させない', async () => {
     expect(
-      await file(new URL('./openspec/specs/cloud-run-hono-bun/spec.md', import.meta.url)).exists(),
+      await file(
+        new URL('../../openspec/specs/cloud-run-hono-bun/spec.md', import.meta.url),
+      ).exists(),
     ).toBeFalse()
     expect(adrCapabilities['0001-cloud-run-hono-bun.md']).toEqual(['dual-runtime-deployment'])
   })

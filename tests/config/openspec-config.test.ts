@@ -9,7 +9,7 @@ type PackageJson = {
 describe('OpenSpec repository contract', () => {
   test('repository-localのOpenSpecをexact pinしtelemetry無効で実行する', async () => {
     const packageJson = (await file(
-      new URL('./package.json', import.meta.url),
+      new URL('../../package.json', import.meta.url),
     ).json()) as PackageJson
 
     // exact pin (range 記号なし) であること自体が契約。版そのものは package.json が SoT
@@ -22,11 +22,11 @@ describe('OpenSpec repository contract', () => {
 
   test('OpenSpec projectはspec-driven schemaと段階導入境界を宣言する', async () => {
     const [config, workflowSpec, packageJson] = await Promise.all([
-      file(new URL('./openspec/config.yaml', import.meta.url)).text(),
+      file(new URL('../../openspec/config.yaml', import.meta.url)).text(),
       file(
-        new URL('./openspec/specs/change-specification-workflow/spec.md', import.meta.url),
+        new URL('../../openspec/specs/change-specification-workflow/spec.md', import.meta.url),
       ).text(),
-      file(new URL('./package.json', import.meta.url)).json() as Promise<PackageJson>,
+      file(new URL('../../package.json', import.meta.url)).json() as Promise<PackageJson>,
     ])
     const openspecVersion = packageJson.devDependencies?.['@fission-ai/openspec']
 
@@ -40,8 +40,8 @@ describe('OpenSpec repository contract', () => {
 
   test('strict validationは全部入りCIに置き、pre-pushは版照合だけにする', async () => {
     const [lefthook, workflow] = await Promise.all([
-      file(new URL('./.config/lefthook.yml', import.meta.url)).text(),
-      file(new URL('./.github/workflows/ci.yml', import.meta.url)).text(),
+      file(new URL('../../.config/lefthook.yml', import.meta.url)).text(),
+      file(new URL('../../.github/workflows/ci.yml', import.meta.url)).text(),
     ])
 
     const prePush = lefthook.split('\npre-push:')[1]
@@ -57,12 +57,12 @@ describe('OpenSpec repository contract', () => {
   test('既存GraphifyとCodeGraphはlocal cache境界を維持し、自動refresh hookを要求しない', async () => {
     const [mcp, codeGraph, graphifyIgnore, codeGraphIgnore, gitignore, lefthook] =
       await Promise.all([
-        file(new URL('./.mcp.json', import.meta.url)).json(),
-        file(new URL('./codegraph.json', import.meta.url)).json(),
-        file(new URL('./.graphifyignore', import.meta.url)).text(),
-        file(new URL('./.codegraph/.gitignore', import.meta.url)).text(),
-        file(new URL('./.gitignore', import.meta.url)).text(),
-        file(new URL('./.config/lefthook.yml', import.meta.url)).text(),
+        file(new URL('../../.mcp.json', import.meta.url)).json(),
+        file(new URL('../../codegraph.json', import.meta.url)).json(),
+        file(new URL('../../.graphifyignore', import.meta.url)).text(),
+        file(new URL('../../.codegraph/.gitignore', import.meta.url)).text(),
+        file(new URL('../../.gitignore', import.meta.url)).text(),
+        file(new URL('../../.config/lefthook.yml', import.meta.url)).text(),
       ])
 
     expect(mcp).toMatchObject({

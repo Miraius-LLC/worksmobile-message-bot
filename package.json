@@ -25,7 +25,7 @@
     "test": "bun test",
     "typecheck": "bun --check",
     "check": "bun run spec:validate && bun run typecheck && bun run lint && bun run test",
-    "lint": "bunx biome check ./src ./tests ./scripts ci-config.test.ts ci-install.test.ts lockfile-config.test.ts wrangler-config.test.ts operations-config.test.ts openspec-config.test.ts openspec-adr-coverage.test.ts",
+    "lint": "bunx biome check ./src ./tests ./scripts",
     "format": "bunx biome check --write ./src ./tests ./scripts",
     "spec": "OPENSPEC_TELEMETRY=0 openspec",
     "spec:validate": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict --no-interactive",
