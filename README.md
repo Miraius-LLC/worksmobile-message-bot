@@ -16,19 +16,6 @@ Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポ�
 
 ![IFTTT、Make、n8n や AI エージェントからの Webhook 呼び出しは BASIC 認証と worksmobile-message-bot を通り、LINE WORKS API から指定のトークルームやユーザーへ届く。LINE WORKS の Callback は署名・Bot ID・重複・内容を順に検証して転送先へ渡す。](./docs/diagrams/request-flow.svg)
 
-### 技術スタック
-
-- **実行基盤**: Cloudflare Workers / Google Cloud Run
-- **ランタイム**: Workers runtime / [Bun](https://bun.sh/) 1.4.x（Cloud Run・ローカル）
-- **言語**: TypeScript (ESM, strict)
-- **HTTP フレームワーク**: [Hono](https://hono.dev/)（Workers と Cloud Run で共通 app を実行）
-- **検証**: [Zod](https://zod.dev/) + [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
-- **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
-- **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Workers logs / Cloud Run時のCloud Logging severity・trace連携
-- **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
-- **CI**: GitHub Actions（develop / PR は lint・型検査・`test:fast`、main は OpenSpec・全テスト・Wrangler dry-run を含む全部入り）
-- **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers。Cloud Build → Cloud Runは休止中
-
 ## 現在の構成
 
 Cloudflare Workers と Cloud Run のエントリは共通の Hono app を使用する。
@@ -91,6 +78,19 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 ### 再開前の準備
 
 Cloud Run の再開手順は[デプロイ手順](./docs/operations/deploy-cloud-run.md#再開前の準備)を参照。
+
+## 技術スタック
+
+- **実行基盤**: Cloudflare Workers / Google Cloud Run
+- **ランタイム**: Workers runtime / [Bun](https://bun.sh/) 1.4.x（Cloud Run・ローカル）
+- **言語**: TypeScript (ESM, strict)
+- **HTTP フレームワーク**: [Hono](https://hono.dev/)（Workers と Cloud Run で共通 app を実行）
+- **検証**: [Zod](https://zod.dev/) + [@hono/zod-validator](https://github.com/honojs/middleware/tree/main/packages/zod-validator)
+- **Linter / Formatter**: [Biome](https://biomejs.dev/) 2.x
+- **Logger**: [pino](https://github.com/pinojs/pino) (+ pino-pretty in dev) — Workers logs / Cloud Run時のCloud Logging severity・trace連携
+- **pre-commit**: [lefthook](https://github.com/evilmartians/lefthook)
+- **CI**: GitHub Actions（develop / PR は lint・型検査・`test:fast`、main は OpenSpec・全テスト・Wrangler dry-run を含む全部入り）
+- **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers。Cloud Build → Cloud Runは休止中
 
 ## ライセンス
 
