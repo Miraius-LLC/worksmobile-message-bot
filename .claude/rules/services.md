@@ -29,7 +29,7 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 
 - HTTP 失敗時は `response.text()` を `debug` フィールドに乗せて `logger.error` を出してから throw
 - `throw new Error(...)` のメッセージは「何が失敗したか」+ `status=...` 程度に簡潔に
-- 上位 (route handler) が catch → `reply.code(500).send({ error })` で返す
+- route handler は例外を throw し、`src/app.ts` の `app.onError` が未捕捉エラーを `c.json({ error: error.message }, 500)` で返す（`LineWorksApiError` と `HTTPException` はそれぞれの応答を透過する）
 - `logger` を介さない `console.log` / `console.error` は使わない (Biome の `noConsole` で警告)
 
 ## auth (`services/lineworks/auth.ts`)

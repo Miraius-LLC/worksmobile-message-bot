@@ -27,6 +27,7 @@ OpenSpec capability: [`dual-runtime-deployment`](../../openspec/specs/dual-runti
 Chosen option: 「原文を完全保存したまま標準構造を付加する」
 
 移行前のADRに記録された判断を維持する。判断の詳細・理由・比較した選択肢は「Original Record」を正とする。
+現在のBunのバージョンはDockerfileの`ARG BUN_VERSION`で指定し、`.config/mise.toml`の`[tools].bun`と一致させる。Original Recordの`FROM` 2行と`.tool-versions`の記述は作成当時の記録として保存する。
 
 ### Consequences
 

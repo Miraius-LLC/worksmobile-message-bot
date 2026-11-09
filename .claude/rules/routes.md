@@ -5,7 +5,7 @@ paths:
 
 # ルート (HTTP エンドポイント) の規約
 
-`src/routes/` 配下に Hono の `Hono` インスタンスをサブルータとして定義し、`src/index.ts` の root Hono に `app.route(prefix, subApp)` で mount する。
+`src/routes/` 配下に Hono の `Hono` インスタンスをサブルータとして定義し、`src/app.ts` の root Hono に `app.route(prefix, subApp)` で mount する。
 
 ## エンドポイント追加の最小形
 
@@ -18,7 +18,7 @@ export const fooApp = new Hono()
 fooApp.get('/bar', c => c.json({ ok: true }))
 ```
 
-`src/index.ts` で:
+`src/app.ts` で:
 ```ts
 import { fooApp } from '@/routes/foo'
 app.route('/foo', fooApp)
@@ -26,14 +26,14 @@ app.route('/foo', fooApp)
 
 ## メッセージ系エンドポイント (`/channels/:id/messages/type/<type>` / `/users/:id/messages/type/<type>`)
 
-- 個別ファイルは追加しない。`src/services/lineworks/messages/index.ts` の `messageSenders` マップに登録すれば、`routes/messages.ts` のループが両 base × 全 type を自動で `messagesApp.post(...)` する
+- 個別ファイルは追加しない。`src/services/lineworks/messages/index.ts` の `messageSchemas` マップに登録すれば、`routes/messages.ts` のループが両 base × 全 type を自動で `messagesApp.post(...)` する
 - type 名 (`text`, `button_template`, `flex` 等) は **README 記載の URL の type 部分そのまま**。スネークケースを保つ (LINE WORKS の URL 仕様に合わせる)
-- `messagesApp` は `src/index.ts` で `app.route('/', messagesApp)` で mount している (prefix なし)
+- `messagesApp` は `src/app.ts` で `app.route('/', messagesApp)` で mount している (prefix なし)
 
 ## 添付ファイル系 (`/attachments`)
 
 - `routes/attachments/index.ts` の `attachmentsApp` に `POST /` (upload) と `GET /:fileId` (download) を登録済
-- `src/index.ts` で `app.route('/attachments', attachmentsApp)` で mount
+- `src/app.ts` で `app.route('/attachments', attachmentsApp)` で mount
 - multipart は **Hono の `c.req.parseBody()`** を使う。返り値の `body['file']` が `File` インスタンスかチェックしてから扱う (`instanceof File`)。`@fastify/multipart` や multer には戻さない
 - 添付ファイル専用の `notFound` ハンドラを `attachmentsApp.notFound(...)` で設定済
 

@@ -383,7 +383,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 | `/messages/type/list_template`   | POST | [リストテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-list)を送信                  |
 | `/messages/type/carousel`        | POST | [カルーセルテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-carousel)を送信          |
 | `/messages/type/image_carousel`  | POST | [画像カルーセルテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-imagecarousel)を送信 |
-| `/messages/type/flex`            | POST | [フレキシブルステンプレート](https://developers.worksmobile.com/jp/docs/bot-send-flex)を送信          |
+| `/messages/type/flex`            | POST | [フレキシブルテンプレート](https://developers.worksmobile.com/jp/docs/bot-send-flex)を送信            |
 
 ---
 
@@ -522,7 +522,7 @@ GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 
 ### 主要な制約サマリ (LINE WORKS spec 準拠)
 
-各 type のリクエスト本文は Zod schema で起動時にバリデーションされる。仕様より緩いと
+各 type のリクエスト本文はリクエストごとに Zod schema でバリデーションされる。仕様より緩いと
 LINE WORKS 側で 400 になるため、この表に揃えている:
 
 | 対象 | 制約 |
