@@ -29,7 +29,7 @@
     "format": "bunx biome check --write ./src ./tests ./scripts",
     "spec": "OPENSPEC_TELEMETRY=0 openspec",
     "spec:validate": "OPENSPEC_TELEMETRY=0 openspec validate --all --strict --no-interactive",
-    "docker:build": "docker build -t worksmobile-message-bot .",
+    "docker:build": "docker build -f .config/Dockerfile -t worksmobile-message-bot .",
     "docker:run": "docker run -p 8080:8080 --env-file=.env worksmobile-message-bot",
     "lefthook:install": "lefthook install",
     "ci:install": "./scripts/ci-install.sh --frozen-lockfile",

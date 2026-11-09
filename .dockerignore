@@ -1,5 +1,5 @@
 # Docker artifacts (build context に入れない)
-Dockerfile
+.config/Dockerfile
 .dockerignore
 docker-compose*.yml
 
