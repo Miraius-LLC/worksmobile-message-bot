@@ -4,7 +4,7 @@
 
 `origin/develop` の `12af5f202d95412768ab419b7f1d577aa70a6d02` を対象に、送信側の request 入口から mock LINE WORKS 応答の読了まで測った。通常メッセージと Bot/メニュー一覧は hot token なら upstream 1 回、添付 upload/download は 2 回。cold token では各経路に OAuth 1 回が加わる。16 件同時の cold token 要求は single-flight により OAuth 1 回だった。local 処理の中央値は通常メッセージ 0.116 ms、1 MiB upload 0.518 ms、1 MiB download 0.308 ms。実 API の RTT と本番 cold start は測っていない。
 
-現時点で無条件に実装すべき短縮策は確認できなかった。最も大きい候補は、cold token 取得を request の外へ移すこと。ただし頻度と本番の OAuth RTT が不明なので、下記の条件を満たしてから採否を決める。
+現時点で短縮効果と両 runtime での成立を示せる実装案は確認できなかった。cold token の待ち時間は実測できたが、その大半が新しい instance/isolate の初回取得なのか、期限更新なのかは local では判定できない。
 
 ## 対象と境界
 
@@ -34,25 +34,29 @@
 
 * p50 が表示桁の 0.000 ms 未満。ゼロ時間という意味ではない。
 
-同じ harness の `delay=5` 条件: text hot n=30 は p50/p95 5.222/5.356 ms、upload hot n=20 は 11.286/13.106 ms、download hot n=20 は 10.769/11.889 ms。upstream 回数は上表と同じ。16 同時 cold `getServerToken` は OAuth 合計 1 回（n=16）。追加の `bun run - <<'TS' ... TS` 実行では、text cold + 5 ms/呼び出し n=30 が 11.079/11.700 ms、text hot n=30 が 5.251/5.431 ms。1 MiB 本文を mock から読了する microbench n=100 は、生 `fetch` 0.037/0.879 ms、`fetchWithTimeout` 0.148/1.597 ms（順序固定、差を本番効果へ外挿不可）。
+同じ harness の `delay=5` 条件: text hot n=30 は p50/p95 5.222/5.356 ms、upload hot n=20 は 11.286/13.106 ms、download hot n=20 は 10.769/11.889 ms。upstream 回数は上表と同じ。16 同時 cold `getServerToken` は OAuth 合計 1 回（n=16）。この人工遅延から分かるのは、mock 上で 2 往復経路が 1 往復経路より長いことまでである。
 
 ## 経路上の所見
 
 | 箇所 | 現行処理と測定上の含意 |
 | --- | --- |
 | `src/routes/_middleware.ts:16`、`src/services/lineworks/auth.ts:89` | token は request ごとに確認するが、fresh cache は upstream 0。残り 60 秒未満では `isFresh` が false となり同期更新。`auth.ts:101-118` の single-flight は同時 16 件で OAuth 1 回を確認した。初回・更新時は request が OAuth を待つ。JWT の `aud` は `auth.ts:8,39` で固定。 |
-| `src/services/lineworks/_fetch.ts:62-120` | 各 fetch に timeout と response body を包む stream を付け、本文読了/cancel まで timer を維持する。1 MiB mock 読了 0.205 ms p50。生 fetch 比は同一 mock の別実行で約 0.111 ms p50 差。ただし body 中 timeout と cancel 伝播を失う変更は不適。 |
+| `src/services/lineworks/_fetch.ts:62-120` | 各 fetch に timeout と response body を包む stream を付け、本文読了/cancel まで timer を維持する。1 MiB mock 読了 0.205 ms p50。包装自体の短縮可能時間は今回切り分けていない。body 中 timeout と cancel 伝播を失う変更は不適。 |
 | `src/services/lineworks/api.ts:62-106` | メッセージは JSON stringify → 1 POST → 成功時も `response.text()` と JSON parse 試行 → 結果を捨てる。mock の空本文では追加の upstream はない。実成功本文の大きさが不明で、parse 省略の効果は実証していない。 |
-| `src/routes/messages.ts:24-44`、`src/services/lineworks/messages/index.ts:384-422` | 13 type × channel/user を登録し、型ごとの Zod 検証後に汎用 dispatcher が 1 POST。text/flex の schema 単体中央値は約 0.001 ms。これを外す効果は示せず、入力不変条件と ADR-0007 を損なう。 |
+| `src/routes/messages.ts:24-44`、`src/services/lineworks/messages/index.ts:381-422` | 13 type × channel/user を登録し、型ごとの Zod 検証後に汎用 dispatcher が 1 POST。text/flex の schema 単体中央値は約 0.001 ms。これを外す効果は示せず、入力不変条件と ADR-0007 を損なう。 |
 | `src/routes/attachments/upload.ts:8-17`、`src/services/lineworks/attachment.ts:16-67` | `parseBody()` で `File` を作り、発行 API と multipart POST の 2 往復。10 MiB 制限は `src/routes/attachments/index.ts:17`。1 MiB mock は本体を消費しないため multipart の実メモリと送出時間は未測定。発行を省くと fileId/uploadUrl が得られない。 |
 | `src/services/lineworks/attachment.ts:75-110`、`src/routes/attachments/download.ts:11-76` | `redirect: 'manual'` で 3xx `Location` を取得し、署名 URL を再 fetch、本文を stream で返す。2 往復。応答 header 時点で return せず、計測では client 相当の本文読了まで含めた。3xx を自動追従させると認証・エラー処理と署名 URL の扱いが変わる。 |
 | `src/routes/menus/rich.ts:63-72`、`src/services/lineworks/menus/rich.ts:181-209`、`src/routes/bots.ts:63-68`、`src/services/lineworks/bots-tenant.ts:171-195` | 一覧は query 検証、URL 組み立て、1 GET、JSON parse。1 page/request。cursor による次 page は別 request であり、全件のページ数・本番応答時間は未測定。固定メニュー取得は `src/routes/menus/persistent.ts:39-43` から 1 GET。 |
 
-## 提案（短縮できる実時間の大きい順）
+## 短縮策の判定
 
-1. **条件付き: token 更新を request の外へ移す設計を検討する。** 対象 `src/services/lineworks/auth.ts:89-118`、`src/routes/_middleware.ts:16-18`。cold text は local で hot より p50 0.522 ms 長く、人工的に OAuth と message に各 5 ms 入れると 11.079 対 5.251 ms（差 5.828 ms）。本番の効果は cold request 比率 × OAuth RTT に依存し、現状不明。まず request duration と token cache hit/miss/refresh 待ちを秘密を出さずに計測し、p95 に cold が実際に寄与すると判明した場合だけ、期限前の背景更新と失敗時の同期再取得を検討する。測定方法は同一負荷下の A/B で request p50/p95、OAuth 回数、401、更新失敗後の回復を比較する。壊れうる不変条件: AGENTS.md の JWT `aud` 固定・Base64 PEM・scope、`getServerToken` cache/single-flight、ADR-0003。request の外での更新は複数 instance/isolates での余分な OAuth 呼び出しや expiry race を増やしうる。**本調査は実装推奨の判定を保留する。**
+実装提案は 0 件。短縮できる実時間の順位を付けられるだけの本番 RTT・発生頻度・安全な代替案が揃わなかった。次の候補はいずれも現時点では採用しない。
 
-`_fetch` の stream 包装、Zod 検証、upload の URL 発行、download の 3xx 手順は削除案にしない。前者は本文中 timeout、検証は API contract、後二者は LINE WORKS の手順に必要であり、安全に減らせる呼び出しを確認できなかった。`api.ts:90-96` の成功本文 parse 省略も実成功本文の大きさと短縮効果を測れていないため提案しない。
+| 見た箇所 | 採用しない理由と、判断に必要な測定 |
+| --- | --- |
+| `src/services/lineworks/auth.ts:89-118`、`src/routes/_middleware.ts:16-18` | cold text は hot より local p50 0.522 ms 長い。しかし harness の cold は cache を空にした**初回取得**であり、期限前の背景更新では取り除けない。背景更新が効くのは期限更新由来の待ちだけ。まず初回/期限更新の件数とそれぞれの request p95 寄与を分けて測る必要がある。`src/utils/request-log.ts:20-25` は duration を記録するが、`src/utils/logger-impl.ts:89` の production `warn` 設定では request level のログは出ないため、現行本番ログだけで測定済みとは言えない。仮に短縮効果が出ても、AGENTS.md の JWT `aud`・Base64 PEM・scope、single-flight、ADR-0003 に加え、Workers/Cloud Run 両対応を満たす必要がある。`src/worker.ts:8-12` は fetch handler だけで、Cloud Run の request-based CPU も背景作業を保証しない（repo の `docs/research/lineworks-callback-bot-id-async-2026-08-13.md:16-20`）。 |
+| `src/services/lineworks/_fetch.ts:62-120`、`src/services/lineworks/messages/index.ts:381-422` | stream 包装の削除は本文中 timeout/cancel を、Zod 検証の削除は API contract と ADR-0007 を壊す。現行の 1 MiB 本文読了と schema 単体の実測から、代替実装の安全性と短縮効果は示せない。 |
+| `src/services/lineworks/attachment.ts:16-110`、`src/services/lineworks/api.ts:90-96` | upload 発行と download 3xx 解決は手順上必要。成功本文 parse の省略は実成功本文のサイズと短縮効果を測れていない。安全な削減候補としては扱わない。 |
 
 ## local から分からないこと
 
@@ -62,7 +66,7 @@
 
 ## 再実行用 harness
 
-以下を worktree root で実行する。出力は JSON 行。実行前に env や `.env` を読まず、生成した test RSA key と mock のみ使う。`bun install --frozen-lockfile --ignore-scripts` 済みを前提とする。
+以下を worktree root で実行する。出力は JSON 行。`config.load` には生成した test RSA key と mock 用の値だけを渡す。Bun や logger が process env を参照する可能性は残るため、実 credential を持たない専用 worktree で実行する。`bun install --frozen-lockfile --ignore-scripts` 済みを前提とする。
 
 ```sh
 bun run - <<'TS'
@@ -140,4 +144,4 @@ console.log(JSON.stringify({ name: 'token_16_concurrent', n: 16, upstream_total:
 TS
 ```
 
-追加系列は同じ mock の `delay=5` で cold/hot text を各 30 回、1 MiB `Response` 本文を `fetch`/`fetchWithTimeout` で各 100 回読了した。固定順の比較なので再現時は実行順も記録し、採否判断には交互順の A/B と本番計測が要る。
+この harness は固定順の 1 run である。小差の採否判断には、交互順の A/B と本番計測が要る。
