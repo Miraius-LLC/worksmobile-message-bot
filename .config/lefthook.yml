@@ -91,7 +91,7 @@ pre-commit:
         exec .develop-tools/resolve pre-commit check-staged-docs
 # <!-- END develop-tools:lefthook:pre-commit:docs-structure -->
     gitleaks:
-      run: gitleaks protect --staged --no-banner --redact
+      run: gitleaks protect --staged --no-banner --redact --config .config/gitleaks.toml
     # staged のファイルだけを検査・整形する (501 と同じ)。ディレクトリ全体へ --write をかけると
     # 毎回全体を走査するうえ、別作業の未 staged の変更まで書き換えて stage_fixed で commit に入りうる。
     biome:
