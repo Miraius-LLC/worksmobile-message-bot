@@ -22,7 +22,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 - **依存のpatch・minorを更新（2026-10-31）**: Biome 2.6.4・OpenSpec 1.16.0・Wrangler 4.156.0へ更新し、OpenSpecのexact指定とcurrent specの版、Biome schemaを同期した。
 
-- **develop 用の軽い CI を追加（2026-10-24）**: develop / PR は lint・型検査・`test:fast`、main は OpenSpec・全テスト・Wrangler dry-run と deploy。pre-push は版照合だけとし、Renovate の宛先を develop にする。版は島の `release` で管理する。
+- **develop 用の軽い CI を追加（2026-10-24）**: develop / PR は lint・型検査・`test:fast`、main は OpenSpec・全テスト・Wrangler dry-run と deploy。pre-push は版照合だけとし、Renovate の宛先を develop にする。版は `release` で管理する。
 
 - **callback転送の408を失敗扱いにした（2026-10-16）**: upstreamの408（Request Timeout）で429と同じく500を返してdedup keyを解除し、同じpayloadの再投入を受け入れる。Night Shiftの指摘と修正を取り込んだ。仕様差分は[change](openspec/changes/archive/2026-10-16-callback-forward-request-timeout/proposal.md)。
 - **出荷前の全検査を `bun run check` 1本にまとめた（2026-10-12）**: CIと同じspec検証・型検査・Biome・全テストを順に実行する。`check` scriptがあると `bun check` がscriptを呼ぶため、`typecheck` は内蔵の `bun --check` にした。OpenSpecの完了change 4件をarchiveし、`attachment-upload` specを新設した。
@@ -31,7 +31,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 - **添付uploadの署名URL漏出を防いだ（2026-10-12）**: upload先のtimeout・通信例外を固定エラーへ変換し、500本文とログからURLを除く（[change](openspec/changes/archive/2026-10-12-upload-error-url-safety/proposal.md)）。
 - **Cloud Runの休止と再開準備を明記した（2026-10-12）**: 現在の稼働はWorkersのみとし、GCP側準備とAccess service tokenの登録・マウント手順を[README](./README.md#再開前の準備)へ追記した。
 - **旧 agent-room skill の repo 内 copy を撤去（2026-10-09）**: user scope へ移行済み。
-- **secret 注入を島共通の宣言へ移した（2026-10-09）**: `.develop-secrets.jsonc` に `.env.tpl` の 8 参照と `.env` 出力を定め、旧 TypeScript adapter を撤去した。必須参照の取得失敗時は共通核の all-or-nothing により `.env` を書き換えない（この repo の旧 adapter も取得失敗時は無書込）。
+- **secret 注入を共通の宣言へ移した（2026-10-09）**: `.develop-secrets.jsonc` に `.env.tpl` の 8 参照と `.env` 出力を定め、旧 TypeScript adapter を撤去した。必須参照の取得失敗時は共通核の all-or-nothing により `.env` を書き換えない（この repo の旧 adapter も取得失敗時は無書込）。
 - **callback転送のredirectを失敗扱いにした（2026-10-04）**: redirectを自動追従せず、upstreamの3xxとopaque redirectで転送失敗としてdedup keyを解除する。仕様差分は[change](openspec/changes/archive/2026-10-12-callback-forward-redirect-safety/proposal.md)。
 
 ## 2026-09

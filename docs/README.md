@@ -11,6 +11,7 @@ worksmobile-message-bot の文書入口。用語は root の `CONTEXT.md`、現�
 
 ## 運用
 
+- [開発コマンドと反映の流れ](./operations/development.md)
 - [Cloud Run へのデプロイ](./operations/deploy-cloud-run.md)
 - [Cloudflare Workers へのデプロイ](./operations/deploy-workers.md)
 
