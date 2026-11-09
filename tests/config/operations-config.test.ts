@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { fileURLToPath } from 'node:url'
 import Bun, { file, Glob } from 'bun'
 
 describe('public repository contract', () => {
@@ -115,7 +116,7 @@ describe('public repository contract', () => {
   test('公開docsとdeploy設定は移行時の実測runbookを含まない', async () => {
     const paths = ['README.md', 'TODO.md', 'CHANGELOG.md', 'CONTEXT.md', 'AGENTS.md']
     for await (const path of new Glob('docs/**/*.md').scan({
-      cwd: new URL('../..', import.meta.url).pathname,
+      cwd: fileURLToPath(new URL('../..', import.meta.url)),
     })) {
       paths.push(path)
     }

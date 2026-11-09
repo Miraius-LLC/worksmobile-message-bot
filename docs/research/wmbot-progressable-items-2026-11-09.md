@@ -1,5 +1,9 @@
 # LINE WORKS API 更新以外で進められる作業（2026-11-09）
 
+## 更新（2026-11-09）
+
+「すぐ直せる」の項目は修正済み。`lineworks-b1-b2` も archive 済みである。「owner 判断」の 2 件は決定・反映済みで、JWT 秘密鍵は現行実装どおり config 読込時に decode し、Workers の不正鍵は初回 request 時の config 読込で失敗するよう仕様の文言を修正した（`openspec/changes/archive/2026-11-09-jwt-private-key-timing/`）。以下は調査時点の記録として残す。
+
 ## 調査範囲と結論
 
 起点は `origin/develop` の `ca8cfe0`。`TODO.md`、未 archive の `openspec/changes/`、README のエンドポイント仕様と `src/routes/`、AGENTS.md・ADR と実装を読み、指定の検査を実行した。現時点で進められるのは完了済み change の整理と、確認できた文書のずれの修正である。LINE WORKS API の新しい仕様への追従や未発生の信頼性拡張は、この一覧に含めない。
