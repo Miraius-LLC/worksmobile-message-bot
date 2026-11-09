@@ -125,6 +125,6 @@
 | `@hono/zod-validator` 0.9.1 | `src/routes/bots.ts:50,64` 等で利用。現行 lock は 0.9.1（`bun.lock:123`）。期間内の release は header schema metadata の cache 修正で、呼び出し API の移行指示はない。 |
 | Hono `onError` と HTTPException | `src/app.ts:90-107` は `LineWorksApiError` を upstream status で返し（94-98 行）、`HTTPException.getResponse()` を透過し（103-104 行）、残るエラーを 500 にする（106-107 行）。今回のノートに、この実装へ必須の API 変更はない。 |
 
-### 藤井さんの判断
+### 判断が必要なもの
 
-Hono 5.0.0 RC を先行評価するかは藤井さんの判断事項。4.13.17 が最新の安定版であり、今回の GHSA には対応済みなので、安定版公開を待つことを勧める。先行評価する場合の変更範囲は `package.json` / `bun.lock`、`src/app.ts`、各 route の `zValidator`、`src/index.ts`、`src/worker.ts` と関連テスト。依存更新だけで外部 contract が変わらなければ OpenSpec 不要、HTTP/認証/validation の観測可能な挙動を変えるなら実装前に OpenSpec active change が必要（`docs/conventions/documentation.md:22-39`）。
+Hono 5.0.0 RC を先行評価するかは判断事項。4.13.17 が最新の安定版であり、今回の GHSA には対応済みなので、安定版公開を待つことを勧める。先行評価する場合の変更範囲は `package.json` / `bun.lock`、`src/app.ts`、各 route の `zValidator`、`src/index.ts`、`src/worker.ts` と関連テスト。依存更新だけで外部 contract が変わらなければ OpenSpec 不要、HTTP/認証/validation の観測可能な挙動を変えるなら実装前に OpenSpec active change が必要（`docs/conventions/documentation.md:22-39`）。

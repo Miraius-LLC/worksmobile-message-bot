@@ -4,7 +4,7 @@
 
 # What Changes
 
-2026-11-09 藤井の決定: decode 時点は実装を正とする。Workers の失敗時点は仕様の文言だけ直す。外部挙動は変えない。
+2026-11-09 の決定: decode 時点は実装を正とする。Workers の失敗時点は仕様の文言だけ直す。外部挙動は変えない。
 
 - `lineworks-jwt-authentication`の秘密鍵入力要件と不正鍵Scenarioを現行実装に合わせる。
 - ADR-0003のOriginal Recordを保持して現在の実装を注記し、service rule、AGENTS.md、README.mdの説明を合わせる。

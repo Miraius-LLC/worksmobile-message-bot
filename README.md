@@ -78,7 +78,7 @@ $ bun run build && bun run start  # 本番ビルド + 起動
 
 通常の変更は `develop` に取り込む。pre-push は `check-release-version` による版照合だけ。`test:fast` は実 timer に依存する `src/services/lineworks/_fetch.test.ts` を除き、`bun run test` は同ファイルも含めて全件実行する。
 
-本番へ反映するときは develop 上で島の `release patch`（または `minor`）→ `release push` を使う。`release push` が develop → main の順に同じ SHA を push し、main の検査成功後に tag と GitHub Release を作る。main の push で既存の Workers deploy が走る。Miraius-LLC の branch 作成・push は藤井の確認後に行う。
+本番へ反映するときは develop 上で島の `release patch`（または `minor`）→ `release push` を使う。`release push` が develop → main の順に同じ SHA を push し、main の検査成功後に tag と GitHub Release を作る。main の push で既存の Workers deploy が走る。Miraius-LLC の branch 作成・push は管理者の確認後に行う。
 
 ---
 

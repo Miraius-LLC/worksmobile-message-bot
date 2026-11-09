@@ -11,7 +11,7 @@ Cloud Runへ単独でデプロイできる構成を維持している。
 2026-10-03の対象GCP projectのGET照会では、Cloud Run serviceと専用runtime SA
 `worksmobile-message-bot-sa`、Secret Manager secret、Cloud Build trigger、Artifact Registry
 repositoryはいずれも存在しなかった。全location照会には到達不能な5 locationが含まれたが、
-藤井がCloud Runの廃止を確認済み。これは当日の確認記録であり、再開時には対象project・regionの
+運用担当者がCloud Runの廃止を確認済み。これは当日の確認記録であり、再開時には対象project・regionの
 現在値を再確認する（当時のインフラ台帳に記録）。
 
 再開時は次を準備してから、下の初回設定へ進む。
