@@ -50,6 +50,7 @@ app.route('/foo', fooApp)
 
 ## エラー処理
 
+- token は `routes/_middleware.ts` の `tokenMiddleware` が `c.var.token` に注入する。handler から `getServerToken()` を直接呼ばない
 - 予期しない例外や `LineWorksApiError` は route ハンドラ内でむやみに try/catch して手動で 500 を返さず throw し、グローバルエラーハンドラ (`app.onError`) に拾わせて統一レスポンスを返す
 - 後始末が必要な場合は catch で後始末して同じエラーを再 throw する（callback の dedup key 解除など）
 - バリデーションエラー (400) など明示的な期待エラーのみハンドラ内で返却する
