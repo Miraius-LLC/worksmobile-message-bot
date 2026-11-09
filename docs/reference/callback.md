@@ -64,7 +64,7 @@ LINE WORKS の仕様変更で event type が増えた場合は、`src/services/l
 
 1. [Developer Console](https://developers.worksmobile.com/jp/console/) → **Bot** → 該当 Bot → 編集
 2. **Bot Secret**をコピーし、利用する基盤へ`BOT_SECRET`として登録する
-   - Workers: `bunx wrangler secret put BOT_SECRET`
+   - Workers: `bunx wrangler secret put BOT_SECRET --config .config/wrangler.jsonc`
    - Cloud Run: Secret Managerの`lineworks-bot-secret`
 3. 利用する基盤へのdeploy済み状態を確認する（Workersはbinding、Cloud RunはSecret Managerのマウントを確認する）
 4. Bot 編集画面の **Callback URL** を `On` にして:

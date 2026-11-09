@@ -11,6 +11,13 @@ export function createProductionConfig(
   }
 
   const config = JSONC.parse(source) as Record<string, unknown>
+  // The generated config lives at the repository root, unlike its source.
+  if (config.$schema === '../node_modules/wrangler/config-schema.json') {
+    config.$schema = 'node_modules/wrangler/config-schema.json'
+  }
+  if (config.main === '../src/worker.ts') {
+    config.main = 'src/worker.ts'
+  }
   config.routes = [{ pattern: domain, custom_domain: true }]
   if (oauthScope) {
     const existingVars = (config.vars as Record<string, unknown> | undefined) ?? {}
@@ -20,7 +27,7 @@ export function createProductionConfig(
 }
 
 if (import.meta.main) {
-  const source = await file('wrangler.jsonc').text()
+  const source = await file('.config/wrangler.jsonc').text()
   const output = createProductionConfig(
     source,
     process.env.WORKER_CUSTOM_DOMAIN ?? '',

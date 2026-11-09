@@ -1,24 +1,24 @@
 # Cloudflare Workers へのデプロイ
 
 Cloudflare Workersでは、Cloud RunのNode serverと共通のHono appをWorker
-`worksmobile-message-bot`から配信する。`nodejs_compat`は`wrangler.jsonc`で明示している。
+`worksmobile-message-bot`から配信する。`nodejs_compat`は`.config/wrangler.jsonc`で明示している。
 
 GitHub Actions 経由でのデプロイ時は、Repository Variable `OAUTH_SCOPE` (`${{ vars.OAUTH_SCOPE }}`) を設定するとビルド時に `wrangler.production.json` の `vars.OAUTH_SCOPE` へ動的注入されます (未設定時は `bot` デフォルト)。
 
-機密値は `wrangler secret put` で設定し、`OAUTH_SCOPE` は GitHub Actions Repository Variable または `wrangler.production.json` の `vars` で設定します。手動時は `wrangler deploy --var OAUTH_SCOPE:bot.message` を使用します。
+機密値は `wrangler secret put` で設定し、`OAUTH_SCOPE` は GitHub Actions Repository Variable または `wrangler.production.json` の `vars` で設定します。手動時は `wrangler deploy --config .config/wrangler.jsonc --var OAUTH_SCOPE:bot.message` を使用します。
 
 ```sh
-bunx wrangler secret put CLIENT_ID
-bunx wrangler secret put CLIENT_SECRET
-bunx wrangler secret put SERVICE_ACCOUNT
-bunx wrangler secret put PRIVATE_KEY
-bunx wrangler secret put BOT_ID
-bunx wrangler secret put BASIC_ID
-bunx wrangler secret put BASIC_PASS
-bunx wrangler secret put BOT_SECRET
-bunx wrangler secret put FORWARD_CALLBACK_URL
-bunx wrangler secret put CF_ACCESS_CLIENT_ID
-bunx wrangler secret put CF_ACCESS_CLIENT_SECRET
+bunx wrangler secret put CLIENT_ID --config .config/wrangler.jsonc
+bunx wrangler secret put CLIENT_SECRET --config .config/wrangler.jsonc
+bunx wrangler secret put SERVICE_ACCOUNT --config .config/wrangler.jsonc
+bunx wrangler secret put PRIVATE_KEY --config .config/wrangler.jsonc
+bunx wrangler secret put BOT_ID --config .config/wrangler.jsonc
+bunx wrangler secret put BASIC_ID --config .config/wrangler.jsonc
+bunx wrangler secret put BASIC_PASS --config .config/wrangler.jsonc
+bunx wrangler secret put BOT_SECRET --config .config/wrangler.jsonc
+bunx wrangler secret put FORWARD_CALLBACK_URL --config .config/wrangler.jsonc
+bunx wrangler secret put CF_ACCESS_CLIENT_ID --config .config/wrangler.jsonc
+bunx wrangler secret put CF_ACCESS_CLIENT_SECRET --config .config/wrangler.jsonc
 ```
 
 `PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_CALLBACK_URL` は必要な場合のみ登録する。
@@ -30,14 +30,14 @@ bunx wrangler secret put CF_ACCESS_CLIENT_SECRET
 
 ```sh
 # bundle 生成まで。外部へ deploy しない
-bunx wrangler deploy --dry-run
+bunx wrangler deploy --config .config/wrangler.jsonc --dry-run
 
 # deploy（Custom Domainを使わない場合）
-bunx wrangler deploy
+bunx wrangler deploy --config .config/wrangler.jsonc
 
 # 直前の安定版へ rollback。特定版へ戻す場合は version ID を引数にする
-bunx wrangler rollback
-bunx wrangler rollback "$VERSION_ID"
+bunx wrangler rollback --config .config/wrangler.jsonc
+bunx wrangler rollback "$VERSION_ID" --config .config/wrangler.jsonc
 ```
 
 本番 deploy と rollback は、対象 version と callback 疎通手順を確認してから実行する。
@@ -46,7 +46,7 @@ bunx wrangler rollback "$VERSION_ID"
 
 GitHub ActionsからCustom Domainへdeployする場合は、Repository Variable
 `WORKER_CUSTOM_DOMAIN`にhostnameを登録する。workflowは公開用の一時Wrangler configを生成し、
-`wrangler.jsonc`自体には環境固有のhostnameを保持しない。手動deployでは同等の`routes`設定を
+`.config/wrangler.jsonc`自体には環境固有のhostnameを保持しない。手動deployでは同等の`routes`設定を
 ローカルの一時configへ追加する。
 既存のDNS recordと競合する場合は、切替前に移行元・移行先のhealth checkとrollback手順を
 用意したうえでDNSを更新する。切替後はTLS、`/healthz`、認証付きroute、Callbackを確認する。
