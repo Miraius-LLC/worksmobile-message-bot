@@ -1,0 +1,121 @@
+# 配布物。変更は develop-meta の雛形へ（~/Develop/develop-meta/templates/github-workflows/）。
+name: Release publish
+
+# Develop の `release push` が v<semver> の tag を push した後に GitHub Release を作る。
+# 本文は注釈付き tag の注釈、無ければ `release-notes <tag>` の抽出（release-notes-ai-summary design §6）。
+# github.token で作った Release は他の workflow の `release` event を起こさないので、後続は
+# この workflow の `workflow_run` で受ける（受け方の契約は release-publish-workflow design §2.5）。
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  # 移行の間に旧入口が先に作った Release は作り直さない。存在の確認を先に済ませ、以降の job を飛ばす。
+  existing:
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.release.outputs.exists }}
+    steps:
+      - name: 同じ tag の Release があるか確認
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh release view "${GITHUB_REF_NAME}" --json tagName > /dev/null 2> view-error.txt; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${GITHUB_REF_NAME} は既にあります。作り直しません。"
+          elif grep -q 'release not found' view-error.txt; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            cat view-error.txt >&2
+            exit 1
+          fi
+
+  notes:
+    needs: existing
+    if: needs.existing.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      # checkout が取った tag の ref が注釈を保つとは限らないので origin から取り直す。取り直した tag が
+      # event の commit（GITHUB_SHA）を指し、その commit が main の祖先であることを確かめる。
+      # checkout は資格情報を残さないので、private repo でも読めるよう 2 回の fetch にだけ token を渡す。
+      - name: Release tag を確かめる
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.extraheader
+          auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          export GIT_CONFIG_VALUE_0="$auth_header"
+          git fetch --force --no-tags origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          tagged=$(git rev-parse "refs/tags/${GITHUB_REF_NAME}^{commit}")
+          if [ "$tagged" != "$GITHUB_SHA" ]; then
+            echo "tag ${GITHUB_REF_NAME} は push の時の ${GITHUB_SHA} でなく ${tagged} を指しています" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$tagged" refs/remotes/origin/main
+      - name: Install develop tools
+        uses: fujimogn/develop-tools-action@7a8d259bb8b5ca07b2eea1fcd1d103d24c20ff0f # v0.3.6
+      # 軽量 tag の %(contents) は commit の message になるので、注釈の有無は object の型で見る。
+      - name: Release 本文を作る
+        run: |
+          set -euo pipefail
+          annotation=""
+          if [ "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = tag ]; then
+            annotation=$(git tag -l --format='%(contents)' "${GITHUB_REF_NAME}")
+          fi
+          if [ -n "${annotation//[[:space:]]/}" ]; then
+            printf '%s\n' "$annotation" > release-notes.md
+          else
+            release-notes "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" > release-notes.md
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  publish:
+    needs: notes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-notes
+      # notes の確認の後に tag が付け替えられていないかを、作る直前に origin の ref で確かめ直す。
+      - name: Release tag が変わっていないか確かめる
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          object=$(gh api "repos/${GH_REPO}/git/ref/tags/${GITHUB_REF_NAME}" --jq '.object.type + " " + .object.sha')
+          type=${object%% *}
+          sha=${object#* }
+          while [ "$type" = tag ]; do
+            object=$(gh api "repos/${GH_REPO}/git/tags/${sha}" --jq '.object.type + " " + .object.sha')
+            type=${object%% *}
+            sha=${object#* }
+          done
+          if [ "$sha" != "$GITHUB_SHA" ]; then
+            echo "tag ${GITHUB_REF_NAME} は push の時の ${GITHUB_SHA} でなく ${sha} を指しています" >&2
+            exit 1
+          fi
+      # --verify-tag: tag が消えていたら新しい tag を作らずに失敗する。
+      - name: Release を作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "${GITHUB_REF_NAME}" --verify-tag --title "${GITHUB_REF_NAME}" --notes-file release-notes.md
