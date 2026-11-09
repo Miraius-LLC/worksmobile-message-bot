@@ -108,7 +108,7 @@
 
 ### 対応すべき
 
-現時点で追加対応はない。Bun の最新安定版は 1.4.4 で、`Dockerfile:14` と `.config/mise.toml:2` は一致する。Hono 4.13.17、`@hono/node-server` 2.1.6、`@hono/zod-validator` 0.9.1 は `package.json:39-41` と `bun.lock:121,123,333` に固定解決され、確認した GHSA の修正版以上である。したがって **Bun の新しい安定版へ上げる価値の判定は対象版なし**。将来の版が公開された場合は、その時点の変更と実測で再判定する。
+現時点で追加対応はない。Bun の最新安定版は 1.4.4 で、`Dockerfile:14` と `.config/mise.toml:2` は一致する。Hono 4.13.17、`@hono/node-server` 2.1.6、`@hono/zod-validator` 0.9.1 は `package.json:39-41` の caret 範囲から `bun.lock:121,123,333` に固定解決され、確認した GHSA の修正版以上である。したがって **Bun の新しい安定版へ上げる価値の判定は対象版なし**。将来の版が公開された場合は、その時点の変更と実測で再判定する。
 
 ### 不要（現行版に反映済み、または使用していない）
 
@@ -123,7 +123,7 @@
 | Hono の `mount()`、JSX/CSS、CSRF、SSG、static 関連 GHSA | `src/app.ts:79-86` は `app.route()` で mount し、`app.mount()` や `hono/mount` は使わない。JSX/CSS、`csrf()`、`toSSG()`、`serveStatic()` も現行 source にない。修正版以上であり追加対応不要。 |
 | `@hono/node-server` の GHSA 4 件と 2.1.x 修正 | `src/index.ts:20,40-51` は `serve()` と graceful shutdown のみ。WebSocket upgrade/静的配信は使わず、raw backslash path の修正も 2.1.6 に含まれる（`bun.lock:121`）。`src/worker.ts:8-12` は別の Workers entry で、この Node adapter を経由しない。 |
 | `@hono/zod-validator` 0.9.1 | `src/routes/bots.ts:50,64` 等で利用。現行 lock は 0.9.1（`bun.lock:123`）。期間内の release は header schema metadata の cache 修正で、呼び出し API の移行指示はない。 |
-| Hono `onError` と HTTPException | `src/app.ts:90-107` は `HTTPException.getResponse()` を透過し、その他を 500 にする。今回のノートに、この実装へ必須の API 変更はない。 |
+| Hono `onError` と HTTPException | `src/app.ts:90-107` は `LineWorksApiError` を upstream status で返し（94-98 行）、`HTTPException.getResponse()` を透過し（103-104 行）、残るエラーを 500 にする（106-107 行）。今回のノートに、この実装へ必須の API 変更はない。 |
 
 ### 藤井さんの判断
 
