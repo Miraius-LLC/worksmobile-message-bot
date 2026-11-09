@@ -21,6 +21,7 @@ repositoryはいずれも存在しなかった。全location照会には到達�
 - **Artifact Registryとbuild権限**: `.config/cloudbuild.yaml` の `_AR_HOSTNAME` / `_AR_REPOSITORY` に対応するDocker repositoryを用意する。Cloud Build実行SAにimage push・Cloud Run deploy・runtime SAを使用する権限を設定する。
 - **Cloud Run serviceの初回作成**: 現行pipelineのdeploy stepは `gcloud run services update` なので、存在しないserviceは作成できない。再開時に `.config/cloudbuild.yaml` の構成を基に初回作成用の `gcloud run deploy` を用意し、runtime SA・env・secret・HTTP/1.1・公開IAMを揃える。その後はpipelineで更新する。
 - **Cloud Build trigger**: GitHub接続・対象branch・`.config/cloudbuild.yaml`・substitution variables・実行SAを設定する。triggerを使わない場合は、下のmanual build手順を使う。
+- **最初のbuildのpath確認**: 再開時の最初のbuildで、`.config/Dockerfile`を`-f`で指定し、contextがrepo rootのままであること、`COPY`がrootの`package.json`・`bun.lock`・`src`・`tsconfig.json`を読めることを確認する。この機ではDocker buildを実機検証していない。
 
 ### 初回設定
 
@@ -67,7 +68,7 @@ done
   REPO_NAME="$(basename "$(git rev-parse --show-toplevel)")"
   COMMIT_SHA="$(git rev-parse HEAD)"
   SHORT_SHA="$(git rev-parse --short=7 HEAD)"
-  gcloud builds submit . --config=.config/cloudbuild.yaml \
+  gcloud builds submit . --config=.config/cloudbuild.yaml --ignore-file=.config/gcloudignore \
     --substitutions="REPO_NAME=${REPO_NAME},COMMIT_SHA=${COMMIT_SHA},SHORT_SHA=${SHORT_SHA},_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SA},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID},_FORWARD_CALLBACK_URL=${FORWARD_CALLBACK_URL:-},_OAUTH_SCOPE=${OAUTH_SCOPE:-}"
 )
 ```

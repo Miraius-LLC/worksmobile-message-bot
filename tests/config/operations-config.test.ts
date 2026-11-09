@@ -4,7 +4,7 @@ import Bun, { file, Glob } from 'bun'
 
 describe('public repository contract', () => {
   test('.gcloudignoreはGitと全env実体をupload対象外にする', async () => {
-    const source = await file(new URL('../../.gcloudignore', import.meta.url)).text()
+    const source = await file(new URL('../../.config/gcloudignore', import.meta.url)).text()
     const patterns = source
       .split('\n')
       .map(line => line.trim())
@@ -75,7 +75,9 @@ describe('public repository contract', () => {
       file(new URL('../../.config/cloudbuild.yaml', import.meta.url)).text(),
     ])
 
-    expect(cloudRun).toContain('gcloud builds submit . --config=.config/cloudbuild.yaml')
+    expect(cloudRun).toContain(
+      'gcloud builds submit . --config=.config/cloudbuild.yaml --ignore-file=.config/gcloudignore',
+    )
     expect(cloudRun).toContain('git diff --quiet')
     expect(cloudRun).toContain('git diff --cached --quiet')
     expect(cloudRun).toContain('git ls-files --others --exclude-standard')
@@ -84,12 +86,14 @@ describe('public repository contract', () => {
     expect(cloudRun).toContain('SHORT_SHA=$' + '{SHORT_SHA}')
     expect(cloudBuild).toContain('triggerの設定またはmanual buildの`--substitutions`')
     expect(cloudBuild).not.toContain('Cloud Build trigger substitution(s) missing')
+    expect(cloudBuild).toContain('      - .config/Dockerfile\n      - .')
+    expect(cloudRun).toContain('最初のbuildのpath確認')
   })
 
   test('bunのバージョンはmise / Dockerfile / .config/cloudbuild.yaml / docsで揃う', async () => {
     const [miseSource, dockerfile, cloudBuild, readme, changelog] = await Promise.all([
       file(new URL('../../.config/mise.toml', import.meta.url)).text(),
-      file(new URL('../../Dockerfile', import.meta.url)).text(),
+      file(new URL('../../.config/Dockerfile', import.meta.url)).text(),
       file(new URL('../../.config/cloudbuild.yaml', import.meta.url)).text(),
       file(new URL('../../README.md', import.meta.url)).text(),
       file(new URL('../../CHANGELOG.md', import.meta.url)).text(),
@@ -124,7 +128,7 @@ describe('public repository contract', () => {
       '.env.tpl',
       '.github/workflows/ci.yml',
       '.config/cloudbuild.yaml',
-      'wrangler.jsonc',
+      '.config/wrangler.jsonc',
       'scripts/setup-monitoring.sh',
       'scripts/setup-cloud-run-log-monitoring.sh',
     )
