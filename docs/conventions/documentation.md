@@ -10,7 +10,8 @@ worksmobile-message-botの文書は目的ごとにSoT（Single Source of Truth�
 |---|---|---|
 | 長期的な設計判断 | [`docs/adr/`](../adr/) | 背景、選択肢、決定、影響 |
 | 全Agent共通ルール | [`AGENTS.md`](../../AGENTS.md) | 常設の開発規約と参照導線 |
-| 現在の構成・利用方法・用語 | [`README.md`](../../README.md) / [`CONTEXT.md`](../../CONTEXT.md) | 現行の外部仕様と構成、正規語 |
+| 現在の構成・利用方法 | [`README.md`](../../README.md) / [アーキテクチャ](../architecture.md) / [HTTP API](../reference/http-api.md) / [Callback](../reference/callback.md) / [環境変数](../reference/environment.md) / [運用手順](../README.md#運用) | README は構成と詳細文書への入口。外部仕様、詳細構成、運用手順はリンク先 |
+| 正規語 | [`CONTEXT.md`](../../CONTEXT.md) | 技術用語集 |
 | 今回の変更要求 | `openspec/changes/<change>/specs/` | 現行仕様に対する要求差分とscenario |
 | 今回の実装方針 | `openspec/changes/<change>/design.md` | change内で採る方針、影響、rollback |
 | 今回の実装手順 | `openspec/changes/<change>/tasks.md` | red→green→refactor/verifyの縦スライス |

@@ -1,7 +1,7 @@
 # worksmobile-message-bot
 
 LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）の技術用語集。
-ここは **glossary であって他の何物でもない** — 実装詳細・設計判断は持たない（エンドポイント仕様は [`README.md`](./README.md)、設計決定は [`docs/adr/`](./docs/adr/)、運用ゴッチャは [`CLAUDE.md`](./CLAUDE.md)）。
+ここは **glossary であって他の何物でもない** — 実装詳細・設計判断は持たない（エンドポイント仕様は [HTTP API](./docs/reference/http-api.md) と [Callback](./docs/reference/callback.md)、設計決定は [`docs/adr/`](./docs/adr/)、運用ゴッチャは [`CLAUDE.md`](./CLAUDE.md)）。
 
 ## Language
 

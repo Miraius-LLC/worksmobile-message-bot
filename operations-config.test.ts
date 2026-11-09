@@ -17,17 +17,25 @@ describe('public repository contract', () => {
   })
 
   test('READMEは両基盤を対等なdeploy先として説明する', async () => {
-    const readme = await file(new URL('./README.md', import.meta.url)).text()
+    const [readme, cloudRun, workers] = await Promise.all([
+      file(new URL('./README.md', import.meta.url)).text(),
+      file(new URL('./docs/operations/deploy-cloud-run.md', import.meta.url)).text(),
+      file(new URL('./docs/operations/deploy-workers.md', import.meta.url)).text(),
+    ])
 
-    expect(readme).toContain('## Cloud Run へのデプロイ')
-    expect(readme).toContain('## Cloudflare Workers へのデプロイ')
+    expect(readme).toContain('./docs/operations/deploy-cloud-run.md')
+    expect(readme).toContain('./docs/operations/deploy-workers.md')
+    expect(cloudRun).toContain('# Cloud Run へのデプロイ')
+    expect(workers).toContain('# Cloudflare Workers へのデプロイ')
     expect(readme).toContain('![Cloudflare Workers]')
     expect(readme).toContain('![Google Cloud Run]')
     expect(readme).toContain(
       '同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。',
     )
-    expect(readme).toContain('`WORKER_CUSTOM_DOMAIN`')
-    expect(readme).not.toMatch(/主系|待機系|切戻し|社内運用|現在の運用/)
+    expect(workers).toContain('`WORKER_CUSTOM_DOMAIN`')
+    for (const content of [readme, cloudRun, workers]) {
+      expect(content).not.toMatch(/主系|待機系|切戻し|社内運用|現在の運用/)
+    }
   })
 
   test('公開設定は環境固有の転送先とidentityをsubstitutionに要求する', async () => {
@@ -61,18 +69,18 @@ describe('public repository contract', () => {
   })
 
   test('Cloud Buildはtriggerとmanual buildの両方からsubstitutionを受け取る', async () => {
-    const [readme, cloudBuild] = await Promise.all([
-      file(new URL('./README.md', import.meta.url)).text(),
+    const [cloudRun, cloudBuild] = await Promise.all([
+      file(new URL('./docs/operations/deploy-cloud-run.md', import.meta.url)).text(),
       file(new URL('./cloudbuild.yaml', import.meta.url)).text(),
     ])
 
-    expect(readme).toContain('gcloud builds submit . --config=cloudbuild.yaml')
-    expect(readme).toContain('git diff --quiet')
-    expect(readme).toContain('git diff --cached --quiet')
-    expect(readme).toContain('git ls-files --others --exclude-standard')
-    expect(readme).toContain('REPO_NAME=$' + '{REPO_NAME}')
-    expect(readme).toContain('COMMIT_SHA=$' + '{COMMIT_SHA}')
-    expect(readme).toContain('SHORT_SHA=$' + '{SHORT_SHA}')
+    expect(cloudRun).toContain('gcloud builds submit . --config=cloudbuild.yaml')
+    expect(cloudRun).toContain('git diff --quiet')
+    expect(cloudRun).toContain('git diff --cached --quiet')
+    expect(cloudRun).toContain('git ls-files --others --exclude-standard')
+    expect(cloudRun).toContain('REPO_NAME=$' + '{REPO_NAME}')
+    expect(cloudRun).toContain('COMMIT_SHA=$' + '{COMMIT_SHA}')
+    expect(cloudRun).toContain('SHORT_SHA=$' + '{SHORT_SHA}')
     expect(cloudBuild).toContain('triggerの設定またはmanual buildの`--substitutions`')
     expect(cloudBuild).not.toContain('Cloud Build trigger substitution(s) missing')
   })

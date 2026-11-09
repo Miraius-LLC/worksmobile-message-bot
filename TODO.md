@@ -3,8 +3,8 @@
 LINE WORKS Bot の Webhook サーバー（Bun + TypeScript + Hono）。IFTTT / Make から Webhook 経由でメッセージ送信・添付・トークルーム / Bot CRUD を行う薄いラッパ。
 
 > 完了済の整備履歴は [CHANGELOG.md](./CHANGELOG.md) と `git log` を参照。本ファイルは **進行中・未着手のみ**。
-> 「必要になったら足す」型の拡張手順（メッセージ型追加 = [`.claude/rules/services.md`](./.claude/rules/services.md)、callback event type 追従 = [`README.md`](./README.md) の callback 節、AFK-agent ワークフロー有効化 = [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)）は TODO ではなく各文書に置く。
-> 専用 issue tracker は未使用。機能の SoT は [`README.md`](./README.md)（エンドポイント仕様）、設計判断は [`docs/adr/`](./docs/adr/)、用語集は [`CONTEXT.md`](./CONTEXT.md)、運用ゴッチャは [`CLAUDE.md`](./CLAUDE.md)。詳細は [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)。
+> 「必要になったら足す」型の拡張手順（メッセージ型追加 = [`.claude/rules/services.md`](./.claude/rules/services.md)、callback event type 追従 = [Callback](./docs/reference/callback.md) の event 種別節、AFK-agent ワークフロー有効化 = [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)）は TODO ではなく各文書に置く。
+> 専用 issue tracker は未使用。機能の SoT は [HTTP API](./docs/reference/http-api.md) と [Callback](./docs/reference/callback.md)、設計判断は [`docs/adr/`](./docs/adr/)、用語集は [`CONTEXT.md`](./CONTEXT.md)、運用ゴッチャは [`CLAUDE.md`](./CLAUDE.md)。詳細は [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md)。
 
 ## 次に着手
 

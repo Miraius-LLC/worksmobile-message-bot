@@ -11,7 +11,7 @@ engineering skill（`tdd` / `grill-with-docs` / `improve-codebase-architecture` 
 
 ## 補助文書
 
-- **[`README.md`](../../README.md)** — エンドポイント仕様の SoT。全 HTTP ルート、各メッセージ型のリクエスト本文制約（LINE WORKS spec 準拠）、callback 受信フローの仕様を持つ。**用語集ではない**（用語集は CONTEXT.md）。
+- **[`README.md`](../../README.md)** — 現在の構成と詳細文書への入口。**[HTTP API](../reference/http-api.md)** に全 HTTP ルートとリクエスト本文制約、**[Callback](../reference/callback.md)** に受信フローの仕様を置く。**用語集ではない**（用語集は CONTEXT.md）。
 - **[`CLAUDE.md`](../../CLAUDE.md)** — コードから読めない規約・運用ゴッチャ（MUST / よくあるハマり / Docker・デプロイ / 命名）。決定の「なぜ」は ADR、ここは「触るとき気をつけること」。
 - **[`.claude/rules/`](../../.claude/rules/)** — 作業別の規約。`routes.md`（HTTP エンドポイント追加）/ `services.md`（LINE WORKS API ラッパ）/ `tests-lineworks.md`（典型モック・app.request・multipart）。living spec であって決定（ADR）ではない。
 

@@ -178,7 +178,7 @@ const imageBodySchema = z
   })
   // spec: previewImageUrl と originalContentUrl は **両方**セット、または fileId 単独。
   // 旧実装はいずれか 1 つで通していたが LINE WORKS 側は preview/original の片方だけだと 400
-  // fileId 指定時は URL 系を併用させない (README の「fileId 単独」と一致させる)
+  // fileId 指定時は URL 系を併用させない (docs/reference/http-api.md の「fileId 単独」と一致させる)
   .refine(
     b =>
       b.fileId
@@ -377,7 +377,7 @@ const locationBodySchema = z.object({
 // 公開マップ・型・dispatcher
 // =============================================================================
 
-/** README に列挙された URL の `type` 部分 → Zod schema のマップ */
+/** docs/reference/http-api.md に列挙された URL の `type` 部分 → Zod schema のマップ */
 export const messageSchemas = {
   text: textBodySchema,
   sticker: stickerBodySchema,

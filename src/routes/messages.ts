@@ -11,7 +11,7 @@ import type { MessageTarget } from '@/types/lineworks'
 import { config } from '@/utils/config'
 import { type AuthenticatedEnv, tokenMiddleware } from './_middleware'
 
-/** README に記載の `(channels|users)/:id/messages/type/<type>` を全部登録した Hono ルータ */
+/** docs/reference/http-api.md に記載の `(channels|users)/:id/messages/type/<type>` を全部登録した Hono ルータ */
 export const messagesApp = new Hono<AuthenticatedEnv>()
 
 // `messagesApp` は `app.route('/', messagesApp)` で root に mount されるため、`use('*')` で

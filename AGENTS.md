@@ -1,6 +1,6 @@
 # worksmobile-message-bot — 全エージェント共通プロジェクト指示（Codex / Claude / agy）
 
-LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make から Webhook 経由でメッセージ送信・添付ファイルアップロード/ダウンロードを行うための薄いラッパ。エンドポイント仕様・アーキテクチャ・環境変数・主要コマンド・デプロイ手順は **`README.md`** にある。本ファイルはコードから読み取りづらい規約・ゴッチャに限定する。
+LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make から Webhook 経由でメッセージ送信・添付ファイルアップロード/ダウンロードを行うための薄いラッパ。概要・セットアップ・主要コマンドと各詳細文書への入口は **`README.md`** にある。本ファイルはコードから読み取りづらい規約・ゴッチャに限定する。
 
 このファイルは worksmobile-message-bot 固有の **SoT（実体）**。ホーム共通規約は `~/AGENTS.md` / `~/CLAUDE.md` が担保する。`CLAUDE.md` は本ファイルを `@import` する従属ラッパーで、Claude Code 固有のロード機構（`.claude/rules/` の @import / Agent skills の per-repo 設定）だけを持つ。Codex / agy は本ファイルを直読する。
 
@@ -11,7 +11,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - repo の開発規約（coding-conventions / tests / worktree / routes / services / tests-lineworks）の詳細は `.claude/rules/*.md`（Claude は `CLAUDE.md` 経由で @import、Codex / agy は同ディレクトリを直接参照）。
 - commit / git-log / source-file-naming は全島共通。判断 hook は `~/.agents/AGENTS.md` §7、詳細は `~/.agents/rules/*.md` を該当時に読む。**repo には置かない**。
 - 文書の SoT の分界（ADR / README・CONTEXT / OpenSpec / テスト / TODO / CHANGELOG）は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md) を正とする。
-- env は `src/utils/config.ts` の Zod schema が検証する（Cloud Run は起動時、Workers は初回 request 時）。一覧と本番の渡し方は [`README.md`](./README.md#環境変数の設定)。`pre-commit` で biome auto-fix と `bun run typecheck`（Bun 1.4.4 の内蔵 `bun --check`） が走る。
+- env は `src/utils/config.ts` の Zod schema が検証する（Cloud Run は起動時、Workers は初回 request 時）。一覧と本番の渡し方は [環境変数](./docs/reference/environment.md)。`pre-commit` で biome auto-fix と `bun run typecheck`（Bun 1.4.4 の内蔵 `bun --check`） が走る。
 
 ## トピック別ルール (作業に応じて読む)
 
@@ -19,7 +19,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - service 層 (LINE WORKS API ラッパ) を触る → `.claude/rules/services.md`
 - LINE WORKS 関連のテストパターン (典型モック / app.request / multipart) → `.claude/rules/tests-lineworks.md`
 - HTTP API contract、入力 validation、状態・不変条件、認証境界、callback・外部 API 連携の観測可能な挙動を変える → 実装前に OpenSpec active change を作る。適用基準は [`docs/conventions/documentation.md`](./docs/conventions/documentation.md)
-- Docker / Cloud Build / Cloud Run を触る → [ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md)・[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md) と [`README.md`](./README.md#docker-イメージの実装上の注意)
+- Docker / Cloud Build / Cloud Run を触る → [ADR-0008](./docs/adr/0008-docker-cloud-build-constraints.md)・[ADR-0009](./docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md) と [Cloud Run 手順](./docs/operations/deploy-cloud-run.md#docker-イメージの実装上の注意)
 
 ## 注意点 (コードから読めない / 読みづらいもの)
 
