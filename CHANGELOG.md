@@ -4,6 +4,13 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 > 古い分は git 履歴に任せる。
 
+## 2026-11
+
+- **LINE WORKS API の更新を確認した（2026-11-09）**: 2026-08-13 以降の告知を現行実装と照合し、即時の実装変更は不要と判定した（[調査結果](./docs/research/lineworks-api-updates-2026-11-09.md)）。
+- **依存 5 件を更新した（2026-11-09）**: hono 4.13.17、@hono/node-server 2.1.6（セキュリティ修正）、Biome 2.6.6、OpenSpec 1.16.1、Wrangler 4.158.0 に更新した。
+- **実装と文書のずれを直した（2026-11-09）**: ADR-0008 の Bun 版管理、routes / services 規約、README の記述を現行実装に合わせた。
+- **OpenSpec の lineworks-b1-b2 を archive した（2026-11-09）**: 完了済み change を archive し、現行仕様へ反映した。
+
 ## 2026-10
 
 - **依存のpatch・minorを更新（2026-10-31）**: Biome 2.6.4・OpenSpec 1.16.0・Wrangler 4.156.0へ更新し、OpenSpecのexact指定とcurrent specの版、Biome schemaを同期した。
