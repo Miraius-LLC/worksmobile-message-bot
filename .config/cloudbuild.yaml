@@ -1,8 +1,8 @@
 # =============================================================================
 # Cloud Run deployment pipeline: build → push → deploy
 #
-# triggerでは `filename: cloudbuild.yaml` を指定し、manual buildでは
-# `gcloud builds submit --config=cloudbuild.yaml` を使う。triggerのinline buildは
+# triggerでは `filename: .config/cloudbuild.yaml` を指定し、manual buildでは
+# `gcloud builds submit --config=.config/cloudbuild.yaml` を使う。triggerのinline buildは
 # このファイルを参照しないため併用しない。
 # =============================================================================
 
@@ -90,7 +90,7 @@ steps:
       - ${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${REPO_NAME}/${_SERVICE_NAME}:${SHORT_SHA}
 
   # 3) Cloud Run へ deploy
-  #    - 構成を可能な限り cloudbuild.yaml に明示し、手動 `gcloud run services update` での
+  #    - 構成を可能な限り .config/cloudbuild.yaml に明示し、手動 `gcloud run services update` での
   #      drift を防ぐ。CLIENT_ID / SERVICE_ACCOUNT / BOT_ID も毎回再アサートするため、
   #      手動で `--clear-env-vars` 等が打たれても次の deploy で値が戻る
   - id: deploy

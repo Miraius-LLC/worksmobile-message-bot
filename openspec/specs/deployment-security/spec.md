@@ -38,7 +38,7 @@ Source ADR: [ADR-0009](../../../docs/adr/0009-dedicated-runtime-sa-public-repo-s
 
 ### Requirement: 公開repositoryの環境値をsubstitutionで受け取る
 
-公開repositoryの`cloudbuild.yaml`は機密値だけでなく環境固有の識別子もliteralとして固定せず、Cloud Build substitutionから受け取らなければならない（SHALL）。
+公開repositoryの`.config/cloudbuild.yaml`は機密値だけでなく環境固有の識別子もliteralとして固定せず、Cloud Build substitutionから受け取らなければならない（SHALL）。
 
 #### Scenario: 環境固有値をdeployへ渡す
 

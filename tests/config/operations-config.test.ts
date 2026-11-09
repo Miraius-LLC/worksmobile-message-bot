@@ -40,7 +40,7 @@ describe('public repository contract', () => {
 
   test('公開設定は環境固有の転送先とidentityをsubstitutionに要求する', async () => {
     const [cloudBuild, monitoring, cloudRunMonitoring] = await Promise.all([
-      file(new URL('../../cloudbuild.yaml', import.meta.url)).text(),
+      file(new URL('../../.config/cloudbuild.yaml', import.meta.url)).text(),
       file(new URL('../../scripts/setup-monitoring.sh', import.meta.url)).text(),
       file(new URL('../../scripts/setup-cloud-run-log-monitoring.sh', import.meta.url)).text(),
     ])
@@ -71,10 +71,10 @@ describe('public repository contract', () => {
   test('Cloud Buildはtriggerとmanual buildの両方からsubstitutionを受け取る', async () => {
     const [cloudRun, cloudBuild] = await Promise.all([
       file(new URL('../../docs/operations/deploy-cloud-run.md', import.meta.url)).text(),
-      file(new URL('../../cloudbuild.yaml', import.meta.url)).text(),
+      file(new URL('../../.config/cloudbuild.yaml', import.meta.url)).text(),
     ])
 
-    expect(cloudRun).toContain('gcloud builds submit . --config=cloudbuild.yaml')
+    expect(cloudRun).toContain('gcloud builds submit . --config=.config/cloudbuild.yaml')
     expect(cloudRun).toContain('git diff --quiet')
     expect(cloudRun).toContain('git diff --cached --quiet')
     expect(cloudRun).toContain('git ls-files --others --exclude-standard')
@@ -85,11 +85,11 @@ describe('public repository contract', () => {
     expect(cloudBuild).not.toContain('Cloud Build trigger substitution(s) missing')
   })
 
-  test('bunのバージョンはmise / Dockerfile / cloudbuild.yaml / docsで揃う', async () => {
+  test('bunのバージョンはmise / Dockerfile / .config/cloudbuild.yaml / docsで揃う', async () => {
     const [miseSource, dockerfile, cloudBuild, readme, changelog] = await Promise.all([
       file(new URL('../../.config/mise.toml', import.meta.url)).text(),
       file(new URL('../../Dockerfile', import.meta.url)).text(),
-      file(new URL('../../cloudbuild.yaml', import.meta.url)).text(),
+      file(new URL('../../.config/cloudbuild.yaml', import.meta.url)).text(),
       file(new URL('../../README.md', import.meta.url)).text(),
       file(new URL('../../CHANGELOG.md', import.meta.url)).text(),
     ])
@@ -99,7 +99,7 @@ describe('public repository contract', () => {
 
     expect(dockerfile).toContain(`ARG BUN_VERSION=${bunVersion}`)
 
-    // cloudbuild.yaml が pin する image は mise の宣言と同一 patch であること
+    // .config/cloudbuild.yaml が pin する image は mise の宣言と同一 patch であること
     const cloudBuildImages = [...cloudBuild.matchAll(/oven\/bun:(\S+)/g)].map(match => match[1])
     expect(cloudBuildImages.length).toBeGreaterThan(0)
     for (const image of cloudBuildImages) {
@@ -122,7 +122,7 @@ describe('public repository contract', () => {
     paths.push(
       '.env.tpl',
       '.github/workflows/ci.yml',
-      'cloudbuild.yaml',
+      '.config/cloudbuild.yaml',
       'wrangler.jsonc',
       'scripts/setup-monitoring.sh',
       'scripts/setup-cloud-run-log-monitoring.sh',

@@ -1,10 +1,10 @@
 # Cloud Run へのデプロイ
 
 Cloud Runでは、DockerイメージをCloud Buildでビルドし、Secret Managerの値をマウントして
-デプロイする。`cloudbuild.yaml` にruntime SA / scaling / resources / ingressなどを明示し、
+デプロイする。`.config/cloudbuild.yaml` にruntime SA / scaling / resources / ingressなどを明示し、
 Cloud Runへ単独でデプロイできる構成を維持している。
 
-`cloudbuild.yaml` には **runtime SA / Secret Manager マウント / scaling / resources / ingress** 等を全て明示してあり、Cloud Run の構成 drift を防止します。
+`.config/cloudbuild.yaml` には **runtime SA / Secret Manager マウント / scaling / resources / ingress** 等を全て明示してあり、Cloud Run の構成 drift を防止します。
 
 ### 再開前の準備
 
@@ -18,9 +18,9 @@ repositoryはいずれも存在しなかった。全location照会には到達�
 
 - **runtime service account**: 専用SAを作成し、利用するsecretごとにSecret Accessorを付与する。
 - **Secret Manager**: LINE WORKS / BASIC認証のsecretを登録する。Access保護されたupstreamへ転送する場合は、[Access service tokenの設定](#cloud-run再開時のcloudflare-access-service-token)も行う。
-- **Artifact Registryとbuild権限**: `cloudbuild.yaml` の `_AR_HOSTNAME` / `_AR_REPOSITORY` に対応するDocker repositoryを用意する。Cloud Build実行SAにimage push・Cloud Run deploy・runtime SAを使用する権限を設定する。
-- **Cloud Run serviceの初回作成**: 現行pipelineのdeploy stepは `gcloud run services update` なので、存在しないserviceは作成できない。再開時に `cloudbuild.yaml` の構成を基に初回作成用の `gcloud run deploy` を用意し、runtime SA・env・secret・HTTP/1.1・公開IAMを揃える。その後はpipelineで更新する。
-- **Cloud Build trigger**: GitHub接続・対象branch・`cloudbuild.yaml`・substitution variables・実行SAを設定する。triggerを使わない場合は、下のmanual build手順を使う。
+- **Artifact Registryとbuild権限**: `.config/cloudbuild.yaml` の `_AR_HOSTNAME` / `_AR_REPOSITORY` に対応するDocker repositoryを用意する。Cloud Build実行SAにimage push・Cloud Run deploy・runtime SAを使用する権限を設定する。
+- **Cloud Run serviceの初回作成**: 現行pipelineのdeploy stepは `gcloud run services update` なので、存在しないserviceは作成できない。再開時に `.config/cloudbuild.yaml` の構成を基に初回作成用の `gcloud run deploy` を用意し、runtime SA・env・secret・HTTP/1.1・公開IAMを揃える。その後はpipelineで更新する。
+- **Cloud Build trigger**: GitHub接続・対象branch・`.config/cloudbuild.yaml`・substitution variables・実行SAを設定する。triggerを使わない場合は、下のmanual build手順を使う。
 
 ### 初回設定
 
@@ -53,7 +53,7 @@ done
 #      _FORWARD_CALLBACK_URL = callbackの転送先URL（任意）
 #      _OAUTH_SCOPE          = OAuth認可スコープ (任意, 省略時 bot)
 
-# 5. Cloud Build trigger を作成する場合は cloudbuild.yaml を指定し、
+# 5. Cloud Build trigger を作成する場合は .config/cloudbuild.yaml を指定し、
 #    main などデプロイ対象の branch と substitution variables を設定する。
 
 # 6. triggerを使わないmanual buildでは、Gitの実値と必須substitutionを明示する
@@ -67,7 +67,7 @@ done
   REPO_NAME="$(basename "$(git rev-parse --show-toplevel)")"
   COMMIT_SHA="$(git rev-parse HEAD)"
   SHORT_SHA="$(git rev-parse --short=7 HEAD)"
-  gcloud builds submit . --config=cloudbuild.yaml \
+  gcloud builds submit . --config=.config/cloudbuild.yaml \
     --substitutions="REPO_NAME=${REPO_NAME},COMMIT_SHA=${COMMIT_SHA},SHORT_SHA=${SHORT_SHA},_SERVICE_ACCOUNT=${CLOUD_RUN_RUNTIME_SA},_CLIENT_ID=${CLIENT_ID},_SERVICE_ACCOUNT_LW=${SERVICE_ACCOUNT},_BOT_ID=${BOT_ID},_FORWARD_CALLBACK_URL=${FORWARD_CALLBACK_URL:-},_OAUTH_SCOPE=${OAUTH_SCOPE:-}"
 )
 ```
@@ -79,7 +79,7 @@ manual buildではprocess argvとCloud Build metadataから、その環境の権
 ### Cloud Run再開時のCloudflare Access service token
 
 `FORWARD_CALLBACK_URL` の転送先がCloudflare Accessで保護されている場合だけ設定する。
-現行 `cloudbuild.yaml` は `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` をマウントしないため、
+現行 `.config/cloudbuild.yaml` は `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` をマウントしないため、
 **secretを登録するだけでは転送に使われない**。再開時に次を行い、deploy構成へ反映する。
 
 1. 転送先のAccess applicationでservice tokenを発行し、そのtokenを許可するService Auth policyを設定する。既存tokenを使う場合は対象applicationの許可と有効期限を確認する。
@@ -95,7 +95,7 @@ manual buildではprocess argvとCloud Build metadataから、その環境の権
    done
    ```
 
-3. 再開時に `cloudbuild.yaml` のdeploy stepの既存 `--update-secrets` に、次の2 mappingを追加する。初回service作成にも同じmappingを渡す。手動updateだけで済ませず、pipeline側の構成を正本にする。
+3. 再開時に `.config/cloudbuild.yaml` のdeploy stepの既存 `--update-secrets` に、次の2 mappingを追加する。初回service作成にも同じmappingを渡す。手動updateだけで済ませず、pipeline側の構成を正本にする。
 
    ```text
    CF_ACCESS_CLIENT_ID=lineworks-cf-access-client-id:latest
@@ -106,7 +106,7 @@ manual buildではprocess argvとCloud Build metadataから、その環境の権
 
 ### Docker イメージの実装上の注意
 
-構造的な決定は [ADR-0008](../adr/0008-docker-cloud-build-constraints.md) (マルチステージ / BuildKit 不可 / 非 root / curl レス healthcheck / cloudbuild.yaml が SoT)、SA / secret 運用は [ADR-0009](../adr/0009-dedicated-runtime-sa-public-repo-secrets.md)。
+構造的な決定は [ADR-0008](../adr/0008-docker-cloud-build-constraints.md) (マルチステージ / BuildKit 不可 / 非 root / curl レス healthcheck / .config/cloudbuild.yaml が SoT)、SA / secret 運用は [ADR-0009](../adr/0009-dedicated-runtime-sa-public-repo-secrets.md)。
 
 - runtime ベースは `oven/bun:<ver>-slim` (debian-slim)、builder は `oven/bun:<ver>-debian` (フル) を使い分ける
 - CMD は `["bun", "build/index.js"]` で直接バンドルを起動する (`bun run start` → package.json 参照を避ける)
@@ -123,7 +123,7 @@ echo -n "$NEW_VALUE" | gcloud secrets versions add lineworks-client-secret --dat
 
 ### HTTP プロトコル
 
-公開側の HTTP/2 は Cloud Run フロントエンドが終端し、コンテナへは HTTP/1.1 で渡す構成です (`cloudbuild.yaml` の `--no-use-http2`)。クライアントから見ると HTTP/2 で接続できます。
+公開側の HTTP/2 は Cloud Run フロントエンドが終端し、コンテナへは HTTP/1.1 で渡す構成です (`.config/cloudbuild.yaml` の `--no-use-http2`)。クライアントから見ると HTTP/2 で接続できます。
 
 ### Artifact Registry のクリーンアップ
 

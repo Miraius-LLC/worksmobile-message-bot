@@ -44,7 +44,7 @@ OAUTH_SCOPE=bot   # (任意) OAuth 認可スコープ: bot (default) | bot.messa
 | `PORT` | listen ポート (省略時 `8080`) |
 | `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (`logger-impl.ts`。4xx は warn で残しつつ Error Reporting には乗せない運用)。development では `debug` まで出す。production では `shouldUsePretty` が `LOG_PRETTY=1` を無視して JSON 出力に倒す |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
-| `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`cloudbuild.yaml` のデプロイ step で自動注入される)。未設定なら trace ID 単独 |
+| `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`.config/cloudbuild.yaml` のデプロイ step で自動注入される)。未設定なら trace ID 単独 |
 
 本番の機密値 (`CLIENT_SECRET` / `PRIVATE_KEY` / `BOT_SECRET` / `BASIC_ID` / `BASIC_PASS`) は、Cloud Run では Secret Manager の `lineworks-*:latest` をマウントし ([初回設定](../operations/deploy-cloud-run.md#初回設定))、Workers では `wrangler secret put` で渡す。env は `src/utils/config.ts` の Zod schema が Cloud Run は起動時、Workers は初回 request 時に検証する。
 

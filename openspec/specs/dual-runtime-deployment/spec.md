@@ -56,12 +56,12 @@ Dockerfileのbuilder/runtime base imageで固定するBun versionは`.config/mis
 
 ### Requirement: Cloud Build設定をCloud Run deployのSoTとする
 
-Cloud Runのservice account、secret mount、scaling、resource、HTTP protocol、labelに関するdeploy設定は`cloudbuild.yaml`をSoTとしなければならない（SHALL）。
+Cloud Runのservice account、secret mount、scaling、resource、HTTP protocol、labelに関するdeploy設定は`.config/cloudbuild.yaml`をSoTとしなければならない（SHALL）。
 
 #### Scenario: Cloud Run deploy条件を変更する
 
 - **WHEN** deploy時のruntime条件を変更する
-- **THEN** `cloudbuild.yaml`へ反映し、別の隠れたdeploy commandへ同じ設定を分散させない
+- **THEN** `.config/cloudbuild.yaml`へ反映し、別の隠れたdeploy commandへ同じ設定を分散させない
 
 ### Requirement: Supersededな単一runtime判断を現行contractにしない
 
