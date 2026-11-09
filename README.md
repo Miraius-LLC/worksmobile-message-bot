@@ -14,9 +14,7 @@
 同じHono appをCloudflare Workers / Cloud Runのどちらでもデプロイできる。Workers向けの
 Wrangler構成と、Cloud Run向けのDocker / Cloud Build構成を同じリポジトリで維持している。
 
-**現在の稼働基盤はCloudflare Workersのみで、Cloud Runにはdeployしていない（休止中）。**
-Cloud Runは再利用の可能性があるため、`.config/Dockerfile` / `.config/cloudbuild.yaml` を残している。
-[Cloud Run のデプロイ手順](./docs/operations/deploy-cloud-run.md)は再開時に使う。
+![IFTTT、Make、n8n や AI エージェントからの Webhook 呼び出しは BASIC 認証と worksmobile-message-bot を通り、LINE WORKS API から指定のトークルームやユーザーへ届く。LINE WORKS の Callback は署名・Bot ID・重複・内容を順に検証して転送先へ渡す。](./docs/diagrams/request-flow.svg)
 
 ### 技術スタック
 
@@ -32,8 +30,6 @@ Cloud Runは再利用の可能性があるため、`.config/Dockerfile` / `.conf
 - **CD**: GitHub Actions (CI 成功後) → Cloudflare Workers。Cloud Build → Cloud Runは休止中
 
 ## 現在の構成
-
-![IFTTT、Make、n8n や AI エージェントからの Webhook 呼び出しは BASIC 認証と worksmobile-message-bot を通り、LINE WORKS API から指定のトークルームやユーザーへ届く。LINE WORKS の Callback は署名・Bot ID・重複・内容を順に検証して転送先へ渡す。](./docs/diagrams/request-flow.svg)
 
 Cloudflare Workers と Cloud Run のエントリは共通の Hono app を使用する。
 HTTP route が入力・認証を受け、LINE WORKS service がトークン取得と Bot API 呼び出しを担う。
