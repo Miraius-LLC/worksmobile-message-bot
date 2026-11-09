@@ -33,6 +33,8 @@ Cloud Runは再利用の可能性があるため、`Dockerfile` / `.config/cloud
 
 ## 現在の構成
 
+![IFTTT、Make、n8n や AI エージェントからの Webhook 呼び出しは BASIC 認証と wmbot を通り、LINE WORKS API から指定のトークルームやユーザーへ届く。LINE WORKS の Callback は署名・Bot ID・重複・内容を順に検証して転送先へ渡す。](./docs/diagrams/request-flow.svg)
+
 Cloudflare Workers と Cloud Run のエントリは共通の Hono app を使用する。
 HTTP route が入力・認証を受け、LINE WORKS service がトークン取得と Bot API 呼び出しを担う。
 Callback は署名と Bot ID を検証し、設定済みの upstream へ同期転送する。

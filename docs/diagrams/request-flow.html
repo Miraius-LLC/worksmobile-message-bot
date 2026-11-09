@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webhook で LINE WORKS のトークルームへ投稿</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #f5f5f5; color: #2d3142; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 960px; margin: 0 auto; }
+    svg { display: block; width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <main>
+    <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="request-flow-title request-flow-desc">
+      <title id="request-flow-title">Webhook で LINE WORKS のトークルームへ投稿</title>
+      <desc id="request-flow-desc">IFTTT、Make、n8n や AI エージェントが Webhook を呼ぶと、BASIC 認証、wmbot、server token、LINE WORKS API を経て指定のトークルームやユーザーに投稿する。LINE WORKS の Callback は署名、Bot ID、重複、内容を順に検証して設定された転送先へ渡す。</desc>
+      <defs>
+        <marker id="request-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#4f5d75"/></marker>
+        <symbol id="ifttt-icon" viewBox="0 0 24 24"><path d="M0 8.82h2.024v6.36H0zm11.566 0h-3.47v2.024h1.446v4.337h2.024v-4.337h1.446V8.82zm5.494 0h-3.47v2.024h1.446v4.337h2.024v-4.337h1.446V8.82zm5.494 0h-3.47v2.024h1.446v4.337h2.024v-4.337H24V8.82zM7.518 10.843V8.82H2.892v6.36h2.024v-1.734H6.65v-2.024H4.916v-.578z"/></symbol>
+        <symbol id="make-icon" viewBox="0 0 24 24"><path d="M13.38 3.498c-.27 0-.511.19-.566.465L9.85 18.986a.578.578 0 0 0 .453.678l4.095.826a.58.58 0 0 0 .682-.455l2.963-15.021a.578.578 0 0 0-.453-.678l-4.096-.826a.589.589 0 0 0-.113-.012zm-5.876.098a.576.576 0 0 0-.516.318L.062 17.697a.575.575 0 0 0 .256.774l3.733 1.877a.578.578 0 0 0 .775-.258l6.926-13.781a.577.577 0 0 0-.256-.776L7.762 3.658a.571.571 0 0 0-.258-.062zm11.74.115a.576.576 0 0 0-.576.576v15.426c0 .318.258.578.576.578h4.178a.58.58 0 0 0 .578-.578V4.287a.578.578 0 0 0-.578-.576Z"/></symbol>
+        <symbol id="n8n-icon" viewBox="0 0 24 24"><path d="M4.8 16.8c.45 0 .6-.15.6-.6V15c0-1.8.6-2.4 2.4-2.4H9c1.8 0 2.4.6 2.4 2.4v1.2c0 .45.15.6.6.6s.6-.15.6-.6V15c0-1.8.6-2.4 2.4-2.4h1.2c1.8 0 2.4.6 2.4 2.4v1.2c0 .45.15.6.6.6s.6-.15.6-.6V15c0-1.8.6-2.4 2.4-2.4h1.2c.45 0 .6-.15.6-.6s-.15-.6-.6-.6h-1.2c-1.8 0-2.4-.6-2.4-2.4V7.8c0-.45-.15-.6-.6-.6s-.6.15-.6.6V9c0 1.8-.6 2.4-2.4 2.4H15c-1.8 0-2.4-.6-2.4-2.4V7.8c0-.45-.15-.6-.6-.6s-.6.15-.6.6V9c0 1.8-.6 2.4-2.4 2.4H7.8c-1.8 0-2.4-.6-2.4-2.4V7.8c0-.45-.15-.6-.6-.6s-.6.15-.6.6V9c0 1.8-.6 2.4-2.4 2.4H.6c-.45 0-.6.15-.6.6s.15.6.6.6h1.2c1.8 0 2.4.6 2.4 2.4v1.2c0 .45.15.6.6.6"/></symbol>
+        <symbol id="claude-icon" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></symbol>
+        <symbol id="cloudflare-icon" viewBox="0 0 24 24"><path d="M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154-.2246-.3164-.6045-.499-1.0615-.5205l-8.6592-.1123a.1559.1559 0 0 1-.1333-.0713c-.0283-.042-.0351-.0986-.021-.1553.0278-.084.1123-.1484.2036-.1562l8.7359-.1123c1.0351-.0489 2.1601-.8868 2.5537-1.9136l.499-1.3013c.0215-.0561.0293-.1128.0147-.168-.5625-2.5463-2.835-4.4453-5.5499-4.4453-2.5039 0-4.6284 1.6177-5.3876 3.8614-.4927-.3658-1.1187-.5625-1.794-.499-1.2026.119-2.1665 1.083-2.2861 2.2856-.0283.31-.0069.6128.0635.894C1.5683 13.171 0 14.7754 0 16.752c0 .1748.0142.3515.0352.5273.0141.083.0844.1475.1689.1475h15.9814c.0909 0 .1758-.0645.2032-.1553l.12-.4268zm2.7568-5.5634c-.0771 0-.1611 0-.2383.0112-.0566 0-.1054.0415-.127.0976l-.3378 1.1744c-.1475.5068-.0918.9707.1543 1.3164.2256.3164.6055.498 1.0625.5195l1.8437.1133c.0557 0 .1055.0263.1329.0703.0283.043.0351.1074.0214.1562-.0283.084-.1132.1485-.204.1553l-1.921.1123c-1.041.0488-2.1582.8867-2.5527 1.914l-.1406.3585c-.0283.0713.0215.1416.0986.1416h6.5977c.0771 0 .1474-.0489.169-.126.1122-.4082.1757-.837.1757-1.2803 0-2.6025-2.125-4.727-4.7344-4.727"/></symbol>
+        <symbol id="lineworks-icon" viewBox="0 0 30 30"><path d="M23.5556 0H6.44444C2.88528 0 0 2.88528 0 6.44444V23.5556C0 27.1147 2.88528 30 6.44444 30H23.5556C27.1147 30 30 27.1147 30 23.5556V6.44444C30 2.88528 27.1147 0 23.5556 0Z" fill="white"/><path d="M9.01667 23.2633H12.3633C12.4481 23.2637 12.5307 23.2363 12.5985 23.1853C12.6663 23.1344 12.7156 23.0627 12.7389 22.9811L17.0489 8.12111C17.0658 8.06285 17.0689 8.00146 17.058 7.9418C17.047 7.88214 17.0224 7.82583 16.986 7.77733C16.9495 7.72883 16.9023 7.68947 16.8481 7.66236C16.7938 7.63525 16.734 7.62112 16.6733 7.62111H13.3267C13.2419 7.62113 13.1595 7.64866 13.0918 7.69955C13.0241 7.75045 12.9747 7.82196 12.9511 7.90333L8.64222 22.7633C8.62512 22.8215 8.62182 22.8829 8.63258 22.9425C8.64334 23.0022 8.66787 23.0586 8.70422 23.1071C8.74057 23.1556 8.78773 23.195 8.84197 23.2222C8.89621 23.2493 8.95603 23.2634 9.01667 23.2633Z" fill="#028B3A"/><path d="M18.0122 23.2633H21.3589C21.4436 23.2633 21.526 23.2358 21.5938 23.1849C21.6615 23.134 21.7109 23.0625 21.7344 22.9811L26.0433 8.12111C26.0602 8.06285 26.0633 8.00146 26.0524 7.9418C26.0415 7.88214 26.0168 7.82583 25.9804 7.77733C25.944 7.72883 25.8968 7.68947 25.8425 7.66236C25.7883 7.63525 25.7284 7.62112 25.6678 7.62111H22.3211C22.2364 7.62131 22.1541 7.64891 22.0864 7.69977C22.0187 7.75064 21.9693 7.82205 21.9456 7.90333L17.6367 22.7633C17.6195 22.8216 17.6163 22.8831 17.6271 22.9428C17.6379 23.0026 17.6625 23.059 17.699 23.1076C17.7355 23.1561 17.7828 23.1955 17.8372 23.2225C17.8915 23.2496 17.9515 23.2635 18.0122 23.2633Z" fill="#88E518"/><path d="M12.3633 23.2633H8.64222C8.55741 23.2637 8.47481 23.2363 8.40701 23.1853C8.33921 23.1344 8.28993 23.0627 8.26666 22.9811L3.95666 8.12111C3.93977 8.06285 3.93667 8.00146 3.94759 7.9418C3.95851 7.88214 3.98316 7.82583 4.01959 7.77733C4.05602 7.72883 4.10322 7.68947 4.15748 7.66236C4.21174 7.63525 4.27156 7.62112 4.33222 7.62111H8.05444C8.13911 7.62131 8.22145 7.64891 8.28915 7.69977C8.35684 7.75064 8.40625 7.82205 8.43 7.90333L12.7389 22.7633C12.756 22.8216 12.7593 22.8831 12.7485 22.9428C12.7377 23.0026 12.713 23.059 12.6765 23.1076C12.6401 23.1561 12.5928 23.1955 12.5384 23.2225C12.484 23.2496 12.4241 23.2635 12.3633 23.2633Z" fill="#7EE3A1"/><path d="M21.3589 23.2633H17.6367C17.5519 23.2637 17.4693 23.2363 17.4015 23.1853C17.3337 23.1344 17.2844 23.0627 17.2611 22.9811L12.9511 8.12111C12.9342 8.06285 12.9311 8.00146 12.942 7.9418C12.953 7.88214 12.9776 7.82583 13.014 7.77733C13.0505 7.72883 13.0977 7.68947 13.1519 7.66236C13.2062 7.63525 13.266 7.62112 13.3267 7.62111H17.0489C17.1336 7.62113 17.216 7.64866 17.2838 7.69955C17.3515 7.75045 17.4009 7.82196 17.4244 7.90333L21.7344 22.7633C21.7513 22.8216 21.7544 22.883 21.7435 22.9426C21.7326 23.0023 21.7079 23.0586 21.6715 23.1071C21.6351 23.1556 21.5879 23.195 21.5336 23.2221C21.4794 23.2492 21.4195 23.2633 21.3589 23.2633Z" fill="#03C75A"/></symbol>
+      </defs>
+      <rect width="960" height="600" fill="#f5f5f5"/>
+      <text x="40" y="52" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="27" font-weight="700">Webhook で LINE WORKS のトークルームへ投稿</text>
+      <text x="40" y="82" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14">外部サービスと AI エージェントをつなぐ LINE WORKS Bot の中継サーバー</text>
+
+      <rect x="32" y="116" width="896" height="252" rx="8" fill="#fff" stroke="#bfc0c0"/>
+      <text x="52" y="144" fill="#eb6c36" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="700">送信</text>
+      <line x1="304" y1="236" x2="344" y2="236" stroke="#4f5d75" stroke-width="2" marker-end="url(#request-arrow)"/>
+      <line x1="592" y1="236" x2="632" y2="236" stroke="#4f5d75" stroke-width="2" marker-end="url(#request-arrow)"/>
+      <text x="324" y="218" text-anchor="middle" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11">BASIC</text>
+      <text x="612" y="218" text-anchor="middle" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11">API</text>
+
+      <rect x="52" y="164" width="252" height="144" rx="8" fill="#f5f5f5" stroke="#bfc0c0"/>
+      <text x="72" y="190" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="700">送信元</text>
+      <use href="#ifttt-icon" x="72" y="204" width="22" height="22" fill="#000"/>
+      <text x="102" y="221" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13">IFTTT</text>
+      <use href="#make-icon" x="162" y="204" width="22" height="22" fill="#6d00cc"/>
+      <text x="192" y="221" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13">Make</text>
+      <use href="#n8n-icon" x="72" y="244" width="22" height="22" fill="#d04c72"/>
+      <text x="102" y="261" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13">n8n</text>
+      <use href="#claude-icon" x="162" y="244" width="22" height="22" fill="#d97757"/>
+      <text x="192" y="261" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13">Claude</text>
+      <text x="72" y="290" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12">Codex などの AI エージェントも可</text>
+
+      <rect x="352" y="164" width="240" height="144" rx="8" fill="#fff1eb" stroke="#eb6c36" stroke-width="2"/>
+      <use href="#cloudflare-icon" x="372" y="185" width="30" height="30" fill="#f38020"/>
+      <text x="414" y="208" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700">wmbot</text>
+      <text x="372" y="242" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14">Webhook を受ける Hono app</text>
+      <text x="372" y="270" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11">server token: JWT → OAuth / cache</text>
+      <text x="372" y="290" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11">Workers / Cloud Run</text>
+
+      <rect x="640" y="164" width="268" height="144" rx="8" fill="#f5f5f5" stroke="#bfc0c0"/>
+      <use href="#lineworks-icon" x="660" y="182" width="42" height="42"/>
+      <text x="716" y="202" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700">LINE WORKS API</text>
+      <line x1="660" y1="240" x2="888" y2="240" stroke="#bfc0c0" stroke-width="1"/>
+      <text x="660" y="273" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700">トークルームに投稿</text>
+      <text x="660" y="292" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11">または指定したユーザーへ</text>
+
+      <text x="52" y="340" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12">使い方の例: イベントや作業完了を通知 → POST /channels/{channelId}/messages/type/text</text>
+
+      <rect x="32" y="388" width="896" height="164" rx="8" fill="#fff" stroke="#bfc0c0"/>
+      <text x="52" y="416" fill="#eb6c36" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="700">受信</text>
+      <line x1="268" y1="480" x2="312" y2="480" stroke="#4f5d75" stroke-width="2" marker-end="url(#request-arrow)"/>
+      <line x1="644" y1="480" x2="688" y2="480" stroke="#4f5d75" stroke-width="2" marker-end="url(#request-arrow)"/>
+      <rect x="52" y="436" width="216" height="88" rx="8" fill="#f5f5f5" stroke="#bfc0c0"/>
+      <use href="#lineworks-icon" x="72" y="460" width="40" height="40"/>
+      <text x="126" y="470" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="700">LINE WORKS</text>
+      <text x="126" y="492" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12">Callback イベント</text>
+
+      <rect x="320" y="436" width="324" height="88" rx="8" fill="#fff" stroke="#4f5d75"/>
+      <text x="340" y="466" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="700">wmbot が受け取り、検証</text>
+      <text x="340" y="494" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12">署名 → Bot ID → 重複 → 内容</text>
+
+      <rect x="696" y="436" width="212" height="88" rx="8" fill="#f5f5f5" stroke="#bfc0c0"/>
+      <text x="716" y="471" fill="#2d3142" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="14" font-weight="700">設定された転送先へ</text>
+      <text x="716" y="494" fill="#4f5d75" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="12">upstream に同期転送</text>
+    </svg>
+  </main>
+</body>
+</html>
