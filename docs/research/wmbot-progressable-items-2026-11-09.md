@@ -21,7 +21,7 @@
 
 | 項目 | 根拠と必要な判断 |
 | --- | --- |
-| JWT 秘密鍵 decode の時点について仕様と実装のどちらを正とするか | `openspec/specs/lineworks-jwt-authentication/spec.md:31` は起動時 validation 後に「署名直前で」decode することを SHALL とする。一方、`src/utils/config.ts:92-99` は config load 時に decode し、`src/services/lineworks/auth.ts:43-45` は decode 済み PEM を署名に使う。実装を変更するか現行仕様を改めるかは、この調査から決めない。 |
+| JWT 秘密鍵 decode の時点について仕様と実装のどちらを正とするか | `openspec/specs/lineworks-jwt-authentication/spec.md:31` は起動時 validation 後に「署名直前で」decode することを SHALL とする。一方、`src/utils/config.ts:92-99` は config load 時に decode し、`src/services/lineworks/auth.ts:43-45` は decode 済み PEM を署名に使う。外から観測できる差については、正しい鍵での JWT 署名と不正な鍵での起動時 fail-fast は仕様の各 scenario（同 spec `:33-40`）と一致し、現時点のコードから差を確認できない。decode の時点は内部手順の不一致である。ただし正本の SHALL 文言を変えるか実装を変えるかは owner 判断待ちとし、この調査では決めない。 |
 
 将来の着手条件は次節に分けて記す。
 
