@@ -23,7 +23,6 @@ private_*.key
 .github
 
 # IDE / OS
-.vscode
 .idea
 .DS_Store
 *.swp

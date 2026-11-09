@@ -49,15 +49,10 @@ bun.lockb
 # IDE / Editor
 # =============================================================================
 
-# VSCode (workspace ファイルや local 履歴は除外、共有設定 (.vscode/*.json 等) は許可)
+# VSCode
 *.code-workspace
 .code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+.vscode/
 *.vsix
 
 # JetBrains
