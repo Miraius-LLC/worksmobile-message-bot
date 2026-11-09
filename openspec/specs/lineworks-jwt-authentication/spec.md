@@ -28,7 +28,7 @@ JWTの`aud` claimは`https://auth.worksmobile.com/oauth2/v2.0/token`に固定し
 
 ### Requirement: Base64 encoded PEMだけを秘密鍵入力として受け付ける
 
-`PRIVATE_KEY`はBase64 encoded PEMとして受け取り、起動時validation後に署名直前でPEMへdecodeしなければならない（SHALL）。
+`PRIVATE_KEY`はBase64 encoded PEMとして受け取り、config読込時にPEMへdecodeして検証しなければならない（SHALL）。
 
 #### Scenario: 有効な秘密鍵を読み込む
 
@@ -38,4 +38,4 @@ JWTの`aud` claimは`https://auth.worksmobile.com/oauth2/v2.0/token`に固定し
 #### Scenario: 生PEMまたは不正な値を受け取る
 
 - **WHEN** `PRIVATE_KEY`が期待するBase64 encoded PEMではない
-- **THEN** applicationは起動時validationでfail-fastする
+- **THEN** Cloud Runでは起動時、Workersでは初回request時のconfig読込でvalidationに失敗する

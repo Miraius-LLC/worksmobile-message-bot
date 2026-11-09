@@ -35,7 +35,7 @@ logger.success('ファイルをアップロード', { caller: `${CALLER}.uploadA
 ## auth (`services/lineworks/auth.ts`)
 
 - `getServerToken()` が JWT 生成 → アクセストークン取得を 1 関数で実施。route 層からはこれだけ呼べば良い
-- `PRIVATE_KEY` は Base64 デコードを前提とした扱い。`auth.ts` 内の `getPrivateKey` を経由する (生 PEM を渡してはいけない)
+- `PRIVATE_KEY` は Base64 エンコード済みとして受け取り、`src/utils/config.ts` のconfig読込時にdecodeと形式検証を行う (生 PEM を渡してはいけない)
 - JWT の `aud` は **`https://auth.worksmobile.com/oauth2/v2.0/token`** で固定。`AUTH_URL` 定数を共有しているのでズラさない
 - スコープは `OAUTH_SCOPE` 環境変数で選択可能 (`bot.message` / `bot` / `bot.read`、デフォルト `bot`)
 

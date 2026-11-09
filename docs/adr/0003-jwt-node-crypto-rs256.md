@@ -27,6 +27,7 @@ OpenSpec capability: [`lineworks-jwt-authentication`](../../openspec/specs/linew
 Chosen option: 「原文を完全保存したまま標準構造を付加する」
 
 移行前のADRに記録された判断を維持する。判断の詳細・理由・比較した選択肢は「Original Record」を正とする。
+現在の実装では、`PRIVATE_KEY`は`src/utils/config.ts`のconfig読込時にBase64 decodeと形式検証を行う。Original Recordの`getPrivateKey`と署名失敗の記述は作成当時の記録として保存する。
 
 ### Consequences
 

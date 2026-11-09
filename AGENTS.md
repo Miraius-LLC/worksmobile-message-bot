@@ -26,7 +26,7 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 ### MUST (これを破ると壊れる)
 
 - **JWT は `node:crypto` で自前生成 + `aud` 固定** ([ADR-0003](./docs/adr/0003-jwt-node-crypto-rs256.md))。`auth.ts` 内の `AUTH_URL` 定数 (`https://auth.worksmobile.com/oauth2/v2.0/token`) を `aud` と一致させる。仕様変更時は base64url エンコードと改行に注意
-- **`PRIVATE_KEY` は Base64 エンコード**を前提に PEM へデコードしている。生 PEM をそのまま入れると JWT 署名で失敗。`config.ts` の Zod schema が起動時に PEM 含有チェックする
+- **`PRIVATE_KEY` は Base64 エンコード**を前提に、`config.ts` のconfig読込時にPEMへdecodeして形式を検証する。生 PEM をそのまま入れると、このBase64 decodeで失敗する
 - **添付ファイル取得は 3xx の Location 抽出**。LINE WORKS のダウンロード API は 3xx を返してくるため `redirect: 'manual'` で受け、`Location` ヘッダから実 URL を取り出す。`fetch` のデフォルト (follow) ではリダイレクト先に Authorization ヘッダが付与されない問題と二重に絡むので変えない
 - **アクセストークンの scope は `OAUTH_SCOPE` で選択可能** (`bot.message` / `bot` / `bot.read`)。未指定時はデフォルトの `bot` が適用される
 - **`getServerToken` はキャッシュ + single-flight 済み**。直接 `fetch` を叩き直す変更は避け、`auth.ts` の `cached` / `inFlight` の状態管理を尊重する
