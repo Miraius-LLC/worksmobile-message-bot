@@ -90,6 +90,6 @@ Reporting them separately stops one axis from masking the other.
 
 ## Develop routing
 
-`~/Develop/` 配下の通常依頼は `code-review` を入口とし、対応する `superpowers:requesting-code-review` と同じworkflowを二重実行しない。明示指定は指定先を優先し、島外はpluginの既存入口を使う。
+`~/Develop/` 配下の通常依頼は `code-review` を入口とし、対応する `superpowers:requesting-code-review` と同じworkflowを二重実行しない。明示指定は指定先を優先し、~/Develop/ の外はpluginの既存入口を使う。
 
-本skillで固定差分のStandards/Specを確認し、独立reviewは島規約のagent-room delegateで依頼・回収する。pluginの必要手順を参照した場合はその手順を一度だけ満たし、島skillへ戻る循環を作らない。plugin明示時も島の承認・検証・独立reviewのgateを維持する。必須手順と共存できない場合は当該組の有効化を保留し、Formationでは司令塔へ報告する。
+本skillで固定差分のStandards/Specを確認し、独立reviewはDevelop 共通規約のagent-room delegateで依頼・回収する。pluginの必要手順を参照した場合はその手順を一度だけ満たし、共通skillへ戻る循環を作らない。plugin明示時もDevelop 共通の承認・検証・独立reviewのgateを維持する。必須手順と共存できない場合は当該組の有効化を保留し、Formationでは司令塔へ報告する。

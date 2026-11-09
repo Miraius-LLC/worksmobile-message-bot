@@ -19,11 +19,11 @@ Fetch the **latest** information before writing or reviewing Wrangler commands a
 
 ## Develop Safety Boundary
 
-このskillはWranglerのprovider実装詳細を扱う。最初に対象resourceのownership routeを確定する。Develop島が管理するresourceの新規resource、provisioning、permission、registry変更は、先に`provision-infra-safely`で`~/Develop/develop-meta/infra/`のownership、費用、secret、rollbackを確定し、Human Gateで藤井の明示承認を得た場合だけ本skillへ戻る。子repoが管理するresourceは、対象repoのownership、承認、deploy手順を使う。どちらのrouteか、または承認経路が不明な場合はmutationを停止して確認事項を報告する。
+このskillはWranglerのprovider実装詳細を扱う。最初に対象resourceのownership routeを確定する。Developが管理するresourceの新規resource、provisioning、permission、registry変更は、先に`provision-infra-safely`で`~/Develop/develop-meta/infra/`のownership、費用、secret、rollbackを確定し、Human Gateでowner の明示承認を得た場合だけ本skillへ戻る。子repoが管理するresourceは、対象repoのownership、承認、deploy手順を使う。どちらのrouteか、または承認経路が不明な場合はmutationを停止して確認事項を報告する。
 
 - 承認前に`create`、resource ID省略によるauto-provision、remote mutation、deploy、delete、secret writeを実行しない。承認はresourceのownership routeに対応する手順で得る。
 - 承認後も、下記のcreate / update / deploy / delete例は承認済みscopeのprovider実装にだけ使う。掲載例はstanding approvalではない。
-- 既存resourceの`list` / `get` / `info` / `whoami`等のread-only確認は、中央checkoutや`~/Develop/develop-meta/infra/registry/<project>.yaml`との照合なしに実行できる。Develop島管理resourceのmutationへ進むときだけ、中央ownership / registry gateを適用する。
+- 既存resourceの`list` / `get` / `info` / `whoami`等のread-only確認は、中央checkoutや`~/Develop/develop-meta/infra/registry/<project>.yaml`との照合なしに実行できる。Develop管理resourceのmutationへ進むときだけ、中央ownership / registry gateを適用する。
 - local scaffoldingやdependency追加も別のwriteである。対象repoの計画・承認なしに`init`やinstallを行わない。
 
 ## FIRST: Check if Wrangler is installed

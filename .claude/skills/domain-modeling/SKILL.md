@@ -75,7 +75,7 @@ If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](
 
 <fujii-notes>
 
-## 藤井運用メモ（Develop島のADR標準）
+## 運用メモ（DevelopのADR標準）
 
 - ADRの本質は`architecture-decision-record/architecture-decision-record`、Markdown形式はMADRを基礎とする。
 - ADRを作成する直前に、対象repoの`docs/adr/README.md`と`docs/adr/adr-template.md`を**毎回直接読む**。`ADR-FORMAT.md`のupstream例、モデル記憶、既存legacy ADRから形式を再構成せず、repo内テンプレートを複製する。
