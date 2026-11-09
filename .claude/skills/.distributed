@@ -1,7 +1,6 @@
 agents-sdk
 archify
 cloudflare
-cloudflare-email-service
 code-review
 codebase-design
 diagnosing-bugs
@@ -12,7 +11,6 @@ implement
 improve-codebase-architecture
 prototype
 research
-sandbox-sdk
 tdd
 web-perf
 wizard

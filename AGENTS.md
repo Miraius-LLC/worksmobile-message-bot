@@ -55,13 +55,30 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - **メッセージタイプは `messageSchemas` マップに集約 + 個別 sender なし** ([ADR-0007](./docs/adr/0007-message-type-dispatcher.md))。新タイプは `services/lineworks/messages/index.ts` に schema を 1 件足すだけで `routes/messages.ts` のループが `(channels|users)/:id/messages/type/<type>` を自動登録、`sendMessageByType` が `{ type, ...body }` を組み立てて送る
 - **`_`で始まるファイルは内部ヘルパ**: `routes/_middleware.ts`のように、サブルータへ直接mountしない補助moduleであることを示す。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=aa9efd15ed0938ba83b41b73bb33f4bef8f6dd3fac6ad90097417f0e942c5c5f -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=fcc3bed2d5af7f3d56c510dd5fbde2acb97b7a5d56cb4eb0f469d0f55e3e3d4a -->
 ### 1.1 島で共通の開始と記録
 <!-- island -->
 
-- この区画は Develop 島（`~/Develop/`）の共通規約の抜粋。全文は `~/Develop/develop-meta/AGENTS.md`、人物・禁止事項・承認・commit 規約は `~/.agents/AGENTS.md` を正とする。repo 固有の規約が具体的ならそちらを優先する。
-- **宣言した単一の主機が開発・commit・push を担う。** 初期値は `dev`。非主機の repo は CLI・文書用に `git pull --ff-only` で追従する。Mac への実切替は別承認とし、切替時は `~/Develop/develop-meta/docs/adr/0035-declared-single-primary-host.md` に従う。
-- 用語は repo の `CONTEXT.md`、決定は `docs/adr/`、進行中は root `TODO.md`、完了履歴は root `CHANGELOG.md` / git logを読む。
+- Develop 島の共通規約の抜粋。全文は `~/Develop/develop-meta/AGENTS.md`、人物・禁止・承認・commit は `~/.agents/AGENTS.md`。repo 固有の規約が具体的ならそちらを優先する。
+- **開発・commit・push は宣言した単一の主機（初期値 `dev`）が担う。** 非主機の repo は `git pull --ff-only` で追従する。Mac への切替は別承認で `~/Develop/develop-meta/docs/adr/0035-declared-single-primary-host.md` に従う。
+- 用語は repo の `CONTEXT.md`、決定は `docs/adr/`、残る作業・判断・運用 gate は root `TODO.md`、完了した成果は root `CHANGELOG.md` / git log に置き、そこを読む。
+- **TODO は、畳めるものは早く畳み、将来のものは将来に残す。** 滞留は新しいものを作る気持ちを削ぐので、終わらせるための一覧であると同時に、藤井の依頼と長期の展望の受け皿でもある。進める順は、まず簡単な一手で終わるもの（設計が要らず、エージェントだけで進められるもの）を、窓が空いたら先に配って閉じる。次に、藤井の実体験と利用者に近いもの（バグの解消、使い勝手、利益）を進める。藤井が会話や文章で明示して積んだ項目は完了まで残し、やらずに外すのは藤井がやめると言ったときだけにする。藤井の決定・依頼・完了条件の文は TODO に残し、圧縮で移すのは経緯だけにする。長く動いていないことは閉じる理由にしない。後でやる項目は、いつ・何が揃えば始めるかを添えて置く。閉じるのは完了条件を事実で確かめたときにする。
+
+### 2.1 Subagent の使い分け
+<!-- island -->
+
+Claude / Codexは次をsubagent利用の明示許可として扱う。
+
+- **使う**: 新機能、原因未確定のバグ、複数ファイル、DB・権限・外部API・状態管理・UI、設計判断、複数観点レビュー。
+- **省略可**: typo、1ファイル数行、単純な設定値変更、または藤井が不要と明示した場合。
+- **分担**: 委任は狭い単位にし、親agentが統合判断と最終diffを担う。
+
+委任・agent-room・TGLは `~/Develop/develop-meta/docs/collaboration.md` を該当時に読む。
+
+### hook / headless
+<!-- island -->
+
+- hook / headlessは `.zshrc` を前提にせず `with-dev-env` を通す。zshで `status` / `path` を変数名にしない。
 
 ### 3.1 目的に対して過不足なく
 <!-- island -->
@@ -71,19 +88,23 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 - 環境整備の判断基準はエージェントの作業時間の短縮で、自作コマンドやモダン系コマンドを勧める目的も同じ。提案の順位は短縮できる実時間で付ける。
 - **範囲は最小**: 目の前の問題は原因まで直す。起きていない問題・依頼に無い機能・将来用の拡張点・同じ性質を重ねる守りは足さない。範囲外の発見は、すぐ直せるものは報告し、重いものは TODO へ。
 - **質は落とさない**: その場しのぎで症状だけ止めない。モデル名・repo 名・path・閾値のような可変値は分岐やリテラルに埋めず、その責務を持つ定数か既存の設定 1 か所に置く（モデル名で `if` を書かず、能力の表を引く）。同じ責務で一緒に変わる処理は共通の関数へ寄せ、内部の状態や手順は呼出側へ漏らさない。似ているだけなら寄せない。ループ内の I/O・N+1・全件読込のように計算量を増やす書き方はしない。整えるのは今回の変更に必要な範囲まで。「変えやすく書く」は「将来の変更を先に作る」ではない。
-- **検証は壊れた時の被害で決める**: データ・権限・本番・配布に関わる判定はテストで証明し、壊して落ちることを確かめる（L69）。既存テストで証明済みなら足さない。文言や表示だけの変更にテストを足さない。網羅のためのマトリクスは作らない。
+- **検証は壊れた時の被害で決める**: データ・権限・本番・配布に関わる判定はテストで証明し、壊して落ちることを確かめる（L70）。既存テストで証明済みなら足さない。文言や表示だけの変更にテストを足さない。網羅のためのマトリクスは作らない。
 - **review は根拠で判定する**: blocker は (a) 今回の範囲の誤動作を再現手順かコード・仕様で示せるもの、(b) 本節「質」に反する箇所を `file:line` で示せるもの。reviewer がどちらも示せない指摘は理由を記録して閉じる。再 review は修正箇所と影響範囲に絞り、解決済みの論点は新しい根拠が無ければ再開しない。blocker かどうかの判定が割れたら 藤井 に判断を渡す。
-- **記録先を分ける**: 各 repo の完了した成果は root `CHANGELOG.md`、残る作業・判断・運用 gate は root `TODO.md` に置く。
 
 ### 3.2 秘密の引き方
 <!-- island -->
 
 - `op` はサービスアカウントで引く: `OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.config/op/service-account.token)"`。素の `op` は藤井の画面に承認dialogを出す（D11）。
 
+### クラウド resource の変更
+<!-- island -->
+
+- クラウドresource（Cloudflare DNS / Tunnel / API tokenを含む）の新設・変更・削除・権限変更は `provision-infra-safely` から入り、`~/Develop/develop-meta/bin/check-infra-ownership` を通す。
+
 ### 4.1 配布物を直接直さない
 <!-- island -->
 
-- 子repoの配布物（`.claude/rules/`・`.claude/skills/`・settings・hook の管理区画、この `AGENTS.md` の管理区画）は develop-meta から配る。子repoで直接直さず、変えたいときは `~/Develop/develop-meta` の元を直して配り直す。
+- 子repoの配布物（`.claude/rules/`・`.claude/skills/`・settings・hook と CI の管理区画、配布 workflow、この `AGENTS.md` の管理区画）は develop-meta から配る。子repoで直接直さず、変えたいときは `~/Develop/develop-meta` の元を直して配り直す。手順は `~/Develop/develop-meta/docs/develop-operations.md`「子 repo の配布物と宣言」。
 
 ### 5.1 Git と worktree
 <!-- island -->
@@ -101,6 +122,5 @@ LINE WORKS Bot の Webhook サーバー。Bun + TypeScript + Hono。IFTTT / Make
 
 - 外部へのreview・調査の依頼は対象repoのcwdから `agent-room delegate` を使う。本文に `repo:<project>`、対象、観点、read-only/work境界を書く。
 - reviewの量は変更のリスクに比例させる（§3.1）。後戻りしにくい判断は藤井が決める。
-- 完走時は検証 → review採否 → docs/TODO/CHANGELOG → commit → §5.1 の統合先へff-only → push → CI/deploy/remote equality → cleanupまで閉じる。未回収review・未監視CI/deploy・未push commit・残worktreeを残して完了としない。詳細は `shimekukuri` skill。
-
+- 完走時は検証 → review 採否 → docs/TODO/CHANGELOG → commit → §5.1 の統合先へff-only → push → CI/deploy/remote equality → cleanup まで閉じ、未回収 review・未監視 CI・未 push・残 worktree を残さない。詳細は `shimekukuri` skill。
 <!-- END develop-tools:AGENTS.md -->

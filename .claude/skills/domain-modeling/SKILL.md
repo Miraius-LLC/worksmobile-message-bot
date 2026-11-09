@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: プロジェクトの正規語とdomain modelを研ぎ、CONTEXT.mdと必要なADRへ反映する。曖昧語の解消、ubiquitous language、architectural decisionを扱うときに使う。
+description: 正規語と domain model を研ぎ、CONTEXT.md と ADR へ反映するときに使う。
 ---
 
 # Domain Modeling

@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: ~/Develop/ 配下でTDD、test-first、red-green-refactorによる機能追加・バグ修正を行うときに使う。対応する superpowers:test-driven-development の明示指定は指定先を優先し、同じTDDを二重実行しない。島外はpluginの入口を使う。
+description: ~/Develop/ で TDD により機能追加・bugfix するときの入口。superpowers:test-driven-development を明示されたらそちらに従い二重実行しない。
 ---
 
 # Test-Driven Development

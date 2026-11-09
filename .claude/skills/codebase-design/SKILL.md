@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: deep module、interface、seamの共通語彙でmoduleを設計・改善する。interfaceの整理、deepening、testability、AIが辿りやすい構造、seam配置を検討するときに使う。
+description: deep module・interface・seam の共通語彙で module の設計と改善を検討するときに使う。
 ---
 
 # Codebase Design

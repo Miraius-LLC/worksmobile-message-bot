@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: ~/Develop/ 配下でbranch・PR・作業中の変更・review since X の固定差分をStandardsとSpecの2軸でreviewする入口。superpowers:requesting-code-review と二重実行せず、明示指定は指定先、島外はpluginを優先する。
+description: ~/Develop/ で branch・PR・作業中の変更の固定差分を Standards と Spec の 2 軸で review する入口。superpowers:requesting-code-review を明示されたらそちらに従い二重実行しない。
 ---
 
 Two-axis review of the diff between `HEAD` and a fixed point the user supplies:

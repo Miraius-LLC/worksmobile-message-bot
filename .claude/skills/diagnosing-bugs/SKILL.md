@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: ~/Develop/ 配下で原因未確定のバグ・例外・失敗・遅い等の性能劣化（diagnose / debug this）を再現・最小化・仮説・計測で診断する入口。superpowers:systematic-debugging と二重実行せず、明示指定は指定先、島外はpluginを優先する。
+description: ~/Develop/ で原因未確定のバグ・失敗・性能劣化を再現と計測で診断する入口。superpowers:systematic-debugging を明示されたらそちらに従い二重実行しない。
 ---
 
 # Diagnosing Bugs
