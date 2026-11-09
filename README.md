@@ -51,7 +51,7 @@ Cloud Runは再利用の可能性があるため、`Dockerfile` / `cloudbuild.ya
   - `api.ts` — Bot API への JSON POST 共通処理 (`postJson`, `sendBotMessage`)
   - `messages/index.ts` — 13 type 分の Zod schema + `sendMessageByType` 汎用 dispatcher (`{ type, ...body }` で組み立てて送信)
   - `attachment.ts` — アップロード / ダウンロード URL 解決
-- `src/utils/config.ts` — Zod schema で env を起動時に検証 + `.transform()` で camelCase Config に整形 (fail-fast)
+- `src/utils/config.ts` — Zod schema で env を Cloud Run は起動時、Workers は初回 request 時に検証 + `.transform()` で camelCase Config に整形
 - `src/utils/logger.ts` — pino ベース logger。Cloud Logging の `severity` フィールド + `logging.googleapis.com/trace` を自動付与
 - `src/utils/trace.ts` — `x-cloud-trace-context` ヘッダを AsyncLocalStorage で保持して logger に流す Hono ミドルウェア
 - `src/utils/zod-locale.ts` — Zod のエラーメッセージ日本語化マップ
@@ -96,14 +96,14 @@ OAUTH_SCOPE=bot   # (任意) OAuth 認可スコープ: bot (default) | bot.messa
 | `BASIC_ID` | webhook 公開エンドポイント保護用の BASIC 認証ユーザ名 |
 | `BASIC_PASS` | BASIC 認証パスワード |
 | `FORWARD_CALLBACK_URL` | (任意) 受信Callbackを転送するupstream serviceのURL。未設定なら転送せず200を返す |
-| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | (任意) 転送先が Cloudflare Access の内側にいる場合の service token。`CF-Access-Client-Id` / `CF-Access-Client-Secret` として付ける。**両方揃わないと起動時に落ちる** (片方だけ = 守っているつもりで素通り、を防ぐ) |
+| `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | (任意) 転送先が Cloudflare Access の内側にいる場合の service token。`CF-Access-Client-Id` / `CF-Access-Client-Secret` として付ける。**両方揃わないと Cloud Run は起動時、Workers は初回 request 時の検証で落ちる** (片方だけ = 守っているつもりで素通り、を防ぐ) |
 | `OAUTH_SCOPE` | (任意) OAuth 認可スコープ (`bot` / `bot.message` / `bot.read`)。未設定時は `bot` |
 | `PORT` | listen ポート (省略時 `8080`) |
 | `NODE_ENV` | `production` でログレベルを `warn` 以上に絞る (`logger-impl.ts`。4xx は warn で残しつつ Error Reporting には乗せない運用)。development では `debug` まで出す。production では `shouldUsePretty` が `LOG_PRETTY=1` を無視して JSON 出力に倒す |
 | `LOG_PRETTY` | `1` で pino-pretty 経由のカラー出力 (development のみ有効) |
 | `GOOGLE_CLOUD_PROJECT` | Cloud Run 上で設定すると Cloud Logging trace 連携が fully-qualified resource name 形式 (`projects/<id>/traces/<traceId>`) で出る (`cloudbuild.yaml` のデプロイ step で自動注入される)。未設定なら trace ID 単独 |
 
-本番の機密値 (`CLIENT_SECRET` / `PRIVATE_KEY` / `BOT_SECRET` / `BASIC_ID` / `BASIC_PASS`) は、Cloud Run では Secret Manager の `lineworks-*:latest` をマウントし ([初回設定](#初回設定))、Workers では `wrangler secret put` で渡す。env は `src/utils/config.ts` の Zod schema が起動時に検証する。
+本番の機密値 (`CLIENT_SECRET` / `PRIVATE_KEY` / `BOT_SECRET` / `BASIC_ID` / `BASIC_PASS`) は、Cloud Run では Secret Manager の `lineworks-*:latest` をマウントし ([初回設定](#初回設定))、Workers では `wrangler secret put` で渡す。env は `src/utils/config.ts` の Zod schema が Cloud Run は起動時、Workers は初回 request 時に検証する。
 
 ### OAuth Scope の運用と注意点
 
@@ -318,7 +318,7 @@ bunx wrangler secret put CF_ACCESS_CLIENT_SECRET
 `PRIVATE_KEY` は既存の Base64 文字列のまま保存する。`FORWARD_CALLBACK_URL` は必要な場合のみ登録する。
 
 `CF_ACCESS_CLIENT_*` は転送先が Cloudflare Access の内側にいる場合だけ登録する (501 の callback を
-社内 LXC の Tunnel で受ける構成)。**両方揃える**必要があり、片方だけだと起動時に検証で落ちる。
+社内 LXC の Tunnel で受ける構成)。**両方揃える**必要があり、片方だけだと Workers の初回 request 時に検証で落ちる。
 転送が 401 / 403 で弾かれた場合は 200 を返さず throw するので、token の誤り・失効はログに出る
 (黙って callback が消えない)。
 
