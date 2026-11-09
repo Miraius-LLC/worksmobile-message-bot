@@ -6,6 +6,13 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-11
 
+- **JWT 秘密鍵の文書を実装に合わせた（2026-11-09）**: config 読込時の Base64 decode と検証時点を仕様・ADR・README・agent 規約へ反映した（[OpenSpec change](./openspec/changes/archive/2026-11-09-jwt-private-key-timing/proposal.md)）。
+- **README を短くして詳細を docs へ分割した（2026-11-09）**: API・環境変数・デプロイ手順を役割別の文書へ移し、送受信の[フロー図](./docs/architecture.md)を載せた。
+- **ルートの設定・テストファイルを整理した（2026-11-09）**: 設定テストを `tests/config/`、gitleaks・Cloud Build・Wrangler・Dockerfile・gcloudignore を `.config/` へ移し、`.vscode/` を削除した。
+- **agent 向け常駐文書を整理した（2026-11-09）**: `AGENTS.md` と `CLAUDE.md` を短くし、詳細への参照を整理した。
+- **テストと CI の実測を記録した（2026-11-09）**: 現行の実行時間と短縮候補を[調査文書](./docs/research/test-ci-optimization-2026-11-09.md)にまとめた。実装変更はない。
+- **送受信経路の性能を測定した（2026-11-09）**: ローカル計測の範囲と改善条件を[送信](./docs/research/performance-outbound-2026-11-09.md)・[受信](./docs/research/performance-inbound-2026-11-09.md)の調査文書に記録した。実装変更はない。
+- **Bun・Hono の更新を調査した（2026-11-09）**: リリースとセキュリティ修正を現行版に照合し、[対応判定](./docs/research/bun-hono-release-notes-2026-11-09.md)を記録した。実装変更はない。
 - **LINE WORKS API の更新を確認した（2026-11-09）**: 2026-08-13 以降の告知を現行実装と照合し、即時の実装変更は不要と判定した（[調査結果](./docs/research/lineworks-api-updates-2026-11-09.md)）。
 - **依存 5 件を更新した（2026-11-09）**: hono 4.13.17、@hono/node-server 2.1.6（セキュリティ修正）、Biome 2.6.6、OpenSpec 1.16.1、Wrangler 4.158.0 に更新した。
 - **実装と文書のずれを直した（2026-11-09）**: ADR-0008 の Bun 版管理、routes / services 規約、README の記述を現行実装に合わせた。
