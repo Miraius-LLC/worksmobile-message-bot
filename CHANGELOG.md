@@ -7,7 +7,7 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 ## 2026-11
 
 - **JWT 秘密鍵の文書を実装に合わせた（2026-11-09）**: config 読込時の Base64 decode と検証時点を仕様・ADR・README・agent 規約へ反映した（[OpenSpec change](./openspec/changes/archive/2026-11-09-jwt-private-key-timing/proposal.md)）。
-- **README を短くして詳細を docs へ分割した（2026-11-09）**: API・環境変数・デプロイ手順を役割別の文書へ移し、送受信の[フロー図](./docs/architecture.md)を載せた。
+- **README を短くして詳細を docs へ分割した（2026-11-09）**: API・環境変数・デプロイ手順を役割別の文書へ移し、送受信の[フロー図](./docs/diagrams/request-flow.svg)を載せた。
 - **ルートの設定・テストファイルを整理した（2026-11-09）**: 設定テストを `tests/config/`、gitleaks・Cloud Build・Wrangler・Dockerfile・gcloudignore を `.config/` へ移し、`.vscode/` を削除した。
 - **agent 向け常駐文書を整理した（2026-11-09）**: `AGENTS.md` と `CLAUDE.md` を短くし、詳細への参照を整理した。
 - **テストと CI の実測を記録した（2026-11-09）**: 現行の実行時間と短縮候補を[調査文書](./docs/research/test-ci-optimization-2026-11-09.md)にまとめた。実装変更はない。
