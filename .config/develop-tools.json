@@ -1,7 +1,7 @@
 {
-  "version": "0.6.14",
+  "version": "0.6.16",
   "sha256": {
-    "x86_64-unknown-linux-gnu": "83e4c8c7e85e27c5958ae9a906f0ac667820ea96da72b4a5a41ff2711f3dedff",
+    "x86_64-unknown-linux-gnu": "cbda1b8fac8990c5e3b8286915a713ac0cf7603856219637b5fda66d5634f993",
     "aarch64-apple-darwin": "b8efb0a98675cadfdb7ce9f3727fc5d771b3ba9112eeedefe2401ad3f31a89eb"
   },
   "adrMigratedThrough": 9,
