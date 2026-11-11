@@ -36,15 +36,15 @@
     "test:fast": "bun test --path-ignore-patterns \"**/_fetch.test.ts\""
   },
   "dependencies": {
-    "@hono/node-server": "^2.1.6",
+    "@hono/node-server": "^2.1.7",
     "@hono/zod-validator": "^0.9.1",
     "hono": "^4.13.18",
     "pino": "^10.4.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.6",
-    "@fission-ai/openspec": "1.16.1",
+    "@biomejs/biome": "^2.6.7",
+    "@fission-ai/openspec": "1.17.0",
     "@socketsecurity/bun-security-scanner": "^1.1.3",
     "bun-types": "^1.4.4",
     "lefthook": "^2.2.2",
