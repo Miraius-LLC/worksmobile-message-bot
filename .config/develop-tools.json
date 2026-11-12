@@ -21,6 +21,7 @@
     }
   },
   "release": {
+    "changelogStamp": true,
     "notes": {
       "mode": "ai",
       "fallback": "changelog-additions",
