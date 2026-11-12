@@ -5,6 +5,8 @@ date: YYYY-MM-DD
 
 # ADR-NNNN: {短い判断タイトル}
 
+<!-- status: proposed / accepted / rejected / deprecated / superseded by ADR-NNNN -->
+
 ## Context and Problem Statement
 
 <!-- この判断が必要になった背景、制約、解決すべき問題を記載する。 -->
