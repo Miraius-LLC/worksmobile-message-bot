@@ -1,8 +1,8 @@
 {
-  "version": "0.6.18",
+  "version": "0.6.19",
   "sha256": {
-    "x86_64-unknown-linux-gnu": "31dde0bc67bb40aeef0c48f10be4a631fbe4add6147eef2f55fd9779861bdb51",
-    "aarch64-apple-darwin": "064673b1daa29b94120d7d38b0c1e2ebee228ac671fbc1c5bf22bff064c02cb1"
+    "x86_64-unknown-linux-gnu": "51fd09a6ca10c80591456a89a4abfc8595016e506a144ca69f0fa41defae8712",
+    "aarch64-apple-darwin": "21c721065a43c83e8f986d99cc79116e2a53af6c133318b8063c97d4baf104fb"
   },
   "adrMigratedThrough": 9,
   "adrReservedNumbers": [],
