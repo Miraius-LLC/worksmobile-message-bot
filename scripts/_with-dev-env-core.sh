@@ -17,6 +17,18 @@ _with_dev_env_run() {
     return 64
   fi
 
+  # Preserve caller/mise priority; headless shells may omit Homebrew entirely.
+  for _with_dev_env_brew_bin in /home/linuxbrew/.linuxbrew/bin /opt/homebrew/bin /usr/local/bin; do
+    if [ -d "$_with_dev_env_brew_bin" ]; then
+      case ":$PATH:" in
+        *:"$_with_dev_env_brew_bin":*) ;;
+        *) PATH="$PATH:$_with_dev_env_brew_bin" ;;
+      esac
+    fi
+  done
+  unset _with_dev_env_brew_bin
+  export PATH
+
   if [ -n "${HOME:-}" ] && [ -r "$HOME/.config/shell/postgres-path.sh" ]; then
     # shellcheck source=/dev/null
     . "$HOME/.config/shell/postgres-path.sh" || return "$?"
