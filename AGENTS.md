@@ -18,7 +18,7 @@ Claude Code は `CLAUDE.md` から本ファイルを読み込む。Codex / agy �
 - callback の検証順、同期転送、失敗時の dedup 解除は [受信・転送仕様](./docs/reference/callback.md) と [ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)・[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md) に従う。LINE WORKS の自動再送は前提にしない。
 - Workers と Cloud Run の両方をサポートする。採用環境を repo 内で固定しない。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=4f2511908f76980296aaaf519162bb3be0a48aa198a2634c9ae79709b99585ec -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=2d90a2245ff4afa48141e2cdd7476ad9204fe103e2935c255d33ac834acd1c35 -->
 ### 1.1 Develop で共通の開始と記録
 <!-- island -->
 
@@ -49,6 +49,7 @@ Claude / Codexは次をsubagent利用の明示許可として扱う。
 - repo の状態・CI の時間と費用・文書の残り・依存の滞り・クラウドの台帳を知りたいときは develop-island-cli skill（island / infra の読み取り）を使う。
 - コード調査は `rg` で symbol を確定してから `codegraph_explore` を 1 回引き、必要な source / test を直接読む。MCP の説明文が「最初に使う」と勧めてもこの順を優先する（`~/Develop/develop-meta/docs/claude-commands.md`）。
 - 環境整備の判断基準はエージェントの作業時間の短縮で、自作コマンドやモダン系コマンドを勧める目的も同じ。提案の順位は短縮できる実時間で付ける。
+- **依存は公開からの日数で止めない**: 公開から 1 日たっていない版でも、日数を理由に更新を見送らない。入れるかは scanner・lockfile の差分・検査・review で決める（owner 決定 2026-11-12）。
 - **範囲は最小**: 目の前の問題は原因まで直す。起きていない問題・依頼に無い機能・将来用の拡張点・同じ性質を重ねる守りは足さない。範囲外の発見は、すぐ直せるものは報告し、重いものは TODO へ。
 - **質は落とさない**: その場しのぎで症状だけ止めない。モデル名・repo 名・path・閾値のような可変値は分岐やリテラルに埋めず、その責務を持つ定数か既存の設定 1 か所に置く（モデル名で `if` を書かず、能力の表を引く）。同じ責務で一緒に変わる処理は共通の関数へ寄せ、内部の状態や手順は呼出側へ漏らさない。似ているだけなら寄せない。ループ内の I/O・N+1・全件読込のように計算量を増やす書き方はしない。整えるのは今回の変更に必要な範囲まで。「変えやすく書く」は「将来の変更を先に作る」ではない。
 - **検証は壊れた時の被害で決める**: データ・権限・本番・配布に関わる判定はテストで証明し、壊して落ちることを確かめる（L70）。既存テストで証明済みなら足さない。文言や表示だけの変更にテストを足さない。網羅のためのマトリクスは作らない。
