@@ -29,9 +29,14 @@ worksmobile-message-bot の文書入口。用語は root の `CONTEXT.md`、現�
 - [ドキュメント運用規約](./conventions/documentation.md)
 - [文書標準](./reference/documentation-standard.md)
 
-## 仕様の backfill
+## 現行契約
 
-- [既存 ADR の OpenSpec backfill 設計](./superpowers/specs/2026-08-25-adr-openspec-backfill-design.md)
+- [OpenSpec の現行仕様](../openspec/specs/) — 既存 ADR 由来の契約と、その後の変更を収録する。
+
+## 図と素材
+
+- [リクエストのフロー図](./assets/request-flow.svg)
+- [フロー図の HTML](./assets/request-flow.html)
 
 ## 参考記事
 

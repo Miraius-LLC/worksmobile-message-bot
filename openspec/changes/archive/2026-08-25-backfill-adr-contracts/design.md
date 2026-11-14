@@ -1,6 +1,6 @@
 ## Context
 
-設計の承認済み全体像は`docs/superpowers/specs/2026-08-25-adr-openspec-backfill-design.md`を参照する。本changeでは、ADRの判断理由・選択肢・trade-offを複製せず、現行contractと対応関係だけをOpenSpecへ追加する。
+設計の承認済み全体像は「既存ADRのOpenSpec backfill設計」に記録した。本changeでは、ADRの判断理由・選択肢・trade-offを複製せず、現行contractと対応関係だけをOpenSpecへ追加する。
 
 ## Goals / Non-Goals
 
