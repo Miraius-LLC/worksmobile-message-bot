@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: ~/Develop/ で branch・PR・作業中の変更の固定差分を Standards と Spec の 2 軸で review する入口。superpowers:requesting-code-review を明示されたらそちらに従い二重実行しない。
+description: ~/Develop/ で branch・PR・作業中の変更の固定差分を Standards と Spec の 2 軸で review する入口。
 ---
 
 Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
@@ -90,8 +90,8 @@ Reporting them separately stops one axis from masking the other.
 
 ## Develop routing
 
-`~/Develop/` 配下の通常依頼は `code-review` を入口とし、対応する `superpowers:requesting-code-review` と同じworkflowを二重実行しない。明示指定は指定先を優先し、~/Develop/ の外はpluginの既存入口を使う。
+`~/Develop/` 配下の通常依頼は `code-review` を入口とする。明示指定は指定先を優先する。~/Develop/ の外では、この skill を入口にしない。
 
-本skillで固定差分のStandards/Specを確認し、独立reviewはDevelop 共通規約のagent-room delegateで依頼・回収する。pluginの必要手順を参照した場合はその手順を一度だけ満たし、共通skillへ戻る循環を作らない。plugin明示時もDevelop 共通の承認・検証・独立reviewのgateを維持する。必須手順と共存できない場合は当該組の有効化を保留し、Formationでは司令塔へ報告する。
+本skillで固定差分のStandards/Specを確認し、独立reviewはDevelop 共通規約のagent-room delegateで依頼・回収する。必要手順を一度だけ満たし、共通skillへ戻る循環を作らない。明示指定時もDevelop 共通の承認・検証・独立reviewのgateを維持する。必須手順と共存できない場合は当該組の有効化を保留し、Formationでは司令塔へ報告する。
 
 Standards の出どころには、repo の文書に加えて `~/Develop/develop-meta/AGENTS.md` §3.1 と `~/Develop/develop-meta/docs/develop-tool-design.md` を必ず含める。

@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: ~/Develop/ で TDD により機能追加・bugfix するときの入口。superpowers:test-driven-development を明示されたらそちらに従い二重実行しない。
+description: ~/Develop/ で TDD により機能追加・bugfix するときの入口。
 ---
 
 # Test-Driven Development
@@ -39,14 +39,14 @@ When the shape of that interface is itself in question (how deep the module is, 
 
 ## Develop routing
 
-`~/Develop/` 配下の通常依頼は `tdd` を入口とする。明示指定は指定先を優先し、~/Develop/ の外は `superpowers:test-driven-development` の既存入口と手順を使う。~/Develop/ の外には以下のcrate制約を適用しない。
+`~/Develop/` 配下の通常依頼は `tdd` を入口とする。明示指定は指定先を優先する。~/Develop/ の外では、この skill を入口にせず、以下のcrate制約も適用しない。
 
-~/Develop/ 内では参照は1回、TDDと検証は1巡とし、同じRED→GREENを二重実行しない。pluginの必要手順を参照しても共通skillへ呼び戻す循環を作らない。
+~/Develop/ 内では参照は1回、TDDと検証は1巡とし、同じRED→GREENを二重実行しない。必要手順を一度だけ満たし、共通skillへ呼び戻す循環を作らない。
 
 ### Develop 共通のRust検証gate（案1）
 
 以下のcargo／crate制約はRust作業に適用する。TS／Bunは対象repoの検証規約に従う。
 
-`superpowers:test-driven-development` のproject全suite要求は、Develop 共通の変更crateを限った検査と衝突する。~/Develop/ 内のRust作業は変更したcrateについて `cargo test -p <crate>`・`cargo fmt -p <crate> --check`・`cargo clippy -p <crate> --all-targets -- -D warnings` を正とし、全体検証はCIへ委ねる。`--workspace` / `--all` やworkspace rootでの `-p` なし検証は実行しない。
+project全suite要求は、Develop 共通の変更crateを限った検査と衝突する。~/Develop/ 内のRust作業は変更したcrateについて `cargo test -p <crate>`・`cargo fmt -p <crate> --check`・`cargo clippy -p <crate> --all-targets -- -D warnings` を正とし、全体検証はCIへ委ねる。`--workspace` / `--all` やworkspace rootでの `-p` なし検証は実行しない。
 
-pluginの手順を参照する場合も、pluginを明示指定された場合も、~/Develop/ 内ではこのcrateを限った検査を保つ。明示pluginの経路でも本notesとDevelop 共通のgateを確認し、全suite要求を黙って読み替えない。必要手順と両立できなければ実行前に停止し、当該組の有効化を保留する。Formationでは司令塔へRED（継続可）またはBLOCKED（停止）で報告し、判断を仰ぐ。
+明示指定された場合も、~/Develop/ 内ではこのcrateを限った検査を保つ。明示指定の経路でも本notesとDevelop 共通のgateを確認し、全suite要求を黙って読み替えない。必要手順と両立できなければ実行前に停止し、当該組の有効化を保留する。Formationでは司令塔へRED（継続可）またはBLOCKED（停止）で報告し、判断を仰ぐ。

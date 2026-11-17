@@ -1,6 +1,6 @@
 ---
 name: diagnosing-bugs
-description: ~/Develop/ で原因未確定のバグ・失敗・性能劣化を再現と計測で診断する入口。superpowers:systematic-debugging を明示されたらそちらに従い二重実行しない。
+description: ~/Develop/ で原因未確定のバグ・失敗・性能劣化を再現と計測で診断する入口。
 ---
 
 # Diagnosing Bugs
@@ -139,6 +139,6 @@ Required before declaring done:
 
 ## Develop routing
 
-`~/Develop/` 配下の通常依頼は `diagnosing-bugs` を入口とし、対応する `superpowers:systematic-debugging` と同じworkflowを二重実行しない。明示指定は指定先を優先し、~/Develop/ の外はpluginの既存入口を使う。
+`~/Develop/` 配下の通常依頼は `diagnosing-bugs` を入口とする。明示指定は指定先を優先する。~/Develop/ の外では、この skill を入口にしない。
 
-再現から原因の検証、最小修正と回帰テストまでを本skillで進める。pluginの必要手順を参照した場合はその手順を一度だけ満たし、共通skillへ戻る循環を作らない。plugin明示時もDevelop 共通の承認・検証・独立reviewのgateを維持する。必須手順と共存できない場合は当該組の有効化を保留し、Formationでは司令塔へ報告する。
+再現から原因の検証、最小修正と回帰テストまでを本skillで進める。必要手順を一度だけ満たし、共通skillへ戻る循環を作らない。明示指定時もDevelop 共通の承認・検証・独立reviewのgateを維持する。必須手順と共存できない場合は当該組の有効化を保留し、Formationでは司令塔へ報告する。

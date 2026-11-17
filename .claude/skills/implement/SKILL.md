@@ -15,3 +15,9 @@ Run typechecking regularly, single test files regularly, and the full test suite
 Once done, call the Skill tool with "code-review" to review the work.
 
 Commit your work to the current branch.
+
+<fujii-notes>
+- Develop の用語の正本は `GLOSSARY.md` ではなく repo の `CONTEXT.md` を参照する。
+- TypeScript の実行と依存操作は repo の Bun 規約に従い、`npm` / `npx` の例は `bun` / `bunx` に読み替える。
+- 完了時に未導入の `/handoff` を呼ばず、`shimekukuri` の検証・review・出荷手順に従う。
+</fujii-notes>
