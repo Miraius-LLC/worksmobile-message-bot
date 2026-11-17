@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.7",
-    "@fission-ai/openspec": "1.17.0",
+    "@fission-ai/openspec": "2.1.0",
     "@socketsecurity/bun-security-scanner": "^1.1.3",
     "bun-types": "^1.4.4",
     "lefthook": "^2.2.2",
