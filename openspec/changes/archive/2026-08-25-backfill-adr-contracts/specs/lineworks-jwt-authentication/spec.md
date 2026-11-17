@@ -4,7 +4,7 @@
 
 worksmobile-message-botは外部JWT libraryを使わず、`node:crypto`のRSA-SHA256署名でLINE WORKS server token用JWTを生成しなければならない（SHALL）。
 
-Source ADR: [ADR-0003](../../../../../docs/adr/0003-jwt-node-crypto-rs256.md)
+Source ADR: [ADR-0003](../../../../../../docs/adr/0003-jwt-node-crypto-rs256.md)
 
 #### Scenario: JWTを生成する
 

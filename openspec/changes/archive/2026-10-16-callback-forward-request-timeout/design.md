@@ -1,6 +1,6 @@
 ## Context
 
-[429の変更](../archive/2026-10-12-callback-forward-rate-limit/design.md)で429を失敗経路へ含めたが、408はその他4xx経路に残り、warnしてreturnするためcallback endpointが200を返してdedup keyを残す。
+[429の変更](../../archive/2026-10-12-callback-forward-rate-limit/design.md)で429を失敗経路へ含めたが、408はその他4xx経路に残り、warnしてreturnするためcallback endpointが200を返してdedup keyを残す。
 
 ## Decision
 

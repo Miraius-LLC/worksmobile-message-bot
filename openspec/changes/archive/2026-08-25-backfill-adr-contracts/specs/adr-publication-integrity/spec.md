@@ -4,7 +4,7 @@
 
 公開repositoryのADRに秘密値または公開不適切なenvironment固有値を含むOriginal Recordがある場合、公開版ADRは内容を復元せずSanitized Original Recordを保持しなければならない（SHALL）。
 
-Source ADR: [ADR-0011](../../../../../docs/adr/0011-sanitized-original-record-for-public-repository.md)
+Source ADR: [ADR-0011](../../../../../../docs/adr/0011-sanitized-original-record-for-public-repository.md)
 
 #### Scenario: Protected ADRを公開する
 

@@ -4,7 +4,7 @@
 
 applicationは全pathに対するmiddlewareでBASIC認証を適用し、明示したpublic pathだけを除外しなければならない（SHALL）。BASIC auth middlewareは有効な設定を確認してからlazyに初期化する。
 
-Source ADR: [ADR-0006](../../../../../docs/adr/0006-basic-auth-except-health-and-callback.md)
+Source ADR: [ADR-0006](../../../../../../docs/adr/0006-basic-auth-except-health-and-callback.md)
 
 #### Scenario: 保護対象endpointへ認証なしでaccessする
 

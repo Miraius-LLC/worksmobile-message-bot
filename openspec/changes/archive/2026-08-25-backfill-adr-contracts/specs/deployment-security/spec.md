@@ -4,7 +4,7 @@
 
 Cloud Run serviceはdefault compute service accountではなく専用runtime service accountで実行し、そのservice accountへ必要最小限のSecret Manager参照権限だけを付与しなければならない（SHALL）。
 
-Source ADR: [ADR-0009](../../../../../docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)
+Source ADR: [ADR-0009](../../../../../../docs/adr/0009-dedicated-runtime-sa-public-repo-secrets.md)
 
 #### Scenario: Runtime identityを構成する
 

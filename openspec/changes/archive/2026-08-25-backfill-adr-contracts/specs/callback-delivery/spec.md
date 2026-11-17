@@ -4,7 +4,7 @@
 
 callback endpointはraw bodyの署名と`X-WORKS-BotId`を検証し、dedupを確認した後にJSON / Zod validationとupstream転送を進めなければならない（SHALL）。
 
-Source ADRs: [ADR-0004](../../../../../docs/adr/0004-callback-dedup-in-memory-5min.md)、[ADR-0005](../../../../../docs/adr/0005-forward-callback-to-upstream.md)
+Source ADRs: [ADR-0004](../../../../../../docs/adr/0004-callback-dedup-in-memory-5min.md)、[ADR-0005](../../../../../../docs/adr/0005-forward-callback-to-upstream.md)
 
 #### Scenario: Bot ID headerが欠落する
 

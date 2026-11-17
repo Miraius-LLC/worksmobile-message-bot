@@ -4,7 +4,7 @@
 
 対応するmessage typeは`messageSchemas` mapをregistryとして管理し、typeごとの個別sender functionを作ってはならない（MUST NOT）。
 
-Source ADR: [ADR-0007](../../../../../docs/adr/0007-message-type-dispatcher.md)
+Source ADR: [ADR-0007](../../../../../../docs/adr/0007-message-type-dispatcher.md)
 
 #### Scenario: Message typeを追加する
 
