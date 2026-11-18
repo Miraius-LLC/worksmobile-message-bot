@@ -18,7 +18,7 @@ Claude Code は `CLAUDE.md` から本ファイルを読み込む。Codex / agy �
 - callback の検証順、同期転送、失敗時の dedup 解除は [受信・転送仕様](./docs/reference/callback.md) と [ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)・[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md) に従う。LINE WORKS の自動再送は前提にしない。
 - Workers と Cloud Run の両方をサポートする。採用環境を repo 内で固定しない。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=02d023901e5155dedbaed3d92a26d2c113a7e9f3fbe911cfc118ded713bc10e1 -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=4514c758ebe54b94d875ed716e8a2c2af11e5d415ea03d683bcc5d67040fcfb2 -->
 ### 1.1 Develop で共通の開始と記録
 <!-- island -->
 
@@ -79,6 +79,7 @@ Claude / Codexは次をsubagent利用の明示許可として扱う。
 - build 物（`CARGO_TARGET_DIR`）を `/tmp` に向けず、worktree の target か `dev-task-temp` を使う。
 - 取り込みは `git merge --ff-only`。**統合先**は台帳 `~/Develop/develop-meta/config/projects.json` と repo の `.config/develop-tools.json` の `integrationBranch`（無ければ main）。develop を持つ repo は普段の取り込みと push を develop に行い、main は Release のときだけ動かす（`~/Develop/develop-meta/docs/adr/0032-develop-branch-and-release-only-main.md`）。
 - owner 個人所有 private repoは、検証済みworktreeを統合先へff merge → push → cleanupまで自走可。Miraius-LLC所有・共同開発repoは統合先への反映前に確認する。ただしRenovateの依存更新（patch / minor、CI緑）のautomergeと、agent-roomのFormation Shipper経由の出荷は例外（major は owner が Dashboard で承認する。画面か `infra renovate approve` の Human Gate で入れる）。
+- **GitHub への push はまとめる。** push ごとに Actions の分数（月の上限あり、macOS は約 10 倍）を使う。記録・docs・小さな取り込みは手元の統合先に溜めて区切りで 1 回 push し、CI の結論で次を決める変更（道具・CI・配布）だけを先に出す。Release 前の dispatch は 1 つの commit に 1 回だけ起動する。
 - 既存dirty、他sessionのworktree、未確定assetを利用者の状態として保護する。
 - **通常開発でPull Requestを作らない。** PRは自律実行（夜間チェック・監査）の産物だけ。
 
