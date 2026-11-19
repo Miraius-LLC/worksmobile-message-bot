@@ -18,15 +18,15 @@ Claude Code は `CLAUDE.md` から本ファイルを読み込む。Codex / agy �
 - callback の検証順、同期転送、失敗時の dedup 解除は [受信・転送仕様](./docs/reference/callback.md) と [ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)・[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md) に従う。LINE WORKS の自動再送は前提にしない。
 - Workers と Cloud Run の両方をサポートする。採用環境を repo 内で固定しない。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=4514c758ebe54b94d875ed716e8a2c2af11e5d415ea03d683bcc5d67040fcfb2 -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=42442794c0d8e1c1c756cea4c7dce27393c602e30da7d4490b0be89436765419 -->
 ### 1.1 Develop で共通の開始と記録
 <!-- island -->
 
-- Develop の共通規約の抜粋。全文は `~/Develop/develop-meta/AGENTS.md`、人物・禁止・承認・commit は `~/.agents/AGENTS.md`。repo 固有の規約が具体的ならそちらを優先する。
-- **開発・commit・push は宣言した単一の主機（初期値 `dev`）が担う。** 非主機の repo は `git pull --ff-only` で追従する。Mac への切替は別承認で `~/Develop/develop-meta/docs/adr/0035-declared-single-primary-host.md` に従う。
-- 用語は repo の `CONTEXT.md`、決定は `docs/adr/`、残る作業・判断・運用 gate は root `TODO.md`、完了した成果は root `CHANGELOG.md` / git log に置き、そこを読む。
-- docs を探す前とフォルダを作る前に `~/Develop/develop-meta/docs/reference/docs-folders.md` の一覧に従う。
-- **TODO は、畳めるものは早く畳み、将来のものは将来に残す。** 滞留は新しいものを作る気持ちを削ぐので、終わらせるための一覧であると同時に、owner の依頼と長期の展望の受け皿でもある。進める順は、まず簡単な一手で終わるもの（設計が要らず、エージェントだけで進められるもの）を、窓が空いたら先に配って閉じる。次に、owner の実体験と利用者に近いもの（バグの解消、使い勝手、利益）を進める。owner が会話や文章で明示して積んだ項目は完了まで残し、やらずに外すのは owner がやめると言ったときだけにする。owner の決定・依頼・完了条件の文は TODO に残し、圧縮で移すのは経緯だけにする。長く動いていないことは閉じる理由にしない。後でやる項目は、いつ・何が揃えば始めるかを添えて置く。閉じるのは完了条件を事実で確かめたときにする。
+- Develop の共通規約は `~/Develop/develop-meta/AGENTS.md`、人物・禁止・承認・commit は `~/.agents/AGENTS.md`。より具体的な repo 固有規約を優先する。
+- **開発・commit・push は宣言した単一の主機（初期値 `dev`）で行う。** 非主機の repo は `git pull --ff-only` で追従する。Mac への切替は別承認の上、`~/Develop/develop-meta/docs/adr/0035-declared-single-primary-host.md` に従う。
+- 用語は repo の `CONTEXT.md`、決定は `docs/adr/`、残る作業・判断・運用 gate は root `TODO.md`、完了成果は root `CHANGELOG.md` / git log に記録し、参照する。
+- docs の探索・フォルダ作成前に `~/Develop/develop-meta/docs/reference/docs-folders.md` の一覧に従う。
+- **TODO は畳めるものを早く畳み、将来のものは着手時期・条件を添えて残す。** 滞留は新しいものを作る意欲を削ぐ。TODO は完了を進め、owner の依頼と長期の展望を残す一覧。空いた窓には、設計不要でエージェントだけで一手で閉じられるものを先に配る。次に owner の実体験と利用者に近いもの（バグ・使い勝手・利益）を進める。owner が会話・文章で明示した項目は完了まで残す。未実施で外せるのは owner がやめると言ったときだけ。決定・依頼・完了条件の文を残し、圧縮で移すのは経緯だけ。長期停滞を理由に閉じず、完了条件を事実で確かめて閉じる。
 
 ### 2.1 Subagent の使い分け
 <!-- island -->
@@ -74,14 +74,14 @@ Claude / Codexは次をsubagent利用の明示許可として扱う。
 ### 5.1 Git と worktree
 <!-- island -->
 
-- 編集は `.claude/worktrees/<name>` のlinked worktreeで行い、作成直後に `git rev-parse --show-toplevel` で対象を固定する。
-- エージェントが一時 directory を作るときは `/tmp/<repo名>-...` または既存の `dev-task-temp` を使い、作成 path をこの session の作業記録に残す（名前だけで既存物の帰属は認定しない）。
-- build 物（`CARGO_TARGET_DIR`）を `/tmp` に向けず、worktree の target か `dev-task-temp` を使う。
-- 取り込みは `git merge --ff-only`。**統合先**は台帳 `~/Develop/develop-meta/config/projects.json` と repo の `.config/develop-tools.json` の `integrationBranch`（無ければ main）。develop を持つ repo は普段の取り込みと push を develop に行い、main は Release のときだけ動かす（`~/Develop/develop-meta/docs/adr/0032-develop-branch-and-release-only-main.md`）。
-- owner 個人所有 private repoは、検証済みworktreeを統合先へff merge → push → cleanupまで自走可。Miraius-LLC所有・共同開発repoは統合先への反映前に確認する。ただしRenovateの依存更新（patch / minor、CI緑）のautomergeと、agent-roomのFormation Shipper経由の出荷は例外（major は owner が Dashboard で承認する。画面か `infra renovate approve` の Human Gate で入れる）。
-- **GitHub への push はまとめる。** push ごとに Actions の分数（月の上限あり、macOS は約 10 倍）を使う。記録・docs・小さな取り込みは手元の統合先に溜めて区切りで 1 回 push し、CI の結論で次を決める変更（道具・CI・配布）だけを先に出す。Release 前の dispatch は 1 つの commit に 1 回だけ起動する。
-- 既存dirty、他sessionのworktree、未確定assetを利用者の状態として保護する。
-- **通常開発でPull Requestを作らない。** PRは自律実行（夜間チェック・監査）の産物だけ。
+- 編集は `.claude/worktrees/<name>` の linked worktree で行い、作成直後に `git rev-parse --show-toplevel` で対象を固定する。
+- 一時 directory は `/tmp/<repo名>-...` または既存の `dev-task-temp` を使い、作成 path を session の作業記録に残す。既存物の帰属は名前だけでは認定しない。
+- `CARGO_TARGET_DIR` は worktree の target か `dev-task-temp` に置き、`/tmp` は使わない。
+- 取り込みは `git merge --ff-only`。統合先は `~/Develop/develop-meta/config/projects.json` と repo の `.config/develop-tools.json` の `integrationBranch`（未指定は main）。develop がある repo は通常の取り込み・push を develop へ、main の更新は Release 時だけ（`~/Develop/develop-meta/docs/adr/0032-develop-branch-and-release-only-main.md`）。
+- owner 個人所有の private repo は検証済み worktree の ff merge・push・cleanup まで自走可。Miraius-LLC 所有・共同開発 repo は統合前に確認する。例外は CI 緑の Renovate patch / minor の automerge と agent-room の Formation Shipper 経由の出荷。major は owner が Dashboard で承認する（画面か `infra renovate approve` の Human Gate）。
+- **GitHub への push はまとめる。** Actions には月間分数上限があり、macOS は約 10 倍を消費する。記録・docs・小さな取り込みは手元の統合先に貯め、区切りで 1 回 push。CI の結論で次を決める道具・CI・配布の変更だけ先に push。Release 前の dispatch は 1 commit につき 1 回。
+- 既存 dirty・他 session の worktree・未確定 asset は利用者の状態として保護する。
+- **通常開発で Pull Request を作らない。** PR は自律実行（夜間チェック・監査）の産物に限る。
 
 ### 6.1 review と完走
 <!-- island -->
