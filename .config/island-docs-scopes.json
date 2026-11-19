@@ -30,10 +30,6 @@
   "linkSourceExclusions": [
     {
       "scope": "all",
-      "prefix": "openspec/changes/archive/"
-    },
-    {
-      "scope": "all",
       "prefix": ".claude/skills/"
     }
   ],
