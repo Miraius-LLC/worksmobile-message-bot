@@ -97,11 +97,11 @@ describe('CI workflow', () => {
     expect(externalActions).toEqual([
       'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
       'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6',
-      'cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0',
+      'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0',
     ])
     expect(externalActions.every(action => /@[0-9a-f]{40}$/.test(action))).toBe(true)
     expect(deployStep?.uses).toBe(
-      'cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0',
+      'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0',
     )
     expect(deployStep?.with).toMatchObject({
       apiToken: `\${{ secrets.CLOUDFLARE_API_TOKEN }}`,

@@ -6,6 +6,8 @@ LINE WORKS Bot Webhook サーバーの整備履歴。完了の節目だけを残
 
 ## 2026-11
 
+- **Bun とデプロイに使う依存を更新した（2026-11-26/⏳）**: mise と Docker の Bun を 1.4.5 に揃え、Hono 4.13.22、OpenSpec 2.2.0、Biome 2.6.9、Lefthook 2.2.4、Wrangler 4.168.0 と Wrangler Action v4.1.3 に更新した。
+
 - **依存を最新にした（2026-11-17/⏳、藤井依頼）**: hono 4.13.19・@hono/node-server 2.1.9・Biome 2.6.8・Wrangler 4.163.0 にした（Biome の schema も）。公開からの日数で止めず上げ、検査は通した。
 - **依存の minor・patch を更新した（2026-11-12/⏳）**: @hono/node-server 2.1.7、Biome 2.6.7、OpenSpec 1.17.0 と推移依存を更新し、Biome schema と OpenSpec の仕様に記載した版を同期した。
 - **Hono のセキュリティ更新を適用した（2026-11-12/⏳）**: Hono を 4.13.17 から 4.13.18 へ更新し、入力検証の回避や本文処理のメモリ枯渇などの修正を取り込んだ。

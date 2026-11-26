@@ -11,7 +11,7 @@
 
 # global ARG (FROM 行で参照可能)。`.config/mise.toml` の `[tools].bun` と同じ値に揃えること。
 # Cloud Build なら `--build-arg BUN_VERSION=...` で外部から上書き可能
-ARG BUN_VERSION=1.4.4
+ARG BUN_VERSION=1.4.5
 
 # ---------- builder ----------
 FROM oven/bun:${BUN_VERSION}-debian AS builder
