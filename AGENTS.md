@@ -18,12 +18,12 @@ Claude Code は `CLAUDE.md` から本ファイルを読み込む。Codex / agy �
 - callback の検証順、同期転送、失敗時の dedup 解除は [受信・転送仕様](./docs/reference/callback.md) と [ADR-0004](./docs/adr/0004-callback-dedup-in-memory-5min.md)・[ADR-0005](./docs/adr/0005-forward-callback-to-upstream.md) に従う。LINE WORKS の自動再送は前提にしない。
 - Workers と Cloud Run の両方をサポートする。採用環境を repo 内で固定しない。
 
-<!-- BEGIN develop-tools:AGENTS.md v1 sha256=42442794c0d8e1c1c756cea4c7dce27393c602e30da7d4490b0be89436765419 -->
+<!-- BEGIN develop-tools:AGENTS.md v1 sha256=749927d12f7d0a3f485d2f74e192f5d3a78f586fa6ddbbd205785878b98f3ff9 -->
 ### 1.1 Develop で共通の開始と記録
 <!-- island -->
 
 - Develop の共通規約は `~/Develop/develop-meta/AGENTS.md`、人物・禁止・承認・commit は `~/.agents/AGENTS.md`。より具体的な repo 固有規約を優先する。
-- **開発・commit・push は宣言した単一の主機（初期値 `dev`）で行う。** 非主機の repo は `git pull --ff-only` で追従する。Mac への切替は別承認の上、`~/Develop/develop-meta/docs/adr/0035-declared-single-primary-host.md` に従う。
+- **開発・commit・push は宣言した開発機（`~/Develop/develop-meta/config/developer-hosts.json`。無ければ主機だけ）で行う。Develop 全体の配布と定期実行は単一の主機（初期値 `dev`）だけが行う。** 開発機でない機の repo は `git pull --ff-only` で追従する。主機の切替は別承認の上、`~/Develop/develop-meta/docs/adr/0035-declared-single-primary-host.md` に従う。開発機の扱いは `~/Develop/develop-meta/docs/adr/0039-developer-hosts-separate-from-primary.md`。
 - 用語は repo の `CONTEXT.md`、決定は `docs/adr/`、残る作業・判断・運用 gate は root `TODO.md`、完了成果は root `CHANGELOG.md` / git log に記録し、参照する。
 - docs の探索・フォルダ作成前に `~/Develop/develop-meta/docs/reference/docs-folders.md` の一覧に従う。
 - **TODO は畳めるものを早く畳み、将来のものは着手時期・条件を添えて残す。** 滞留は新しいものを作る意欲を削ぐ。TODO は完了を進め、owner の依頼と長期の展望を残す一覧。空いた窓には、設計不要でエージェントだけで一手で閉じられるものを先に配る。次に owner の実体験と利用者に近いもの（バグ・使い勝手・利益）を進める。owner が会話・文章で明示した項目は完了まで残す。未実施で外せるのは owner がやめると言ったときだけ。決定・依頼・完了条件の文を残し、圧縮で移すのは経緯だけ。長期停滞を理由に閉じず、完了条件を事実で確かめて閉じる。
@@ -60,6 +60,7 @@ Claude / Codexは次をsubagent利用の明示許可として扱う。
 <!-- island -->
 
 - `op` はサービスアカウントで引く: `OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.config/op/service-account.token)"`。素の `op` は owner の画面に承認dialogを出す（D11）。
+- マシンにアクセスする SSH 鍵は 1Password の vault `ssh` だけに置く。`op://ssh/<鍵の名前>/private_key` で参照し、OpenSSH 形式は `?ssh-format=openssh` を付ける。
 
 ### クラウド resource の変更
 <!-- island -->
